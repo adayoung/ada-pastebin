@@ -1,32 +1,20 @@
 use askama_axum::Template;
 use axum::{
-    http::header::CONTENT_TYPE,
     http::StatusCode,
-    response::{Html, IntoResponse, Response},
+    response::{Html, IntoResponse},
     routing::get,
     Router,
 };
-use mime_guess::from_path;
-use rust_embed::RustEmbed;
 
-#[derive(RustEmbed)]
-#[folder = "static/"]
-struct Asset;
-
-#[derive(Template)]
-#[template(path = "404.html")]
-struct NotFoundTemplate;
-
-#[derive(Template)]
-#[template(path = "base.html")]
-struct BaseTemplate;
+mod static_files;
+mod templates;
 
 #[tokio::main]
 async fn main() {
     // build our application with routes
     let app = Router::new()
         .route("/", get(index))
-        .route("/static/*path", get(static_files))
+        .route("/static/*path", get(static_files::handler))
         .fallback(notfound);
 
     // run it
@@ -37,32 +25,13 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn index() -> BaseTemplate {
-    BaseTemplate {}
+async fn index() -> templates::BaseTemplate {
+    templates::BaseTemplate {}
 }
 
 // Fallback handler for 404 errors
 async fn notfound() -> impl IntoResponse {
-    let template = NotFoundTemplate {};
+    let template = templates::NotFoundTemplate {};
     let rendered = template.render().unwrap(); // Render the 404 template
     (StatusCode::NOT_FOUND, Html(rendered)) // Return a 404 response with the rendered template
-}
-
-async fn static_files(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
-    // Attempt to get the embedded file
-    if let Some(file) = Asset::get(&path) {
-        // Determine the content type based on the file extension
-        let content_type = from_path(&path).first_or_octet_stream();
-
-        // Return a response with the content type and the file contents
-        return (
-            axum::http::StatusCode::OK,
-            [(CONTENT_TYPE, content_type.as_ref())],
-            file.data,
-        )
-            .into_response();
-    }
-
-    // Return a 404 response if the file is not found
-    (axum::http::StatusCode::NOT_FOUND, "").into_response()
 }
