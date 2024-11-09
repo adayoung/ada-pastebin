@@ -1,0 +1,23 @@
+# fly.toml app configuration file generated for ada-young on 2024-11-09T18:39:36+01:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'ada-young'
+primary_region = 'iad'
+
+[build]
+
+[env]
+  PORT = '2024'
+
+[http_service]
+  internal_port = 2024
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[[vm]]
+  size = 'shared-cpu-1x'

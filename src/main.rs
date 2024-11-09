@@ -18,9 +18,7 @@ async fn main() {
         .fallback(notfound);
 
     // run it
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:2024")
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind("0.0.0.0:2024").await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
