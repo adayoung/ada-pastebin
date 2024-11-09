@@ -3,6 +3,11 @@ name = "ada-pastebin"
 version = "0.1.0"
 edition = "2021"
 
+[profile.release]
+opt-level = 3  # Optimize for speed
+lto = true     # Enable Link Time Optimization
+strip = "symbols"  # Strip debug symbols
+
 [dependencies]
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
