@@ -1,0 +1,12 @@
+[package]
+name = "ada-pastebin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+askama = { version = "0.12.1", features = ["with-axum"] }
+askama_axum = "0.4.0"
+axum = "0.7.7"
+mime_guess = "2.0.5"
+rust-embed = "8.5.0"
+tokio = { version = "1.41.1", features = ["full"] }

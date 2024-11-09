@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    {% block meta %}
+    <meta name="author" content="Ada Young" />
+    <meta name="description" content="Ada's pretty website!" />
+    {% endblock %}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/static/favicon.ico" />
+
+    <title>
+      {% block title %} Hello, world! - ada-young.com {% endblock %}
+    </title>
+
+    <!-- Bootstrap core CSS -->
+    <link
+      href="/static/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    />
+    <link rel="stylesheet" href="/static/font/bootstrap-icons.min.css" />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="/static/css/cookieconsent.min.css"
+    />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    {% block morehead %} {% endblock %}
+  </head>
+
+  <body>
+    {% block btop %}
+    <a class="d-none btn btn-secondary" id="back-to-top" href="#"
+      >Back to Top</a
+    >
+    {% endblock %} {% block main %}
+    <div class="container" style="padding: 60px 15px">
+      <div style="text-align: center">
+        <h1>Lookit the stuff here!</h1>
+        <p class="lead">Oops, nothing to see here. Come back later then!</p>
+      </div>
+    </div>
+    <!-- /.container -->
+    {% endblock %}
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script
+      src="/static/js/bootstrap.bundle.min.js"
+      integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+    ></script>
+    <script
+      src="/static/js/cookieconsent.min.js"
+      integrity="sha256-5VhCqFam2Cn+yjw61zbBNrbHVJ6SRydPeKopYlngbiQ="
+      crossorigin="anonymous"
+    ></script>
+    <script src="/static/js/base.js"></script>
+    {% block tail %} {% endblock %} {% include "analytics.html" %}
+  </body>
+</html>
