@@ -6,4 +6,6 @@ pub struct NotFoundTemplate;
 
 #[derive(Template)]
 #[template(path = "base.html")]
-pub struct BaseTemplate;
+pub struct BaseTemplate {
+    pub static_domain: String,
+}
