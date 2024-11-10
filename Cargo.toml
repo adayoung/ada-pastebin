@@ -12,6 +12,8 @@ strip = "symbols"  # Strip debug symbols
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = "0.7.7"
+config = "0.14.1"
 mime_guess = "2.0.5"
 rust-embed = "8.5.0"
+serde = { version = "1.0.214", features = ["derive"] }
 tokio = { version = "1.41.1", features = ["full"] }

@@ -8,19 +8,14 @@ use axum::{
 };
 use std::sync::Arc;
 
+mod config;
 mod static_files;
 mod templates;
 
-struct AppConfig {
-    static_domain: String,
-}
-
 #[tokio::main]
 async fn main() {
-    // TODO: this should come from a config file
-    let shared_state = Arc::new(AppConfig {
-        static_domain: "localhost:2024".to_string(),
-    });
+    let shared_state = Arc::new(config::AppConfig::new());
+    let bind_addr = format!("{}:{}", shared_state.bind_addr, shared_state.port);
 
     // build our application with routes
     let app = Router::new()
@@ -30,12 +25,12 @@ async fn main() {
         .with_state(shared_state);
 
     // run it
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:2024").await.unwrap();
+    let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
     println!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn index(State(state): State<Arc<AppConfig>>) -> templates::BaseTemplate {
+async fn index(State(state): State<Arc<config::AppConfig>>) -> templates::BaseTemplate {
     templates::BaseTemplate {
         static_domain: state.static_domain.clone(),
     }
