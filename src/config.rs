@@ -23,7 +23,21 @@ impl AppConfig {
         config = config.add_source(Environment::with_prefix("APP"));
 
         // Build the config
-        let config = config.build().unwrap();
-        config.try_deserialize().unwrap()
+        let config = match config.build() {
+            Ok(config) => config,
+            Err(err) => {
+                eprintln!("Error loading config: {}", err);
+                std::process::exit(1);
+            }
+        };
+
+        // Deserialize the config
+        match config.try_deserialize() {
+            Ok(config) => config,
+            Err(err) => {
+                eprintln!("Error deserializing config: {}", err);
+                std::process::exit(1);
+            }
+        }
     }
 }
