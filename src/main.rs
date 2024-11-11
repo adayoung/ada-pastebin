@@ -7,6 +7,8 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
+use tracing::info;
+use tracing_subscriber;
 
 mod config;
 mod static_files;
@@ -14,6 +16,11 @@ mod templates;
 
 #[tokio::main]
 async fn main() {
+    // Set up the tracing subscriber
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::INFO) // Set the log level
+        .init(); // Initialize the subscriber
+
     let shared_state = Arc::new(config::AppConfig::new());
     let bind_addr = format!("{}:{}", shared_state.bind_addr, shared_state.port);
 
@@ -26,7 +33,7 @@ async fn main() {
 
     // run it
     let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
-    println!("listening on {}", listener.local_addr().unwrap());
+    info!("listening on {}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
