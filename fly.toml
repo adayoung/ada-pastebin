@@ -19,6 +19,11 @@ primary_region = 'iad'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
+  [http_service.http_options.response]
+    pristine = true
 
 [[vm]]
   size = 'shared-cpu-1x'
+  memory = "256mb"
+  cpus = 1
+  cpu_kind = "shared"
