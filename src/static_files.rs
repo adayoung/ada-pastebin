@@ -1,6 +1,5 @@
 use axum::{
-    http::header::CONTENT_ENCODING,
-    http::header::CONTENT_TYPE,
+    http::header::{CONTENT_ENCODING, CONTENT_TYPE, VARY, X_CONTENT_TYPE_OPTIONS},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
@@ -14,13 +13,13 @@ struct Asset;
 pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
     // Attempt to get the embedded file
     if let Some(file) = Asset::get(&path) {
-        let mut is_zstd = false;
-        if path.ends_with(".zst") {
-            is_zstd = true;
+        let mut is_brotli = false;
+        if path.ends_with(".br") {
+            is_brotli = true;
         }
 
         // Trim .zstd from path
-        let path = path.trim_end_matches(".zst").to_string();
+        let path = path.trim_end_matches(".br").to_string();
 
         // Determine the content type based on the file extension
         let content_type = from_path(&path).first_or_octet_stream();
@@ -28,9 +27,11 @@ pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> 
         // Construct the response headers
         let mut headers = HeaderMap::new();
         headers.insert(CONTENT_TYPE, content_type.as_ref().parse().unwrap());
+        headers.insert(X_CONTENT_TYPE_OPTIONS, "nosniff".parse().unwrap());
+        headers.insert(VARY, "Accept-Encoding".parse().unwrap());
 
-        if is_zstd {
-            headers.insert(CONTENT_ENCODING, "zstd".parse().unwrap());
+        if is_brotli {
+            headers.insert(CONTENT_ENCODING, "br".parse().unwrap());
         }
 
         // Return a response with the content type, content encoding, and the file contents
