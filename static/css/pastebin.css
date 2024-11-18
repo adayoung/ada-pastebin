@@ -1,0 +1,89 @@
+html,
+body {
+    height: 100%;
+}
+
+body {
+    background: url("/static/img/bg.png") repeat fixed 0% 0% transparent;
+}
+
+#pastebar {
+    background-color: transparent !important;
+    border-bottom: 1px solid #e7e7e7;
+    padding: 0;
+}
+
+#pastebar .navbar-brand {
+    font-size: 2rem;
+}
+
+#searchbox::placeholder {
+    color: #6c757d;
+    opacity: 1;
+}
+
+.img-bar img {
+    max-height: 3.125rem;
+}
+
+#wrap {
+    min-height: 100%;
+    height: auto !important;
+    margin-bottom: -1.5rem;
+    padding-bottom: 1.5rem;
+}
+
+@media (max-width: 767px) {
+    #searchbox {
+        margin-bottom: 0.67rem;
+    }
+}
+
+/* paste form */
+input,
+textarea {
+    background-color: transparent !important;
+    color: #fff !important;
+}
+
+textarea#content {
+    font-family: Courier New;
+    height: 60vh;
+}
+
+#dest-group {
+    max-height: 2.375rem;
+}
+
+#help-circle {
+    padding-bottom: 0.25rem;
+}
+
+/* paste frame */
+pre {
+    border: 0;
+    white-space: pre-wrap;
+    counter-reset: line-numbering 0;
+}
+
+pre .line::before {
+    content: counter(line-numbering);
+    counter-increment: line-numbering;
+    display: inline-block;
+    border-right: 1px solid #2e6ca2;
+    margin-right: 0.5rem;
+    /* space after numbers */
+    width: 2.5rem;
+    text-align: right;
+    opacity: 0.5;
+    user-select: none;
+}
+
+article iframe {
+    border: 0;
+    border-radius: 0.25rem;
+
+    width: 100%;
+    min-height: 60vh;
+    background: #fff;
+}

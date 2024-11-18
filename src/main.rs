@@ -2,7 +2,7 @@ use askama_axum::Template;
 use axum::{
     extract::State,
     http::StatusCode,
-    response::{Html, IntoResponse},
+    response::{Html, IntoResponse, Redirect},
     routing::get,
     Router,
 };
@@ -26,7 +26,8 @@ async fn main() {
 
     // build our application with routes
     let app = Router::new()
-        .route("/", get(index))
+        .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
+        .route("/pastebin/", get(pastebin))
         .route("/static/*path", get(static_files::handler))
         .fallback(notfound)
         .with_state(shared_state);
@@ -37,8 +38,15 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
+#[allow(dead_code)]
 async fn index(State(state): State<Arc<config::AppConfig>>) -> templates::BaseTemplate {
     templates::BaseTemplate {
+        static_domain: state.static_domain.clone(),
+    }
+}
+
+async fn pastebin(State(state): State<Arc<config::AppConfig>>) -> templates::PastebinTemplate {
+    templates::PastebinTemplate {
         static_domain: state.static_domain.clone(),
     }
 }
