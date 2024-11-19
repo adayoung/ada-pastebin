@@ -7,8 +7,10 @@ use axum::{
     Router,
 };
 use std::sync::Arc;
+use tower_http::trace::TraceLayer;
 use tracing::info;
 use tracing_subscriber;
+use tracing_subscriber::EnvFilter;
 
 mod config;
 mod static_files;
@@ -18,7 +20,7 @@ mod templates;
 async fn main() {
     // Set up the tracing subscriber
     tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::INFO) // Set the log level
+        .with_env_filter(EnvFilter::from_default_env())
         .init(); // Initialize the subscriber
 
     let shared_state = Arc::new(config::AppConfig::new());
@@ -29,6 +31,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin))
         .route("/pastebin/about", get(about))
+        .layer(TraceLayer::new_for_http())
         .route("/static/*path", get(static_files::handler))
         .fallback(notfound)
         .with_state(shared_state);
