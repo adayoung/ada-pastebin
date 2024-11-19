@@ -48,6 +48,7 @@ async fn index(State(state): State<Arc<config::AppConfig>>) -> templates::BaseTe
 async fn pastebin(State(state): State<Arc<config::AppConfig>>) -> templates::PastebinTemplate {
     templates::PastebinTemplate {
         static_domain: state.static_domain.clone(),
+        recaptcha_key: state.recaptcha_key.clone(),
     }
 }
 

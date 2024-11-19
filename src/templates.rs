@@ -14,4 +14,5 @@ pub struct BaseTemplate {
 #[template(path = "pastebin.html.j2")]
 pub struct PastebinTemplate {
     pub static_domain: String,
+    pub recaptcha_key: String,
 }

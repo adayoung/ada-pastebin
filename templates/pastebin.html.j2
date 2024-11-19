@@ -158,4 +158,16 @@
     {% endblock %}
   </div>
 </div>
+
+<footer class="text-muted text-center" id="grecaptcha-text">
+  This site is protected by reCAPTCHA and the Google
+    <a class="text-decoration-none" href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy Policy</a> and
+    <a class="text-decoration-none" href="https://policies.google.com/terms" target="_blank" rel="noopener">Terms of Service</a> apply.
+</footer>
+{% endblock %}
+
+{% block tail %}
+<input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
+<script src="//{{ static_domain }}/static/js/common.js"></script>
+<script async src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_key }}&onload=helloCaptcha"></script>
 {% endblock %}

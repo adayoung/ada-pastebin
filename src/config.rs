@@ -7,6 +7,8 @@ pub struct AppConfig {
     pub static_domain: String,
     pub bind_addr: String,
     pub port: u16,
+
+    pub recaptcha_key: String,
 }
 
 impl AppConfig {
