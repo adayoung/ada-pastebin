@@ -1,4 +1,6 @@
-{% extends "base.html.j2" %} {% block meta %}
+{% extends "base.html.j2" %}
+
+{% block meta %}
 <meta name="author" content="Ada Young" />
 <meta
   name="description"
@@ -6,13 +8,18 @@
 />
 <meta name="application-name" content="Ada's HTML Pastebin" />
 <meta name="keywords" content="HTML,CSS,XML,Pastebin,simple,safe,private" />
-{% endblock %} {% block title %}Ada's HTML Pastebin{% endblock %} {% block
-morehead %}
+{% endblock %}
+
+{% block title %}Ada's HTML Pastebin{% endblock %}
+
+{% block morehead %}
 <link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css" />
 <!-- https://developers.google.com/recaptcha/docs/loading#using_resource_hints -->
 <link rel="preconnect" href="https://www.google.com" />
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin />
-{% block evenmorehead %} {% endblock %} {% endblock %}
+{% block evenmorehead %}
+{% endblock %}
+{% endblock %}
 
 {% block main %}
 <div id="wrap">
@@ -122,8 +129,11 @@ morehead %}
               <button type="button" class="btn btn-outline-primary p-0">
                 <a class="btn btn-default" href="/pastebin/about#PasteToGoogleDrive"
                   data-bs-toggle="tooltip" title="About pasting to Google Drive"
-                  target="_blank"><img id="help-circle" src="//{{ static_domain }}/static/img/help-circle.svg" /><span
-                    class="visually-hidden">About</span></a>
+                  target="_blank">
+                    <img id="help-circle" height="20" width="20" alt="About"
+                      src="//{{ static_domain }}/static/img/help-circle.svg" />
+                    <span class="visually-hidden">About</span>
+                  </a>
               </button>
             </div>
           </div>

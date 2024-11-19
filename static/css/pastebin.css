@@ -17,7 +17,8 @@ body {
     font-size: 2rem;
 }
 
-#searchbox::placeholder {
+input[type="text"]::placeholder,
+input[type="search"]::placeholder {
     color: #6c757d;
     opacity: 1;
 }
@@ -52,11 +53,11 @@ textarea#content {
 }
 
 #dest-group {
-    max-height: 2.375rem;
+    max-height: 2.35rem;
 }
 
 #help-circle {
-    padding-bottom: 0.25rem;
+    padding-bottom: 0.2rem;
 }
 
 /* paste frame */
