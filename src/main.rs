@@ -28,6 +28,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin))
+        .route("/pastebin/about", get(about))
         .route("/static/*path", get(static_files::handler))
         .fallback(notfound)
         .with_state(shared_state);
@@ -42,6 +43,13 @@ async fn main() {
 async fn index(State(state): State<Arc<config::AppConfig>>) -> templates::BaseTemplate {
     templates::BaseTemplate {
         static_domain: state.static_domain.clone(),
+    }
+}
+
+async fn about(State(state): State<Arc<config::AppConfig>>) -> templates::AboutTemplate {
+    templates::AboutTemplate {
+        static_domain: state.static_domain.clone(),
+        recaptcha_key: state.recaptcha_key.clone(),
     }
 }
 
