@@ -1,5 +1,5 @@
 use axum::{
-    http::header::{CONTENT_ENCODING, CONTENT_TYPE, VARY, X_CONTENT_TYPE_OPTIONS},
+    http::header::{CACHE_CONTROL, CONTENT_ENCODING, CONTENT_TYPE, VARY, X_CONTENT_TYPE_OPTIONS},
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
@@ -29,6 +29,7 @@ pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> 
         headers.insert(CONTENT_TYPE, content_type.as_ref().parse().unwrap());
         headers.insert(X_CONTENT_TYPE_OPTIONS, "nosniff".parse().unwrap());
         headers.insert(VARY, "Accept-Encoding".parse().unwrap());
+        headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
 
         if is_brotli {
             headers.insert(CONTENT_ENCODING, "br".parse().unwrap());

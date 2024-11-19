@@ -4,7 +4,7 @@ body {
 }
 
 body {
-    background: url("/static/img/bg.png") repeat fixed 0% 0% transparent;
+    background: url("/static/img/bg.webp") repeat fixed 0% 0% transparent;
 }
 
 #pastebar {
