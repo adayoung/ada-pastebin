@@ -1,5 +1,4 @@
 use askama_axum::Template;
-use serde::{Deserialize, Serialize};
 
 #[derive(Template)]
 #[template(path = "404.html")]
@@ -23,10 +22,5 @@ pub struct AboutTemplate {
 pub struct PastebinTemplate {
     pub static_domain: String,
     pub recaptcha_key: String,
-    pub csrf_token: String,
-}
-
-#[derive(Deserialize, Serialize)]
-pub struct PasteForm {
     pub csrf_token: String,
 }

@@ -13,6 +13,7 @@ use tracing::info;
 use tracing_subscriber;
 
 mod config;
+mod forms;
 mod static_files;
 mod templates;
 mod utils;
@@ -88,7 +89,7 @@ async fn pastebin(
 async fn newpaste(
     // State(state): State<Arc<config::AppConfig>>,
     token: CsrfToken,
-    Form(payload): Form<templates::PasteForm>,
+    Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
     if token.verify(&payload.csrf_token).is_err() {
         "Token is invalid!"
