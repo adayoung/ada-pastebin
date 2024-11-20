@@ -69,9 +69,13 @@ pub async fn csp(
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
         // format!("default-src {}", state.static_domain),
+        String::from("form-action 'self'"),
+        String::from("frame-ancestors 'none'"),
+        String::from("frame-src 'self' blob: https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/"),
+        format!("img-src data: {}", state.static_domain),
         format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", state.static_domain),
-        String::from("frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/"),
         format!("style-src 'unsafe-inline' {}", state.static_domain),
+        String::from("upgrade-insecure-requests"),
     ];
 
     response.headers_mut().insert(
