@@ -80,8 +80,9 @@
       </p>
     </noscript>
     <h1 class="visually-hidden">Welcome to Ada's HTML Pastebin!</h1>
-    <form action="/pastebin/" id="pasteform" enctype="multipart/form-data" method="post">
+    <form action="/pastebin/" id="pasteform" method="post">
       <fieldset id="pasteform-fields">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <legend class="visually-hidden">Pastebin</legend>
         <div class="row mb-3">
           <div class="col">

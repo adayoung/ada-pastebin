@@ -12,6 +12,7 @@ strip = "symbols"  # Strip debug symbols
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 axum = "0.7.7"
+axum_csrf = { version = "0.10.1", features = ["layer"] }
 config = "0.14.1"
 mime_guess = "2.0.5"
 rust-embed = "8.5.0"
