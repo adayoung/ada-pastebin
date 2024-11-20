@@ -1,9 +1,11 @@
+use crate::config;
 use axum::{
-    extract::Request,
+    extract::{Request, State},
     http::HeaderValue,
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use std::sync::Arc;
 
 pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
     let headers = request.headers().clone();
@@ -24,9 +26,6 @@ pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoRespon
 
     // Add Permissions-Policy header
     sugar.push(("Permissions-Policy", generate_permissions_policy()));
-
-    // Add Content-Security-Policy header
-    sugar.push(("Content-Security-Policy", generate_csp()));
 
     if let Some(user_agent) = headers.get("User-Agent") {
         if user_agent.to_str().unwrap().contains("msie") {
@@ -60,10 +59,25 @@ fn generate_permissions_policy() -> String {
     permissions.join(",")
 }
 
-fn generate_csp() -> String {
-    let csp: Vec<&str> = vec![
-        // TODO: Add the CSP stuff here
+pub async fn csp(
+    State(state): State<Arc<config::AppConfig>>,
+    request: Request,
+    next: Next,
+) -> Result<impl IntoResponse, Response> {
+    let mut response = next.run(request).await;
+
+    // FIXME: This is kind of messy, but it works for now
+    let policy = vec![
+        // format!("default-src {}", state.static_domain),
+        format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", state.static_domain),
+        String::from("frame-src 'self' https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/"),
+        format!("style-src 'unsafe-inline' {}", state.static_domain),
     ];
 
-    csp.join(";")
+    response.headers_mut().insert(
+        "Content-Security-Policy",
+        HeaderValue::from_str(&format!("{}", policy.join("; "))).unwrap(),
+    );
+
+    Ok(response)
 }

@@ -33,6 +33,10 @@ async fn main() {
         .route("/pastebin/", get(pastebin))
         .route("/pastebin/about", get(about))
         .layer(middleware::from_fn(utils::extra_sugar))
+        .layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            utils::csp,
+        ))
         .layer(TraceLayer::new_for_http())
         .route("/static/*path", get(static_files::handler))
         .fallback(notfound)
