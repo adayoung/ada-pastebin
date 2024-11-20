@@ -44,7 +44,7 @@ pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoRespon
 }
 
 fn generate_permissions_policy() -> String {
-    let permissions = vec![
+    let permissions: [&str; 9] = [
         "accelerometer=()",
         "camera=()",
         "geolocation=()",

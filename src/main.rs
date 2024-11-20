@@ -1,9 +1,8 @@
-use askama_axum::Template;
 use axum::{
     extract::State,
     http::StatusCode,
     middleware,
-    response::{Html, IntoResponse, Redirect},
+    response::{IntoResponse, Redirect},
     routing::get,
     Router,
 };
@@ -72,6 +71,5 @@ async fn pastebin(State(state): State<Arc<config::AppConfig>>) -> templates::Pas
 // Fallback handler for 404 errors
 async fn notfound() -> impl IntoResponse {
     let template = templates::NotFoundTemplate {};
-    let rendered = template.render().unwrap(); // Render the 404 template
-    (StatusCode::NOT_FOUND, Html(rendered)) // Return a 404 response with the rendered template
+    (StatusCode::NOT_FOUND, template)
 }
