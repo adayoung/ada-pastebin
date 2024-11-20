@@ -83,6 +83,7 @@
     <form action="/pastebin/" id="pasteform" method="post">
       <fieldset id="pasteform-fields">
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+        <input type="hidden" name="token" />
         <legend class="visually-hidden">Pastebin</legend>
         <div class="row mb-3">
           <div class="col">

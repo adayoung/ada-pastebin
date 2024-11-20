@@ -9,6 +9,8 @@ pub struct AppConfig {
     pub port: u16,
 
     pub recaptcha_key: String,
+    pub recaptcha_secret: String,
+
     pub csrf_secure_cookie: bool,
 }
 
@@ -24,6 +26,8 @@ impl AppConfig {
         config = config.set_default("port", 2024).unwrap();
 
         // config = config.set_default("recaptcha_key", "").unwrap();
+        // config = config.set_default("recaptcha_secret", "").unwrap();
+
         config = config.set_default("csrf_secure_cookie", true).unwrap();
 
         // Check for the presence of a config.toml file and use it

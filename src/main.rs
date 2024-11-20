@@ -9,11 +9,12 @@ use axum::{
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
-use tracing::info;
+use tracing::{error, info};
 use tracing_subscriber;
 
 mod config;
 mod forms;
+mod recaptcha;
 mod static_files;
 mod templates;
 mod utils;
@@ -87,15 +88,22 @@ async fn pastebin(
 }
 
 async fn newpaste(
-    // State(state): State<Arc<config::AppConfig>>,
+    State(state): State<Arc<config::AppConfig>>,
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
     if token.verify(&payload.csrf_token).is_err() {
-        "Token is invalid!"
-    } else {
-        "Lets do stuff!"
+        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
     }
+
+    let score = recaptcha::verify(&state.recaptcha_secret, "paste", &payload.token)
+        .await
+        .unwrap_or_else(|err| {
+            error!("Error verifying recaptcha: {}", err);
+            0.0
+        });
+
+    (StatusCode::OK, format!("{}", score)).into_response()
 }
 
 // Fallback handler for 404 errors
