@@ -5,6 +5,7 @@ use axum::{
 };
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
+use tracing::warn;
 
 #[derive(RustEmbed)]
 #[folder = "static/"]
@@ -26,7 +27,13 @@ pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> 
 
         // Construct the response headers
         let mut headers = HeaderMap::new();
-        headers.insert(CONTENT_TYPE, content_type.as_ref().parse().unwrap());
+        headers.insert(
+            CONTENT_TYPE,
+            content_type.as_ref().parse().unwrap_or_else(|err| {
+                warn!("Failed to parse content type: {}", err);
+                "application/octet-stream".parse().unwrap()
+            }),
+        );
         headers.insert(X_CONTENT_TYPE_OPTIONS, "nosniff".parse().unwrap());
         headers.insert(VARY, "Accept-Encoding".parse().unwrap());
         headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
