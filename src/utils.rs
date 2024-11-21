@@ -28,16 +28,18 @@ pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoRespon
     sugar.push(("Permissions-Policy", generate_permissions_policy()));
 
     if let Some(user_agent) = headers.get("User-Agent") {
-        if user_agent.to_str().unwrap().contains("msie") {
-            sugar.push(("X-UA-Compatible", String::from("IE=edge,chrome=1")));
-            sugar.push(("X-XSS-Protection", String::from("1; mode=block")));
+        if let Ok(ua) = user_agent.to_str() {
+            if ua.contains("msie") {
+                sugar.push(("X-UA-Compatible", String::from("IE=edge,chrome=1")));
+                sugar.push(("X-XSS-Protection", String::from("1; mode=block")));
+            }
         }
     }
 
     for (key, value) in sugar {
-        response
-            .headers_mut()
-            .insert(key, HeaderValue::from_str(&value).unwrap());
+        if let Ok(v) = HeaderValue::from_str(&value) {
+            response.headers_mut().insert(key, v);
+        }
     }
 
     Ok(response)
@@ -78,10 +80,11 @@ pub async fn csp(
         String::from("upgrade-insecure-requests"),
     ];
 
-    response.headers_mut().insert(
-        "Content-Security-Policy",
-        HeaderValue::from_str(&format!("{}", policy.join("; "))).unwrap(),
-    );
+    if let Ok(csp_header) = HeaderValue::from_str(&format!("{}", policy.join("; "))) {
+        response
+            .headers_mut()
+            .insert("Content-Security-Policy", csp_header);
+    }
 
     Ok(response)
 }
