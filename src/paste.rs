@@ -1,4 +1,6 @@
 use crate::forms;
+use crate::runtime;
+use crate::s3;
 use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
@@ -29,7 +31,7 @@ fn generate_paste_id() -> String {
 }
 
 pub async fn new_paste(
-    db: &PgPool,
+    state: &runtime::AppState,
     form: &forms::PasteForm,
     score: f64,
 ) -> Result<String, (StatusCode, String)> {
@@ -38,7 +40,15 @@ pub async fn new_paste(
         Err(err) => return Err(err),
     };
 
-    match paste.save(db).await {
+    match paste
+        .save(
+            &state.db,
+            &state.config.s3_bucket,
+            &state.config.s3_prefix,
+            &form.content,
+        )
+        .await
+    {
         Ok(paste_id) => Ok(paste_id),
         Err(err) => {
             error!("Failed to save paste: {}", err);
@@ -103,7 +113,7 @@ impl Paste {
         };
 
         let now = Utc::now();
-        let paste_id = generate_paste_id();
+        let paste_id = generate_paste_id(); // FIXME: Check for duplicates before using
         let paste = Paste {
             paste_id: paste_id.clone(),
             user_id: None, // TODO: Get user ID once we have an auth system
@@ -118,7 +128,14 @@ impl Paste {
         Ok(paste)
     }
 
-    async fn save(&self, db: &PgPool) -> Result<String, String> {
+    async fn save(
+        &self,
+        db: &PgPool,
+        s3_bucket: &String,
+        s3_prefix: &String,
+        content: &String,
+    ) -> Result<String, String> {
+        // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_ref().map(|vec| vec.as_slice());
 
         let format = match self.format {
@@ -126,6 +143,18 @@ impl Paste {
             PasteFormat::Html(ref html) => html,
         };
 
+        // Determine file extension and content type for S3
+        let ext = match self.format {
+            PasteFormat::Text(_) => "txt",
+            PasteFormat::Html(_) => "html",
+        };
+
+        let content_type = match self.format {
+            PasteFormat::Text(_) => "text/plain".to_string(),
+            PasteFormat::Html(_) => "text/html".to_string(),
+        };
+
+        // Start a DB transaction
         let mut transaction = match db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => return Err(format!("Failed to start transaction: {}", err)),
@@ -149,9 +178,29 @@ impl Paste {
         .await
         .map_err(|err| format!("Failed to insert paste: {}", err))?;
 
-        match transaction.commit().await {
-            Ok(_) => Ok(self.paste_id.clone()),
-            Err(err) => Err(format!("Failed to commit transaction: {}", err)),
+        // Upload to S3 while in transaction
+        match s3::upload(
+            &s3_bucket,
+            &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
+            &content,
+            &content_type,
+        )
+        .await
+        {
+            Ok(_) => match transaction.commit().await {
+                Ok(_) => Ok(self.paste_id.clone()),
+                Err(err) => {
+                    error!("Failed to commit transaction: {}", err);
+                    Err(format!("Failed to commit transaction: {}", err))
+                }
+            },
+            Err(err) => match transaction.rollback().await {
+                Ok(_) => return Err(format!("Failed to upload to S3: {}", err)),
+                Err(err) => {
+                    error!("Failed to rollback transaction: {}", err);
+                    Err(format!("Failed to rollback transaction: {}", err))
+                }
+            },
         }
     }
 }

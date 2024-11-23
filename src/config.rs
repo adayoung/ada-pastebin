@@ -12,6 +12,8 @@ pub struct AppConfig {
     pub recaptcha_secret: String,
 
     pub csrf_secure_cookie: bool,
+    pub s3_bucket: String,
+    pub s3_prefix: String,
 }
 
 impl AppConfig {
@@ -29,6 +31,10 @@ impl AppConfig {
         // config = config.set_default("recaptcha_secret", "").unwrap();
 
         config = config.set_default("csrf_secure_cookie", true).unwrap();
+        config = config
+            .set_default("s3_bucket", "bin.ada-young.com")
+            .unwrap();
+        config = config.set_default("s3_prefix", "content/").unwrap();
 
         // Check for the presence of a config.toml file and use it
         if std::path::Path::new("config.toml").is_file() {

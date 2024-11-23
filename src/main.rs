@@ -19,6 +19,7 @@ mod forms;
 mod paste;
 mod recaptcha;
 mod runtime;
+mod s3;
 mod static_files;
 mod templates;
 mod utils;
@@ -133,7 +134,7 @@ async fn newpaste(
         });
 
     // Create the paste
-    let paste_id = match paste::new_paste(&state.db, &payload, score).await {
+    let paste_id = match paste::new_paste(&state, &payload, score).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();
