@@ -14,6 +14,7 @@ use tracing_subscriber;
 
 mod config;
 mod forms;
+mod paste;
 mod recaptcha;
 mod static_files;
 mod templates;
@@ -103,7 +104,14 @@ async fn newpaste(
             0.0
         });
 
-    (StatusCode::OK, format!("{}", score)).into_response()
+    let paste_id = match paste::new_paste(payload, score).await {
+        Ok(id) => id,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    (StatusCode::OK, paste_id).into_response()
 }
 
 // Fallback handler for 404 errors
