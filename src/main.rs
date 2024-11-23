@@ -91,6 +91,7 @@ async fn pastebin(
 async fn newpaste(
     State(state): State<Arc<config::AppConfig>>,
     token: CsrfToken,
+    headers: axum::http::HeaderMap,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
     if token.verify(&payload.csrf_token).is_err() {
@@ -111,7 +112,17 @@ async fn newpaste(
         }
     };
 
-    (StatusCode::OK, paste_id).into_response()
+    // Check for the presence of the X-Requested-With header
+    if headers.contains_key("X-Requested-With") {
+        (StatusCode::OK, paste_id).into_response()
+    } else {
+        (
+            StatusCode::SEE_OTHER,
+            [("Location", format! {"/pastebin/{}", paste_id})],
+            "",
+        )
+            .into_response()
+    }
 }
 
 // Fallback handler for 404 errors
