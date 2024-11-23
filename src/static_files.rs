@@ -19,7 +19,7 @@ pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> 
             is_brotli = true;
         }
 
-        // Trim .zstd from path
+        // Trim .br from path
         let path = path.trim_end_matches(".br").to_string();
 
         // Determine the content type based on the file extension

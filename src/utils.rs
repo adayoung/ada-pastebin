@@ -1,4 +1,4 @@
-use crate::config;
+use crate::runtime;
 use axum::{
     extract::{Request, State},
     http::HeaderValue,
@@ -62,11 +62,12 @@ fn generate_permissions_policy() -> String {
 }
 
 pub async fn csp(
-    State(state): State<Arc<config::AppConfig>>,
+    State(state): State<Arc<runtime::AppState>>,
     request: Request,
     next: Next,
 ) -> Result<impl IntoResponse, Response> {
     let mut response = next.run(request).await;
+    let static_domain = state.config.static_domain.clone();
 
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
@@ -74,9 +75,9 @@ pub async fn csp(
         String::from("form-action 'self'"),
         String::from("frame-ancestors 'none'"),
         String::from("frame-src 'self' blob: https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/"),
-        format!("img-src data: {}", state.static_domain),
-        format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", state.static_domain),
-        format!("style-src 'unsafe-inline' {}", state.static_domain),
+        format!("img-src data: {}", static_domain),
+        format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", static_domain),
+        format!("style-src 'unsafe-inline' {}", static_domain),
         String::from("upgrade-insecure-requests"),
     ];
 
