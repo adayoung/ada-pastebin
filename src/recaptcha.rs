@@ -8,8 +8,20 @@ struct RecaptchaResponse {
     action: String,
 }
 
+fn is_debug() -> bool {
+    #[cfg(debug_assertions)]
+    {
+        true
+    }
+
+    #[cfg(not(debug_assertions))]
+    {
+        false
+    }
+}
+
 pub async fn verify(secret: &str, action: &str, token: &str) -> Result<f64, reqwest::Error> {
-    if !(token.len() > 0) {
+    if !(token.len() > 0) || is_debug() {
         return Ok(0.0);
     }
 
