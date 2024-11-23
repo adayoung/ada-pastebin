@@ -1,8 +1,13 @@
 use crate::forms;
 use axum::http::StatusCode;
-use chrono::{DateTime, Utc};
+use bigdecimal::BigDecimal;
+use chrono::Utc;
+use num_traits::FromPrimitive;
 use rand::Rng;
 use sqlx::postgres::PgPool;
+use sqlx::query;
+use sqlx::types::chrono::DateTime;
+use tracing::error;
 
 fn generate_paste_id() -> String {
     let all_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
@@ -28,23 +33,28 @@ pub async fn new_paste(
     form: &forms::PasteForm,
     score: f64,
 ) -> Result<String, (StatusCode, String)> {
-    let paste = Paste::new(form, score);
+    let paste = match Paste::new(form, score) {
+        Ok(paste) => paste,
+        Err(err) => return Err(err),
+    };
 
-    #[cfg(debug_assertions)]
-    {
-        println!("{:#?}", paste);
+    match paste.save(db).await {
+        Ok(paste_id) => Ok(paste_id),
+        Err(err) => {
+            error!("Failed to save paste: {}", err);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Meep! We couldn't save that paste :-(".to_string(),
+            ))
+        }
     }
-
-    Ok(paste.paste_id)
 }
 
-#[derive(Debug)]
 enum PasteFormat {
     Text(String),
     Html(String),
 }
 
-#[derive(Debug)]
 struct Paste {
     paste_id: String,
     user_id: Option<String>,
@@ -53,11 +63,11 @@ struct Paste {
     format: PasteFormat,
     date: DateTime<Utc>,
     gdriveid: Option<String>, // Googe Drive object ID
-    rcscore: f64,             // Recaptcha score
+    rcscore: BigDecimal,      // Recaptcha score
 }
 
 impl Paste {
-    fn new(form: &forms::PasteForm, score: f64) -> Self {
+    fn new(form: &forms::PasteForm, score: f64) -> Result<Self, (StatusCode, String)> {
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
         if title.len() > 50 {
@@ -81,6 +91,17 @@ impl Paste {
             .take(15)
             .collect();
 
+        let format = match form.format.as_str() {
+            "plain" => PasteFormat::Text(form.format.clone()),
+            "html" => PasteFormat::Html(form.format.clone()),
+            _ => return Err((StatusCode::BAD_REQUEST, "Invalid format".to_string())),
+        };
+
+        let rcscore = match BigDecimal::from_f64(score) {
+            Some(score) => score,
+            None => return Err((StatusCode::BAD_REQUEST, "Invalid score".to_string())),
+        };
+
         let now = Utc::now();
         let paste_id = generate_paste_id();
         let paste = Paste {
@@ -88,12 +109,49 @@ impl Paste {
             user_id: None, // TODO: Get user ID once we have an auth system
             title: Some(title),
             tags: Some(tags),
-            format: PasteFormat::Text(form.format.clone()),
+            format,
             date: now,
             gdriveid: None, // TODO: Get Google Drive ID if available
-            rcscore: score,
+            rcscore,
         };
 
-        paste
+        Ok(paste)
+    }
+
+    async fn save(&self, db: &PgPool) -> Result<String, String> {
+        let tags: Option<&[String]> = self.tags.as_ref().map(|vec| vec.as_slice());
+
+        let format = match self.format {
+            PasteFormat::Text(ref text) => text,
+            PasteFormat::Html(ref html) => html,
+        };
+
+        let mut transaction = match db.begin().await {
+            Ok(transaction) => transaction,
+            Err(err) => return Err(format!("Failed to start transaction: {}", err)),
+        };
+
+        query!(
+            r#"
+            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, rcscore)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            "#,
+            self.paste_id,
+            self.user_id,
+            self.title,
+            tags,
+            format,
+            self.date,
+            self.gdriveid,
+            self.rcscore
+        )
+        .execute(&mut *transaction)
+        .await
+        .map_err(|err| format!("Failed to insert paste: {}", err))?;
+
+        match transaction.commit().await {
+            Ok(_) => Ok(self.paste_id.clone()),
+            Err(err) => Err(format!("Failed to commit transaction: {}", err)),
+        }
     }
 }
