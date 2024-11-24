@@ -74,11 +74,14 @@
       fetch(contentURL)
         .then((response) => {
           if (response.ok) {
+            return response.text();
+            /*
             if (document.getElementById("format").value == "html") {
               return response.blob();
             } else {
               return response.text();
             }
+            */
           } else {
             document.getElementById("loader-result").textContent =
               `Meep! I couldn't get the content -flails- (${response.status}: ${response.statusText})`;
@@ -92,9 +95,10 @@
         })
         .then((result) => {
           if (document.getElementById("format").value == "html") {
-            let blob = new Blob([result], { type: "text/html" });
-            let url = URL.createObjectURL(blob);
-            document.getElementById("content-frame").src = url;
+            document.getElementById("content-frame").srcdoc = result;
+            // let blob = new Blob([result], { type: "text/html" });
+            // let url = URL.createObjectURL(blob);
+            // document.getElementById("content-frame").src = url;
             document.getElementById("content-frame").classList.remove("d-none");
             document.getElementById("loader").classList.add("d-none");
           } else {
