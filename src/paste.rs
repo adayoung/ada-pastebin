@@ -90,14 +90,16 @@ impl Paste {
             .clone()
             .unwrap_or_default()
             .split_whitespace()
-            .map(|part| {
-                part.chars()
+            .map(|tag| {
+                tag.chars()
                     .filter(|x| char::is_alphanumeric(*x))
                     .take(15)
-                    .collect()
+                    .collect::<String>()
+                    .to_lowercase()
             })
-            .map(|word: String| word.to_lowercase())
-            .filter(|word: &String| word.len() > 0)
+            .filter(|tag: &String| !tag.is_empty())
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
             .take(15)
             .collect();
 
