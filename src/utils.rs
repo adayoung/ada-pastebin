@@ -68,13 +68,14 @@ pub async fn csp(
 ) -> Result<impl IntoResponse, Response> {
     let mut response = next.run(request).await;
     let static_domain = state.config.static_domain.clone();
+    let s3_bucket_url = state.config.s3_bucket_url.clone();
 
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
         // format!("default-src {}", state.static_domain),
         String::from("form-action 'self'"),
         String::from("frame-ancestors 'none'"),
-        String::from("frame-src 'self' blob: https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/"),
+        format!("frame-src blob: {} https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/", s3_bucket_url),
         format!("img-src data: {}", static_domain),
         format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", static_domain),
         format!("style-src 'unsafe-inline' {}", static_domain),
