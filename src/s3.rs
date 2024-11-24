@@ -1,4 +1,6 @@
 use aws_sdk_s3 as s3;
+use brotli::CompressorWriter;
+use std::io::Write;
 use tracing::error;
 
 pub async fn upload(
@@ -16,13 +18,29 @@ pub async fn upload(
 
     let client = s3::Client::from_conf(config);
 
+    let mut key = key.clone();
+    let body: Vec<u8>;
+    let content_encoding: String;
+    match compress(content) {
+        Ok(result) => {
+            body = result.0;
+            content_encoding = result.1;
+            if content_encoding == "br" {
+                key.push_str(".br");
+            }
+        }
+        Err(err) => {
+            return Err(format!("{}", err));
+        }
+    };
+
     match client
         .put_object()
         .bucket(bucket)
         .key(key)
-        .body(content.as_bytes().to_vec().into())
+        .body(body.into())
         .content_type(content_type)
-        // .content_encoding("br") // TODO: Brotli the content first
+        .content_encoding(content_encoding)
         .send()
         .await
     {
@@ -34,4 +52,29 @@ pub async fn upload(
     };
 
     Ok(())
+}
+
+fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
+    if content.len() < 1024 {
+        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+    }
+
+    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 11, 22);
+    match encoder.write_all(content.as_bytes()) {
+        Ok(_) => {}
+        Err(err) => {
+            error!("Failed to compress content: {}", err);
+            return Err(format!("{}", err));
+        }
+    };
+
+    match encoder.flush() {
+        Ok(_) => {}
+        Err(err) => {
+            error!("Failed to compress content: {}", err);
+            return Err(format!("{}", err));
+        }
+    };
+
+    Ok((encoder.into_inner(), "br".to_string()))
 }
