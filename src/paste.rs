@@ -180,14 +180,6 @@ impl Paste {
         .await
         .map_err(|err| format!("Failed to insert paste: {}", err))?;
 
-        // match transaction.commit().await {
-        //     Ok(_) => Ok(self.paste_id.clone()),
-        //     Err(err) => {
-        //         error!("Failed to commit transaction: {}", err);
-        //         Err(format!("Failed to commit transaction: {}", err))
-        //     }
-        // }
-
         // Upload to S3 before continuing with the transaction
         match s3::upload(
             &s3_bucket,
