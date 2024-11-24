@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS "pastebin" (
 	"format" varchar(5) NOT NULL,
 	"date" timestamp with time zone NOT NULL,
 	"gdriveid" varchar(384),
-	"rcscore" numeric(2, 1) CHECK (rcscore >= 0.0 AND rcscore <= 1.0)
+	"rcscore" numeric(2, 1) CHECK (rcscore >= 0.0 AND rcscore <= 1.0) NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS paste_id_index ON pastebin(paste_id);

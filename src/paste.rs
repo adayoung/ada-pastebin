@@ -7,8 +7,8 @@ use chrono::Utc;
 use num_traits::FromPrimitive;
 use rand::Rng;
 use sqlx::postgres::PgPool;
-use sqlx::query;
 use sqlx::types::chrono::DateTime;
+use sqlx::{query, FromRow};
 use tracing::error;
 
 fn generate_paste_id() -> String {
@@ -60,20 +60,31 @@ pub async fn new_paste(
     }
 }
 
-enum PasteFormat {
+pub enum PasteFormat {
     Text(String),
     Html(String),
 }
 
-struct Paste {
-    paste_id: String,
-    user_id: Option<String>,
-    title: Option<String>,
-    tags: Option<Vec<String>>,
-    format: PasteFormat,
-    date: DateTime<Utc>,
-    gdriveid: Option<String>, // Googe Drive object ID
-    rcscore: BigDecimal,      // Recaptcha score
+impl From<String> for PasteFormat {
+    fn from(format: String) -> Self {
+        match format.as_str() {
+            "plain" => PasteFormat::Text(format),
+            "html" => PasteFormat::Html(format),
+            _ => panic!("Invalid format"),
+        }
+    }
+}
+
+#[derive(FromRow)]
+pub struct Paste {
+    pub paste_id: String,
+    pub user_id: Option<String>,
+    pub title: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub format: PasteFormat,
+    pub date: DateTime<Utc>,
+    pub gdriveid: Option<String>, // Googe Drive object ID
+    pub rcscore: BigDecimal,      // Recaptcha score
 }
 
 impl Paste {
@@ -204,5 +215,36 @@ impl Paste {
                 }
             },
         }
+    }
+
+    pub async fn get(db: &PgPool, paste_id: &String) -> Result<Paste, (StatusCode, String)> {
+        let paste = match sqlx::query_as!(
+            Paste,
+            r#"
+                SELECT paste_id, user_id, title, tags, format, date, gdriveid, rcscore
+                FROM pastebin
+                WHERE paste_id = $1
+                "#,
+            paste_id
+        )
+        .fetch_one(db)
+        .await
+        {
+            Ok(paste) => paste,
+            Err(err) => match err {
+                sqlx::Error::RowNotFound => {
+                    return Err((StatusCode::NOT_FOUND, "Paste not found".to_string()));
+                }
+                _ => {
+                    error!("Failed to fetch paste: {}", err);
+                    return Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to fetch paste: {}", err),
+                    ));
+                }
+            },
+        };
+
+        Ok(paste)
     }
 }
