@@ -1,1 +1,34 @@
-{% extends "base.html.j2" %}
+{% extends "pastebin.html.j2" %}
+
+{% block meta %}
+<meta name="description" content="{{ paste.get_title() }}">
+<meta name="paste_id" content="{{ paste.paste_id }}">
+{% endblock %}
+
+{% block title %}{{ paste.get_title() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col">
+        <h1 class="visually-hidden">{{ paste.get_title() }}</h1>
+        <article id="content" role="main">
+            <noscript>
+                <iframe src="{{ s3_bucket_url }}{{ paste.s3_key }}" sandbox title="content-frame"></iframe>
+            </noscript>
+            <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
+            <pre class="d-none text-light" id="content-text" title="content-text"></pre>
+        </article>
+        <div class="d-none text-light" id="loader">
+            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            Loading content, please wait ... <span id="loader-result"></span>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block moretail %}
+<input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
+<input type="hidden" id="format" value="{{ paste.get_format() }}">
+<input type="hidden" id="content-url" value="{{ s3_bucket_url }}{{ paste.s3_key }}">
+<script src="//{{ static_domain }}/static/js/paste.js"></script>
+{% endblock %}

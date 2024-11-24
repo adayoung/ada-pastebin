@@ -158,6 +158,7 @@ async fn newpaste(
 
 async fn paste(
     State(state): State<Arc<runtime::AppState>>,
+    // token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
@@ -169,6 +170,9 @@ async fn paste(
 
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
+        s3_bucket_url: state.config.s3_bucket_url.clone(),
+        recaptcha_key: state.config.recaptcha_key.clone(),
+        // csrf_token: token.authenticity_token().unwrap(),
         paste,
     };
 

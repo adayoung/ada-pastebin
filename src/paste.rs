@@ -84,7 +84,8 @@ pub struct Paste {
     pub format: PasteFormat,
     pub date: DateTime<Utc>,
     pub gdriveid: Option<String>, // Googe Drive object ID
-    pub rcscore: BigDecimal,      // Recaptcha score
+    pub s3_key: String,
+    pub rcscore: BigDecimal, // Recaptcha score
 }
 
 impl Paste {
@@ -135,6 +136,7 @@ impl Paste {
             format,
             date: now,
             gdriveid: None, // TODO: Get Google Drive ID if available
+            s3_key: "".to_string(),
             rcscore,
         };
 
@@ -217,7 +219,7 @@ impl Paste {
         let paste = match sqlx::query_as!(
             Paste,
             r#"
-                SELECT paste_id, user_id, title, tags, format, date, gdriveid, rcscore
+                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore
                 FROM pastebin
                 WHERE paste_id = $1
                 "#,
@@ -242,5 +244,20 @@ impl Paste {
         };
 
         Ok(paste)
+    }
+
+    pub fn get_title(&self) -> String {
+        if self.title == Some("".to_string()) {
+            self.paste_id.clone()
+        } else {
+            self.title.clone().unwrap()
+        }
+    }
+
+    pub fn get_format(&self) -> String {
+        match self.format {
+            PasteFormat::Text(_) => "plain".to_string(),
+            PasteFormat::Html(_) => "html".to_string(),
+        }
     }
 }

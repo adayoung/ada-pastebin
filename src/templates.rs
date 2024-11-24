@@ -30,5 +30,8 @@ pub struct PastebinTemplate {
 #[template(path = "paste.html.j2")]
 pub struct PasteTemplate {
     pub static_domain: String,
+    pub s3_bucket_url: String,
+    pub recaptcha_key: String,
+    // pub csrf_token: String,
     pub paste: Paste,
 }

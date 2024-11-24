@@ -73,7 +73,7 @@ pub async fn csp(
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
         format!("default-src 'none'"),
-        format!("connect-src 'self'"),
+        format!("connect-src 'self' {}", s3_bucket_url),
         format!("form-action 'self'"),
         format!("frame-ancestors 'none'"),
         format!("frame-src blob: {} https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/", s3_bucket_url),

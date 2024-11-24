@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT paste_id, user_id, title, tags, format, date, gdriveid, rcscore\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
+  "query": "\n                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
   "describe": {
     "columns": [
       {
@@ -40,6 +40,11 @@
       },
       {
         "ordinal": 7,
+        "name": "s3_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
         "name": "rcscore",
         "type_info": "Numeric"
       }
@@ -57,8 +62,9 @@
       false,
       false,
       true,
+      false,
       false
     ]
   },
-  "hash": "3d952a6ee78376228b4f8138f34d2de2510aec7a2f73d3a74150b5bf5d5237c9"
+  "hash": "de7f5b2f984a537d00113585708ac2d86a1bc762a7681861c6033ca47a83c6ac"
 }
