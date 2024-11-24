@@ -72,14 +72,15 @@ pub async fn csp(
 
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
-        // format!("default-src {}", state.static_domain),
-        String::from("form-action 'self'"),
-        String::from("frame-ancestors 'none'"),
+        format!("default-src 'none'"),
+        format!("connect-src 'self'"),
+        format!("form-action 'self'"),
+        format!("frame-ancestors 'none'"),
         format!("frame-src blob: {} https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/", s3_bucket_url),
         format!("img-src data: {}", static_domain),
         format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", static_domain),
         format!("style-src 'unsafe-inline' {}", static_domain),
-        String::from("upgrade-insecure-requests"),
+        format!("upgrade-insecure-requests"),
     ];
 
     if let Ok(csp_header) = HeaderValue::from_str(&format!("{}", policy.join("; "))) {
