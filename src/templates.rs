@@ -1,3 +1,4 @@
+use crate::paste::Paste;
 use askama_axum::Template;
 
 #[derive(Template)]
@@ -23,4 +24,11 @@ pub struct PastebinTemplate {
     pub static_domain: String,
     pub recaptcha_key: String,
     pub csrf_token: String,
+}
+
+#[derive(Template)]
+#[template(path = "paste.html.j2")]
+pub struct PasteTemplate {
+    pub static_domain: String,
+    pub paste: Paste,
 }

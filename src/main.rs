@@ -1,5 +1,5 @@
 use axum::{
-    extract::{DefaultBodyLimit, State},
+    extract::{DefaultBodyLimit, Path, State},
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect},
@@ -69,6 +69,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/:paste_id", get(paste))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
@@ -153,6 +154,25 @@ async fn newpaste(
         )
             .into_response()
     }
+}
+
+async fn paste(
+    State(state): State<Arc<runtime::AppState>>,
+    Path(paste_id): Path<String>,
+) -> impl IntoResponse {
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    let template = templates::PasteTemplate {
+        static_domain: state.config.static_domain.clone(),
+        paste,
+    };
+
+    (StatusCode::OK, template).into_response()
 }
 
 // Fallback handler for 404 errors
