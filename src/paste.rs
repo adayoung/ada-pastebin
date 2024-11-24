@@ -167,6 +167,18 @@ impl Paste {
             PasteFormat::Html(_) => "text/html".to_string(),
         };
 
+        let s3_key = match s3::upload(
+            &s3_bucket,
+            &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
+            &content,
+            &content_type,
+        )
+        .await
+        {
+            Ok(key) => key,
+            Err(err) => return Err(err),
+        };
+
         // Start a DB transaction
         let mut transaction = match db.begin().await {
             Ok(transaction) => transaction,
@@ -175,8 +187,8 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, rcscore)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key,rcscore)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             "#,
             self.paste_id,
             self.user_id,
@@ -185,35 +197,19 @@ impl Paste {
             format,
             self.date,
             self.gdriveid,
+            s3_key,
             self.rcscore
         )
         .execute(&mut *transaction)
         .await
         .map_err(|err| format!("Failed to insert paste: {}", err))?;
 
-        // Upload to S3 before continuing with the transaction
-        match s3::upload(
-            &s3_bucket,
-            &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
-            &content,
-            &content_type,
-        )
-        .await
-        {
-            Ok(_) => match transaction.commit().await {
-                Ok(_) => Ok(self.paste_id.clone()),
-                Err(err) => {
-                    error!("Failed to commit transaction: {}", err);
-                    Err(format!("Failed to commit transaction: {}", err))
-                }
-            },
-            Err(err) => match transaction.rollback().await {
-                Ok(_) => return Err(format!("Failed to upload to S3: {}", err)),
-                Err(err) => {
-                    error!("Failed to rollback transaction: {}", err);
-                    Err(format!("Failed to rollback transaction: {}", err))
-                }
-            },
+        match transaction.commit().await {
+            Ok(_) => Ok(self.paste_id.clone()),
+            Err(err) => {
+                error!("Failed to commit transaction: {}", err);
+                Err(format!("Failed to commit transaction: {}", err))
+            }
         }
     }
 

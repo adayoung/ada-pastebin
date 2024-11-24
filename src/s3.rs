@@ -8,7 +8,7 @@ pub async fn upload(
     key: &String,
     content: &String,
     content_type: &String,
-) -> Result<(), String> {
+) -> Result<String, String> {
     let _config = aws_config::load_from_env().await;
 
     let config = s3::Config::from(&_config)
@@ -18,7 +18,7 @@ pub async fn upload(
 
     let client = s3::Client::from_conf(config);
 
-    let mut key = key.clone();
+    let mut real_key = key.clone();
     let body: Vec<u8>;
     let content_encoding: String;
     match compress(content) {
@@ -26,7 +26,7 @@ pub async fn upload(
             body = result.0;
             content_encoding = result.1;
             if content_encoding == "br" {
-                key.push_str(".br");
+                real_key.push_str(".br");
             }
         }
         Err(err) => {
@@ -37,7 +37,7 @@ pub async fn upload(
     match client
         .put_object()
         .bucket(bucket)
-        .key(key)
+        .key(&real_key)
         .body(body.into())
         .content_type(content_type)
         .content_encoding(content_encoding)
@@ -51,7 +51,7 @@ pub async fn upload(
         }
     };
 
-    Ok(())
+    Ok(real_key)
 }
 
 fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
