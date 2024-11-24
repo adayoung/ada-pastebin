@@ -150,14 +150,7 @@
           document.getElementById("loader").classList.add("text-danger");
         });
     } else {
-      if (document.getElementById("format").value == "html") {
-        document.getElementById("content-frame").src = contentURL;
-        document.getElementById("content-frame").classList.remove("d-none");
-        document.getElementById("loader").classList.add("d-none");
-        return;
-      } else {
-        fetchContent(contentURL);
-      }
+      fetchContent(contentURL);
     }
 
     grecaptcha.ready(function () {
