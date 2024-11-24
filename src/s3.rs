@@ -59,7 +59,7 @@ fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
         return Ok((content.as_bytes().to_vec(), "identity".to_string()));
     }
 
-    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 11, 22);
+    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 6, 22);
     match encoder.write_all(content.as_bytes()) {
         Ok(_) => {}
         Err(err) => {
