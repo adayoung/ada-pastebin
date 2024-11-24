@@ -3,22 +3,20 @@
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Share button
-    /*
     if (navigator.canShare != undefined) {
-      if (navigator.canShare({url: location.href})) {
-        let shareBtn = document.getElementById('share-btn');
-        shareBtn.addEventListener('click', async (e) => {
+      if (navigator.canShare({ url: location.href })) {
+        let shareBtn = document.getElementById("share-btn");
+        shareBtn.addEventListener("click", async (e) => {
           e.preventDefault();
           try {
-            await navigator.share({url: location.href});
-          } catch(error) {
+            await navigator.share({ url: location.href });
+          } catch (error) {
             // document.getElementById('share-btn').classList.add('d-none');
           }
         });
-        shareBtn.classList.remove('d-none');
+        shareBtn.classList.remove("d-none");
       }
     }
-    */
 
     // Fancy delete button
     /*

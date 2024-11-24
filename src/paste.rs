@@ -260,4 +260,8 @@ impl Paste {
             PasteFormat::Html(_) => "html".to_string(),
         }
     }
+
+    pub fn get_tags(&self) -> Vec<String> {
+        self.tags.clone().unwrap_or_default()
+    }
 }

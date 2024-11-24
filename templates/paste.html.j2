@@ -8,6 +8,28 @@
 {% block title %}{{ paste.get_title() }}{% endblock %}
 
 {% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <div class="d-flex align-items-center">
+            <span>
+                {% for tag in paste.get_tags() %}
+                <em><a class="text-decoration-none" href="/pastebin/search/?tags={{ tag }}">{{ tag }}</a></em>
+                {% endfor %}
+            </span>
+            <span class="d-none d-md-block text-muted ms-auto">
+                <button class="d-none btn btn-outline-secondary btn-sm" id="share-btn" title="Share">
+                    <img src="//{{ static_domain }}/static/img/share.svg" loading="lazy" />
+                    <span class="visually-hidden">Share</span>
+                </button>
+
+                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm" title="Download" download>
+                    <img src="//{{ static_domain }}/static/img/download.svg" loading="lazy" />
+                    <span class="visually-hidden">Download</span>
+                </a>
+            </span>
+        </div>
+    </div>
+</div>
 <div class="row">
     <div class="col">
         <h1 class="visually-hidden">{{ paste.get_title() }}</h1>
