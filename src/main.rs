@@ -1,5 +1,5 @@
 use axum::{
-    extract::State,
+    extract::{DefaultBodyLimit, State},
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect},
@@ -10,7 +10,6 @@ use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
-use tower_http::limit::RequestBodyLimitLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 use tracing_subscriber;
@@ -70,7 +69,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
-        .layer(RequestBodyLimitLayer::new(4 * 1024 * 1024)) // 4MB is a lot of log!
+        .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
         .layer(middleware::from_fn(utils::extra_sugar))
