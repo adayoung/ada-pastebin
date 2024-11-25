@@ -108,3 +108,10 @@ article iframe {
     min-height: 60vh;
     background: #fff;
 }
+
+#share-btn:hover,
+#download-btn:hover {
+    background-color: inherit !important;
+    filter: invert(92%) sepia(93%) saturate(0%) hue-rotate(202deg)
+        brightness(106%) contrast(106%);
+}

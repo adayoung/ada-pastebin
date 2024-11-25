@@ -22,7 +22,7 @@
                     <span class="visually-hidden">Share</span>
                 </button>
 
-                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm" title="Download" download>
+                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                     <span class="visually-hidden">Download</span>
                 </a>
