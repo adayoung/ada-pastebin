@@ -8,6 +8,7 @@ pub async fn upload(
     key: &String,
     content: &String,
     content_type: &String,
+    title: &Option<String>,
 ) -> Result<String, String> {
     let _config = aws_config::load_from_env().await;
 
@@ -34,6 +35,11 @@ pub async fn upload(
         }
     };
 
+    let title = match title {
+        Some(title) => title,
+        None => "",
+    };
+
     match client
         .put_object()
         .bucket(bucket)
@@ -41,6 +47,8 @@ pub async fn upload(
         .body(body.into())
         .content_type(content_type)
         .content_encoding(content_encoding)
+        .content_disposition("attachment")
+        .metadata("title", title)
         .send()
         .await
     {

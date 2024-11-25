@@ -174,6 +174,7 @@ impl Paste {
             &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
             &content,
             &content_type,
+            &self.title,
         )
         .await
         {
