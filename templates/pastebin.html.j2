@@ -171,8 +171,8 @@
 {% block tail %}
 <input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
 <script src="//{{ static_domain }}/static/js/common.js"></script>
-<script async src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_key }}&onload=helloCaptcha"></script>
 {% block moretail %}
+<script async src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_key }}&onload=helloCaptcha"></script>
 <script src="//{{ static_domain }}/static/js/pastebin.js"></script>
 {% endblock %}
 {% endblock %}

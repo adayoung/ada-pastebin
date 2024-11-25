@@ -110,7 +110,7 @@ impl Paste {
                     .to_lowercase()
             })
             .filter(|tag: &String| !tag.is_empty())
-            .collect::<std::collections::HashSet<_>>()
+            .collect::<std::collections::HashSet<_>>() // FIXME: this does not preserve order
             .into_iter()
             .take(15)
             .collect();

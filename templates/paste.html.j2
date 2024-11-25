@@ -52,5 +52,6 @@
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ s3_bucket_url }}{{ paste.s3_key }}">
+<script async src="https://www.google.com/recaptcha/api.js?render={{ recaptcha_key }}&onload=helloAgainCaptcha"></script>
 <script src="//{{ static_domain }}/static/js/paste.js"></script>
 {% endblock %}
