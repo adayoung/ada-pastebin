@@ -169,7 +169,7 @@ impl Paste {
             PasteFormat::Html(_) => "text/html".to_string(),
         };
 
-        let s3_key = match s3::upload(
+        let (s3_key, content_length) = match s3::upload(
             &s3_bucket,
             &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
             &content,
@@ -179,7 +179,7 @@ impl Paste {
         )
         .await
         {
-            Ok(key) => key,
+            Ok(response) => response,
             Err(err) => return Err(err),
         };
 
@@ -191,8 +191,8 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key,rcscore)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key, s3_content_length, rcscore)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             "#,
             self.paste_id,
             self.user_id,
@@ -202,6 +202,7 @@ impl Paste {
             self.date,
             self.gdriveid,
             s3_key,
+            content_length,
             self.rcscore
         )
         .execute(&mut *transaction)

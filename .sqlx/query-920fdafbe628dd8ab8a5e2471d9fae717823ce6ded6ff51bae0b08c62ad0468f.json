@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key,rcscore)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)\n            ",
+  "query": "\n            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key, s3_content_length, rcscore)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            ",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,10 +13,11 @@
         "Timestamptz",
         "Varchar",
         "Varchar",
+        "Int4",
         "Numeric"
       ]
     },
     "nullable": []
   },
-  "hash": "b29ed2d6942754f7067eefe2e686d0e117a5f67ebc2317dbac62274486dc2ff6"
+  "hash": "920fdafbe628dd8ab8a5e2471d9fae717823ce6ded6ff51bae0b08c62ad0468f"
 }

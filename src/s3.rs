@@ -10,7 +10,7 @@ pub async fn upload(
     content_type: &String,
     title: &Option<String>,
     paste_id_w_ext: &String,
-) -> Result<String, String> {
+) -> Result<(String, i32), String> {
     let _config = aws_config::load_from_env().await;
 
     let config = s3::Config::from(&_config)
@@ -35,6 +35,7 @@ pub async fn upload(
             return Err(format!("{}", err));
         }
     };
+    let content_length = body.len();
 
     let title = match title {
         Some(title) => title,
@@ -63,7 +64,7 @@ pub async fn upload(
         }
     };
 
-    Ok(real_key)
+    Ok((real_key, content_length.try_into().unwrap()))
 }
 
 fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
