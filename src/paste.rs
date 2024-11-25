@@ -97,7 +97,7 @@ impl Paste {
         }
 
         // Limit tags to 15 of no more than 15 alphanumeric each
-        let tags = form
+        let tags: Vec<String> = form
             .tags
             .clone()
             .unwrap_or_default()
@@ -110,10 +110,18 @@ impl Paste {
                     .to_lowercase()
             })
             .filter(|tag: &String| !tag.is_empty())
-            .collect::<std::collections::HashSet<_>>() // FIXME: this does not preserve order
-            .into_iter()
-            .take(15)
             .collect();
+
+        let mut unique_tags: Vec<String> = vec![];
+        for tag in tags.iter() {
+            if !unique_tags.contains(tag) {
+                unique_tags.push(tag.clone());
+            }
+
+            if unique_tags.len() > 15 {
+                break;
+            }
+        }
 
         let format = match form.format.as_str() {
             "plain" => PasteFormat::Text(form.format.clone()),
@@ -132,7 +140,7 @@ impl Paste {
             paste_id: paste_id.clone(),
             user_id: None, // TODO: Get user ID once we have an auth system
             title: Some(title),
-            tags: Some(tags),
+            tags: Some(unique_tags),
             format,
             date: now,
             gdriveid: None, // TODO: Get Google Drive ID if available
