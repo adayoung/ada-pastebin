@@ -17,12 +17,6 @@ body {
     font-size: 2rem;
 }
 
-input[type="text"]::placeholder,
-input[type="search"]::placeholder {
-    color: #6c757d;
-    opacity: 1;
-}
-
 .img-bar img {
     max-height: 3.125rem;
 }
@@ -66,7 +60,6 @@ textarea#content {
 }
 
 #grecaptcha-text {
-    color: #6c757d !important;
     display: none;
 }
 
