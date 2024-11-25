@@ -7,6 +7,7 @@ use axum::{
     Form, Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
+use dashmap::DashMap;
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
@@ -48,6 +49,7 @@ async fn main() {
     let shared_state = Arc::new(runtime::AppState {
         config: config::AppConfig::new(),
         db,
+        counter: DashMap::new(),
     });
 
     let bind_addr = format!(
@@ -168,12 +170,23 @@ async fn paste(
         }
     };
 
+    // Increment view count
+    let views = state
+        .counter
+        .entry(paste_id.clone())
+        .or_insert_with(|| paste.get_views())
+        .value()
+        .clone();
+
+    *state.counter.get_mut(&paste_id).unwrap().value_mut() = views + 1;
+
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
         // csrf_token: token.authenticity_token().unwrap(),
         paste,
+        views: *state.counter.get(&paste_id).unwrap(),
     };
 
     (StatusCode::OK, template).into_response()

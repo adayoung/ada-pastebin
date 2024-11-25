@@ -86,6 +86,8 @@ pub struct Paste {
     pub gdriveid: Option<String>, // Googe Drive object ID
     pub s3_key: String,
     pub rcscore: BigDecimal, // Recaptcha score
+    pub views: i64,
+    pub last_seen: DateTime<Utc>,
 }
 
 impl Paste {
@@ -142,10 +144,12 @@ impl Paste {
             title: Some(title),
             tags: Some(unique_tags),
             format,
-            date: now,
+            date: now.clone(),
             gdriveid: None, // TODO: Get Google Drive ID if available
             s3_key: "".to_string(),
             rcscore,
+            views: 0,
+            last_seen: now,
         };
 
         Ok(paste)
@@ -199,8 +203,8 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key, s3_content_length, rcscore)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key, s3_content_length, rcscore, last_seen)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             "#,
             self.paste_id,
             self.user_id,
@@ -211,7 +215,8 @@ impl Paste {
             self.gdriveid,
             s3_key,
             content_length,
-            self.rcscore
+            self.rcscore,
+            self.last_seen
         )
         .execute(&mut *transaction)
         .await
@@ -230,7 +235,7 @@ impl Paste {
         let paste = match sqlx::query_as!(
             Paste,
             r#"
-                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore
+                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore, views, last_seen
                 FROM pastebin
                 WHERE paste_id = $1
                 "#,
@@ -274,5 +279,9 @@ impl Paste {
 
     pub fn get_tags(&self) -> Vec<String> {
         self.tags.clone().unwrap_or_default()
+    }
+
+    pub fn get_views(&self) -> u64 {
+        self.views as u64
     }
 }

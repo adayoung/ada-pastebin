@@ -34,4 +34,5 @@ pub struct PasteTemplate {
     pub recaptcha_key: String,
     // pub csrf_token: String,
     pub paste: Paste,
+    pub views: u64,
 }

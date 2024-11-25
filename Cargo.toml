@@ -19,6 +19,7 @@ bigdecimal = "0.4.6"
 brotli = "7.0.0"
 chrono = { version = "0.4.38", default-features = false, features = ["now"] }
 config = "0.14.1"
+dashmap = "6.1.0"
 mime_guess = "2.0.5"
 num-traits = "0.2.19"
 rand = "0.8.5"
