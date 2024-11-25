@@ -175,6 +175,7 @@ impl Paste {
             &content,
             &content_type,
             &self.title,
+            &format!("{}.{}", self.paste_id, ext),
         )
         .await
         {

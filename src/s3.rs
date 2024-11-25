@@ -9,6 +9,7 @@ pub async fn upload(
     content: &String,
     content_type: &String,
     title: &Option<String>,
+    paste_id_w_ext: &String,
 ) -> Result<String, String> {
     let _config = aws_config::load_from_env().await;
 
@@ -47,7 +48,10 @@ pub async fn upload(
         .body(body.into())
         .content_type(content_type)
         .content_encoding(content_encoding)
-        .content_disposition("attachment")
+        .content_disposition(format!(
+            "attachment; filename=\"{}\"; filename*=UTF-8''{}",
+            paste_id_w_ext, paste_id_w_ext
+        ))
         .metadata("title", title)
         .send()
         .await
