@@ -12,6 +12,7 @@ pub struct AppConfig {
     pub recaptcha_secret: String,
 
     pub csrf_secure_cookie: bool,
+    pub update_views_interval: u64,
 
     pub s3_bucket_url: String,
     pub s3_bucket: String,
@@ -33,6 +34,7 @@ impl AppConfig {
         // config = config.set_default("recaptcha_secret", "").unwrap();
 
         config = config.set_default("csrf_secure_cookie", true).unwrap();
+        config = config.set_default("update_views_interval", 300).unwrap();
 
         config = config
             .set_default("s3_bucket_url", "https://bin.ada-young.com/")

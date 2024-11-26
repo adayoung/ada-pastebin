@@ -9,6 +9,7 @@ use rand::Rng;
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::{query, FromRow};
+use tokio::time::{sleep, Duration};
 use tracing::error;
 
 fn generate_paste_id() -> String {
@@ -287,5 +288,48 @@ impl Paste {
             .entry(self.paste_id.clone())
             .and_modify(|counter| *counter += 1)
             .or_insert_with(|| self.views as u64 + 1)
+    }
+
+    pub async fn save_views(&self, db: &PgPool, views: i64) {
+        match sqlx::query!(
+            r#"
+            UPDATE pastebin
+            SET views = $1
+            WHERE paste_id = $2
+            "#,
+            views,
+            self.paste_id
+        )
+        .execute(db)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                error!("Failed to save views: {}", err);
+            }
+        }
+    }
+}
+
+pub async fn update_views(state: &runtime::AppState) {
+    loop {
+        sleep(Duration::from_secs(state.config.update_views_interval)).await;
+        for entry in state.counter.iter() {
+            let paste_id = entry.key().clone();
+            let views = *entry.value();
+
+            let paste_result = Paste::get(&state.db, &paste_id).await;
+
+            match paste_result {
+                Ok(paste) => {
+                    paste.save_views(&state.db, views as i64).await;
+                }
+                Err(err) => {
+                    error!("Failed to fetch paste: {:?}", err);
+                }
+            }
+        }
+
+        state.counter.clear();
     }
 }

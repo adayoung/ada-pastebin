@@ -51,6 +51,11 @@ async fn main() {
         counter: DashMap::new(),
     });
 
+    let update_views_state = shared_state.clone();
+    tokio::spawn(async move {
+        paste::update_views(&update_views_state).await;
+    });
+
     let bind_addr = format!(
         "{}:{}",
         shared_state.config.bind_addr, shared_state.config.port
