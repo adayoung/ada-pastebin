@@ -5,7 +5,7 @@ use tracing::error;
 
 pub async fn upload(
     bucket: &String,
-    key: &String,
+    key: &str,
     content: &String,
     content_type: &String,
     title: &Option<String>,
@@ -20,7 +20,7 @@ pub async fn upload(
 
     let client = s3::Client::from_conf(config);
 
-    let mut real_key = key.clone();
+    let mut real_key = key.to_owned();
     let body: Vec<u8>;
     let content_encoding: String;
     match compress(content) {
@@ -32,7 +32,7 @@ pub async fn upload(
             }
         }
         Err(err) => {
-            return Err(format!("{}", err));
+            return Err(err.to_string());
         }
     };
     let content_length = body.len();

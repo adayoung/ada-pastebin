@@ -13,7 +13,6 @@ use std::env;
 use std::sync::Arc;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
-use tracing_subscriber;
 
 mod config;
 mod forms;

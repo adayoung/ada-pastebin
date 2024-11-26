@@ -21,7 +21,7 @@ fn is_debug() -> bool {
 }
 
 pub async fn verify(secret: &str, action: &str, token: &str) -> Result<f64, reqwest::Error> {
-    if !(token.len() > 0) || is_debug() {
+    if token.is_empty() || is_debug() {
         return Ok(0.0);
     }
 

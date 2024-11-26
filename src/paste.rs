@@ -144,7 +144,7 @@ impl Paste {
             title: Some(title),
             tags: Some(unique_tags),
             format,
-            date: now.clone(),
+            date: now,
             gdriveid: None, // TODO: Get Google Drive ID if available
             s3_key: "".to_string(),
             rcscore,
@@ -163,7 +163,7 @@ impl Paste {
         content: &String,
     ) -> Result<String, String> {
         // Convert rust types to SQLx types
-        let tags: Option<&[String]> = self.tags.as_ref().map(|vec| vec.as_slice());
+        let tags: Option<&[String]> = self.tags.as_deref();
 
         let format = match self.format {
             PasteFormat::Text(ref text) => text,
@@ -182,9 +182,9 @@ impl Paste {
         };
 
         let (s3_key, content_length) = match s3::upload(
-            &s3_bucket,
+            s3_bucket,
             &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
-            &content,
+            content,
             &content_type,
             &self.title,
             &format!("{}.{}", self.paste_id, ext),
@@ -282,11 +282,10 @@ impl Paste {
     }
 
     pub fn get_views(&self, state: &runtime::AppState) -> u64 {
-        state
+        *state
             .counter
             .entry(self.paste_id.clone())
             .and_modify(|counter| *counter += 1)
             .or_insert_with(|| self.views as u64 + 1)
-            .clone()
     }
 }

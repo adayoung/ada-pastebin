@@ -83,7 +83,7 @@ pub async fn csp(
         format!("upgrade-insecure-requests"),
     ];
 
-    if let Ok(csp_header) = HeaderValue::from_str(&format!("{}", policy.join("; "))) {
+    if let Ok(csp_header) = HeaderValue::from_str(&policy.join("; ").to_string()) {
         response
             .headers_mut()
             .insert("Content-Security-Policy", csp_header);
