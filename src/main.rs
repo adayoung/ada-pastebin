@@ -170,23 +170,14 @@ async fn paste(
         }
     };
 
-    // Increment view count
-    let views = state
-        .counter
-        .entry(paste_id.clone())
-        .or_insert_with(|| paste.get_views())
-        .value()
-        .clone();
-
-    *state.counter.get_mut(&paste_id).unwrap().value_mut() = views + 1;
-
+    let views = paste.get_views(&state);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
         // csrf_token: token.authenticity_token().unwrap(),
         paste,
-        views: *state.counter.get(&paste_id).unwrap(),
+        views,
     };
 
     (StatusCode::OK, template).into_response()

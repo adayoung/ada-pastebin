@@ -281,7 +281,12 @@ impl Paste {
         self.tags.clone().unwrap_or_default()
     }
 
-    pub fn get_views(&self) -> u64 {
-        self.views as u64
+    pub fn get_views(&self, state: &runtime::AppState) -> u64 {
+        state
+            .counter
+            .entry(self.paste_id.clone())
+            .and_modify(|counter| *counter += 1)
+            .or_insert_with(|| self.views as u64 + 1)
+            .clone()
     }
 }
