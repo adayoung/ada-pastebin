@@ -75,7 +75,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
-        .route("/pastebin/:paste_id", get(paste))
+        .route("/pastebin/:paste_id", get(getpaste))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
@@ -162,7 +162,7 @@ async fn newpaste(
     }
 }
 
-async fn paste(
+async fn getpaste(
     State(state): State<Arc<runtime::AppState>>,
     // token: CsrfToken,
     Path(paste_id): Path<String>,
