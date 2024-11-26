@@ -311,9 +311,12 @@ impl Paste {
     }
 }
 
-pub async fn update_views(state: &runtime::AppState) {
+pub async fn update_views(state: &runtime::AppState, shutdown: bool) {
     loop {
-        sleep(Duration::from_secs(state.config.update_views_interval)).await;
+        if !shutdown {
+            sleep(Duration::from_secs(state.config.update_views_interval)).await;
+        }
+
         for entry in state.counter.iter() {
             let paste_id = entry.key().clone();
             let views = *entry.value();
@@ -331,5 +334,8 @@ pub async fn update_views(state: &runtime::AppState) {
         }
 
         state.counter.clear();
+        if shutdown {
+            std::process::exit(0);
+        }
     }
 }
