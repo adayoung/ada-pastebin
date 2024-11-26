@@ -53,14 +53,15 @@ async fn main() {
 
     let update_views_state = shared_state.clone();
     tokio::spawn(async move {
-        paste::update_views(&update_views_state, false).await;
+        paste::update_views(&update_views_state, true).await;
     });
 
     let shutdown_state = shared_state.clone();
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
         info!("Shutting down...");
-        paste::update_views(&shutdown_state, true).await;
+        paste::update_views(&shutdown_state, false).await;
+        std::process::exit(0);
     });
 
     let bind_addr = format!(

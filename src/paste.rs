@@ -311,9 +311,9 @@ impl Paste {
     }
 }
 
-pub async fn update_views(state: &runtime::AppState, shutdown: bool) {
+pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
     loop {
-        if !shutdown {
+        if do_sleep {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
@@ -334,8 +334,8 @@ pub async fn update_views(state: &runtime::AppState, shutdown: bool) {
         }
 
         state.counter.clear();
-        if shutdown {
-            std::process::exit(0);
+        if !do_sleep {
+            break;
         }
     }
 }
