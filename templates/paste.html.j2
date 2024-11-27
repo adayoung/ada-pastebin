@@ -21,12 +21,10 @@
 
                 <button class="d-none btn btn-outline-secondary btn-sm" id="share-btn" title="Share">
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
-                    <span class="visually-hidden">Share</span>
                 </button>
 
                 <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
-                    <span class="visually-hidden">Download</span>
                 </a>
             </span>
         </div>
@@ -37,7 +35,9 @@
         <h1 class="visually-hidden">{{ paste.get_title() }}</h1>
         <article id="content" role="main">
             <noscript>
-                <iframe src="{{ s3_bucket_url }}{{ paste.s3_key }}" sandbox title="content-frame"></iframe>
+                <p>Oop, you need Javascript to view this content. Alternatively, you can
+                <a class="text-decorations-none" href="{{ s3_bucket_url }}{{ paste.s3_key }}">download this file</a>
+                and open it on your own computer.
             </noscript>
             <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
             <pre class="d-none text-light" id="content-text" title="content-text"></pre>

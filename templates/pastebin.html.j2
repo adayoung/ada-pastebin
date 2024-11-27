@@ -73,12 +73,12 @@
       </div>
     </div>
     {% endblock %}
-    {% block content %}
     <noscript>
       <p class="text-center text-danger" role="alert">
         Oops, you have Javascript disabled. Some features are unavailable.
       </p>
     </noscript>
+    {% block content %}
     <h1 class="visually-hidden">Welcome to Ada's HTML Pastebin!</h1>
     <form action="/pastebin/" id="pasteform" method="post">
       <fieldset id="pasteform-fields">

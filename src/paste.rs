@@ -115,6 +115,7 @@ impl Paste {
             .filter(|tag: &String| !tag.is_empty())
             .collect();
 
+        // We want unique tags with their order preserved so no HashSet
         let mut unique_tags: Vec<String> = vec![];
         for tag in tags.iter() {
             if !unique_tags.contains(tag) {
