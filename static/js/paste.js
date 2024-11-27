@@ -26,20 +26,24 @@ function helloAgainCaptcha() {
     }
 
     // Fancy delete button
-    /*
     document
-      .getElementById("deleteform")
+      .getElementById("delete-form")
       .addEventListener("submit", function (e) {
         e.preventDefault();
 
         document.getElementById("delete-btn").setAttribute("disabled", true);
         let data = new FormData(this);
+
+        // Encode the form data using URLSearchParams
+        const encodedData = new URLSearchParams(data);
+
         fetch(this.getAttribute("action"), {
-          body: data,
+          method: this.getAttribute("method"),
           headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
             "X-Requested-With": "XMLHttpRequest",
           },
-          method: this.getAttribute("method"),
+          body: encodedData.toString(),
         })
           .then((response) => {
             if (response.ok) {
@@ -64,7 +68,6 @@ function helloAgainCaptcha() {
             }
           });
       });
-    */
 
     // Iframe auto-resize
     document

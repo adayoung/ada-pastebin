@@ -91,7 +91,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/search/", get(index))
-        .route("/pastebin/:paste_id", get(getpaste))
+        .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
         .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
@@ -185,7 +185,7 @@ async fn newpaste(
 
 async fn getpaste(
     State(state): State<Arc<runtime::AppState>>,
-    // token: CsrfToken,
+    token: CsrfToken,
     cookies: Cookies,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
@@ -203,13 +203,42 @@ async fn getpaste(
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
-        // csrf_token: token.authenticity_token().unwrap(),
+        csrf_token: token.authenticity_token().unwrap(),
         paste,
         views,
         owned,
     };
 
     (StatusCode::OK, template).into_response()
+}
+
+async fn delpaste(
+    State(state): State<Arc<runtime::AppState>>,
+    token: CsrfToken,
+    cookies: Cookies,
+    Path(paste_id): Path<String>,
+    Form(payload): Form<forms::PasteDeleteForm>,
+) -> impl IntoResponse {
+    // Verify the CSRF token
+    if token.verify(&payload.csrf_token).is_err() {
+        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
+    }
+
+    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
+    if !owned {
+        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+    }
+
+    (StatusCode::OK, "/pastebin/").into_response()
+
+    // match paste::delete_paste(&state, &paste_id).await {
+    //     Ok(_) => {
+    //         (StatusCode::OK, paste_id).into_response()
+    //     }
+    //     Err(err) => {
+    //         return err.into_response();
+    //     }
+    // }
 }
 
 // Fallback handler for 404 errors

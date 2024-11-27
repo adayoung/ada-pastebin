@@ -10,7 +10,7 @@
 {% block content %}
 <div class="row mb-3">
     <div class="col">
-        <div class="d-flex align-items-center">
+        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="post">
             <span>
                 {% for tag in paste.get_tags() %}
                 <em><a class="text-decoration-none" href="/pastebin/search/?tags={{ tag }}">{{ tag }}</a></em>
@@ -28,13 +28,13 @@
                 </a>
 
                 {% if owned %}
-                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit">
                     <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
-                </a>
+                </button>
                 {% endif %}
-
             </span>
-        </div>
+        </form>
     </div>
 </div>
 <div class="row">

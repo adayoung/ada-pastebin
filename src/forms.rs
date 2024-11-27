@@ -11,3 +11,8 @@ pub struct PasteForm {
     pub format: String,
     pub destination: String,
 }
+
+#[derive(Deserialize)]
+pub struct PasteDeleteForm {
+    pub csrf_token: String,
+}
