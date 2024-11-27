@@ -144,9 +144,9 @@ async fn pastebin(
 
 async fn newpaste(
     State(state): State<Arc<runtime::AppState>>,
-    token: CsrfToken,
     headers: axum::http::HeaderMap,
     cookies: Cookies,
+    token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
     // Verify the CSRF token
@@ -179,7 +179,7 @@ async fn newpaste(
     } else {
         (
             StatusCode::SEE_OTHER,
-            [(LOCATION, format! {"/pastebin/{}", paste_id})],
+            [(LOCATION, format!("/pastebin/{}", paste_id))],
             "",
         )
             .into_response()
@@ -188,8 +188,8 @@ async fn newpaste(
 
 async fn getpaste(
     State(state): State<Arc<runtime::AppState>>,
-    token: CsrfToken,
     cookies: Cookies,
+    token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let paste_id = paste_id.chars().take(8).collect();
@@ -217,8 +217,9 @@ async fn getpaste(
 
 async fn delpaste(
     State(state): State<Arc<runtime::AppState>>,
-    token: CsrfToken,
+    headers: axum::http::HeaderMap,
     cookies: Cookies,
+    token: CsrfToken,
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteDeleteForm>,
 ) -> impl IntoResponse {
@@ -232,7 +233,12 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    (StatusCode::OK, "/pastebin/").into_response()
+    // Check for the presence of the X-Requested-With header
+    if headers.contains_key("X-Requested-With") {
+        (StatusCode::OK, "/pastebin/").into_response()
+    } else {
+        (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
+    }
 
     // match paste::delete_paste(&state, &paste_id).await {
     //     Ok(_) => {
