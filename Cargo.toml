@@ -26,8 +26,10 @@ rand = "0.8.5"
 reqwest = { version = "0.12.9", features = ["charset", "http2", "json", "rustls-tls"], default-features = false }
 rust-embed = "8.5.0"
 serde = { version = "1.0.214", features = ["derive"] }
+serde_json = "1.0.133"
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "tls-rustls", "postgres", "bigdecimal", "chrono"] }
 tokio = { version = "1.41.1", features = ["full"] }
+tower-cookies = { version = "0.10.0", features = ["private"] }
 tower-http = { version = "0.6.2", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }

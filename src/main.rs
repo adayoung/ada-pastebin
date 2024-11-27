@@ -1,5 +1,6 @@
 use axum::{
     extract::{DefaultBodyLimit, Path, State},
+    http::header::LOCATION,
     http::StatusCode,
     middleware,
     response::{IntoResponse, Redirect},
@@ -11,6 +12,7 @@ use dashmap::DashMap;
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
+use tower_cookies::{CookieManagerLayer, Cookies};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
@@ -20,6 +22,7 @@ mod paste;
 mod recaptcha;
 mod runtime;
 mod s3;
+mod session;
 mod static_files;
 mod templates;
 mod utils;
@@ -85,6 +88,7 @@ async fn main() {
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/:paste_id", get(getpaste))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
+        .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
         .layer(middleware::from_fn(utils::extra_sugar))
@@ -134,6 +138,7 @@ async fn newpaste(
     State(state): State<Arc<runtime::AppState>>,
     token: CsrfToken,
     headers: axum::http::HeaderMap,
+    cookies: Cookies,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
     // Verify the CSRF token
@@ -157,13 +162,16 @@ async fn newpaste(
         }
     };
 
+    // Update the session with the new paste_id
+    session::update_session(&cookies, &paste_id);
+
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
         (StatusCode::OK, paste_id).into_response()
     } else {
         (
             StatusCode::SEE_OTHER,
-            [("Location", format! {"/pastebin/{}", paste_id})],
+            [(LOCATION, format! {"/pastebin/{}", paste_id})],
             "",
         )
             .into_response()
