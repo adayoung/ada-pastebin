@@ -48,11 +48,14 @@ async fn main() {
         }
     };
 
+    let config = config::AppConfig::new();
+    let cookie_key = Key::from(config.cookie_key.as_bytes());
+
     let shared_state = Arc::new(runtime::AppState {
-        config: config::AppConfig::new(),
+        config,
         db,
         counter: DashMap::new(),
-        cookie_key: Key::generate(),
+        cookie_key,
     });
 
     let update_views_state = shared_state.clone();

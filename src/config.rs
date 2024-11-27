@@ -11,6 +11,7 @@ pub struct AppConfig {
     pub recaptcha_key: String,
     pub recaptcha_secret: String,
 
+    pub cookie_key: String,
     pub csrf_secure_cookie: bool,
     pub update_views_interval: u64,
 
@@ -33,6 +34,7 @@ impl AppConfig {
         // config = config.set_default("recaptcha_key", "").unwrap();
         // config = config.set_default("recaptcha_secret", "").unwrap();
 
+        // config = config.set_default("cookie_key", "-meow-meow-").unwrap();
         config = config.set_default("csrf_secure_cookie", true).unwrap();
         config = config.set_default("update_views_interval", 300).unwrap();
 
