@@ -53,6 +53,7 @@ pub async fn upload(
             "attachment; filename=\"{}\"; filename*=UTF-8''{}",
             paste_id_w_ext, paste_id_w_ext
         ))
+        .content_length(content_length as i64)
         .metadata("title", title)
         .send()
         .await
