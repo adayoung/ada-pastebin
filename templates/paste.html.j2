@@ -19,13 +19,20 @@
             <span class="d-none d-md-block text-muted ms-auto">
                 <small class="me-2">VIEWS - {{ views }}</small>
 
-                <button class="d-none btn btn-outline-secondary btn-sm" id="share-btn" title="Share">
+                <button class="d-none btn btn-outline-secondary btn-sm c-paste-btn" id="share-btn" title="Share">
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
                 </button>
 
-                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm" id="download-btn" title="Download" download>
+                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
+
+                {% if owned %}
+                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete">
+                    <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
+                </a>
+                {% endif %}
+
             </span>
         </div>
     </div>

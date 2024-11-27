@@ -181,6 +181,7 @@ async fn newpaste(
 async fn getpaste(
     State(state): State<Arc<runtime::AppState>>,
     // token: CsrfToken,
+    cookies: Cookies,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let paste_id = paste_id.chars().take(8).collect();
@@ -192,6 +193,7 @@ async fn getpaste(
     };
 
     let views = paste.get_views(&state);
+    let owned = session::is_paste_in_session(&cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),
@@ -199,6 +201,7 @@ async fn getpaste(
         // csrf_token: token.authenticity_token().unwrap(),
         paste,
         views,
+        owned,
     };
 
     (StatusCode::OK, template).into_response()

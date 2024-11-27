@@ -35,4 +35,5 @@ pub struct PasteTemplate {
     // pub csrf_token: String,
     pub paste: Paste,
     pub views: u64,
+    pub owned: bool,
 }
