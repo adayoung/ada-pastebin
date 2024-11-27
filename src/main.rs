@@ -12,7 +12,7 @@ use dashmap::DashMap;
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
-use tower_cookies::{CookieManagerLayer, Cookies};
+use tower_cookies::{CookieManagerLayer, Cookies, Key};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
@@ -52,6 +52,7 @@ async fn main() {
         config: config::AppConfig::new(),
         db,
         counter: DashMap::new(),
+        cookie_key: Key::generate(),
     });
 
     let update_views_state = shared_state.clone();
@@ -163,7 +164,7 @@ async fn newpaste(
     };
 
     // Update the session with the new paste_id
-    session::update_session(&cookies, &paste_id);
+    session::update_session(&state.cookie_key, &cookies, &paste_id);
 
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
@@ -193,7 +194,7 @@ async fn getpaste(
     };
 
     let views = paste.get_views(&state);
-    let owned = session::is_paste_in_session(&cookies, &paste_id);
+    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),

@@ -2,11 +2,13 @@ use crate::config;
 use dashmap::DashMap;
 use sqlx::postgres::PgPool;
 use tokio::signal;
+use tower_cookies::Key;
 
 pub struct AppState {
     pub config: config::AppConfig,
     pub db: PgPool,
     pub counter: DashMap<String, u64>,
+    pub cookie_key: Key,
 }
 
 // https://github.com/tokio-rs/axum/blob/main/examples/graceful-shutdown/src/main.rs
