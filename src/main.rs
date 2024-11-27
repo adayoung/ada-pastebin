@@ -90,6 +90,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/search/", get(index))
         .route("/pastebin/:paste_id", get(getpaste))
         .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
         .layer(CookieManagerLayer::new())
