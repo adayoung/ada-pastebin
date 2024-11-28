@@ -92,6 +92,11 @@ pub struct Paste {
     pub last_seen: DateTime<Utc>,
 }
 
+// Used for DELETE /pastes/:paste_id
+struct DeletePaste {
+    pub s3_key: String,
+}
+
 impl Paste {
     fn new(form: &forms::PasteForm, score: f64) -> Result<Self, (StatusCode, String)> {
         // Limit title to 50 characters only
@@ -265,30 +270,61 @@ impl Paste {
         Ok(paste)
     }
 
-    pub async fn delete(db: &PgPool, paste_id: &String) -> Result<(), String> {
+    pub async fn delete(
+        db: &PgPool,
+        s3_bucket: &str,
+        paste_id: &String,
+    ) -> Result<(), (StatusCode, String)> {
         let mut transaction = match db.begin().await {
             Ok(transaction) => transaction,
-            Err(err) => return Err(format!("Failed to start transaction: {}", err)),
+            Err(err) => {
+                error!("Failed to start transaction: {}", err);
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to start transaction: {}", err),
+                ));
+            }
         };
 
-        query!(
+        let paste = query_as!(
+            DeletePaste,
             r#"
-            DELETE FROM pastebin
-            WHERE paste_id = $1
+            WITH paste AS (
+                DELETE FROM pastebin
+                WHERE paste_id = $1
+                RETURNING s3_key
+            )
+            SELECT s3_key FROM paste
             "#,
             paste_id
         )
-        .execute(&mut *transaction)
+        .fetch_one(&mut *transaction)
         .await
-        .map_err(|err| format!("Failed to delete paste: {}", err))?;
+        .map_err(|err| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to delete paste: {}", err),
+            )
+        })?;
 
-        // TODO: delete files from object store
+        match s3::delete(s3_bucket, &paste.s3_key).await {
+            Ok(()) => {}
+            Err(err) => {
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to delete from S3: {}", err),
+                ))
+            }
+        };
 
         match transaction.commit().await {
             Ok(_) => Ok(()),
             Err(err) => {
                 error!("Failed to commit transaction: {}", err);
-                Err(format!("Failed to commit transaction: {}", err))
+                Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to commit transaction: {}", err),
+                ))
             }
         }
     }

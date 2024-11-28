@@ -92,3 +92,24 @@ fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
 
     Ok((encoder.into_inner(), "br".to_string()))
 }
+
+pub async fn delete(bucket: &str, key: &str) -> Result<(), String> {
+    let _config = aws_config::load_from_env().await;
+
+    let config = s3::Config::from(&_config)
+        .to_builder()
+        .force_path_style(true)
+        .build();
+
+    let client = s3::Client::from_conf(config);
+
+    match client.delete_object().bucket(bucket).key(key).send().await {
+        Ok(_) => {}
+        Err(err) => {
+            error!("Failed to delete from S3: {}", err);
+            return Err(format!("{}", err));
+        }
+    };
+
+    Ok(())
+}

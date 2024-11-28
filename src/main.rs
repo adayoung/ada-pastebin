@@ -233,7 +233,7 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    match paste::Paste::delete(&state.db, &paste_id).await {
+    match paste::Paste::delete(&state.db, &state.config.s3_bucket, &paste_id).await {
         Ok(()) => {}
         Err(err) => {
             return err.into_response();

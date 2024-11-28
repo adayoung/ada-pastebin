@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH paste AS (\n                DELETE FROM pastebin\n                WHERE paste_id = $1\n                RETURNING s3_key\n            )\n            SELECT s3_key FROM paste\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "s3_key",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f63aeda02693fed1c5b48c5f48d70ded0c9044d29c711e515abf69eec3679545"
+}
