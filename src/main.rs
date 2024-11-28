@@ -236,8 +236,8 @@ async fn delpaste(
     }
 
     match paste::Paste::delete(&state.db, &state.config.s3_bucket, &paste_id).await {
-        Ok(()) => {
-            state.cloudflare_q.insert(paste_id.clone());
+        Ok(s3_key) => {
+            state.cloudflare_q.insert(s3_key);
             cloudflare::purge_cache(&state.cloudflare_q).await;
         }
         Err(err) => {

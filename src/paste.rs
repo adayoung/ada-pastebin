@@ -295,7 +295,7 @@ impl Paste {
         db: &PgPool,
         s3_bucket: &str,
         paste_id: &str,
-    ) -> Result<(), (StatusCode, String)> {
+    ) -> Result<String, (StatusCode, String)> {
         let mut transaction = match db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => {
@@ -329,24 +329,31 @@ impl Paste {
         })?;
 
         match s3::delete(s3_bucket, &paste.s3_key).await {
-            Ok(()) => {}
-            Err(err) => {
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to delete from S3: {}", err),
-                ))
-            }
-        };
-
-        match transaction.commit().await {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                error!("Failed to commit transaction: {}", err);
-                Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to commit transaction: {}", err),
-                ))
-            }
+            Ok(()) => match transaction.commit().await {
+                Ok(_) => Ok(paste.s3_key),
+                Err(err) => {
+                    error!("Failed to commit transaction: {}", err);
+                    Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to commit transaction: {}", err),
+                    ))
+                }
+            },
+            Err(err) => match transaction.rollback().await {
+                Ok(_) => {
+                    Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to delete from S3: {}", err),
+                    ))
+                }
+                Err(err) => {
+                    error!("Failed to commit transaction: {}", err);
+                    Err((
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("Failed to commit transaction: {}", err),
+                    ))
+                }
+            },
         }
     }
 
