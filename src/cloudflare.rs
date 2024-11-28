@@ -1,14 +1,60 @@
-use dashmap::DashSet;
+use crate::runtime;
+use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+use reqwest::Client;
+use tracing::{error, info};
 
-pub async fn purge_cache(cloudflare_q: &DashSet<String>) {
-    // TODO: Implement cloudflare cache purge here
+pub async fn purge_cache(state: &runtime::AppState) {
+    if state.cloudflare_q.len() >= 10 {
+        info!(
+            "About to purge the following objects: {}",
+            state
+                .cloudflare_q
+                .iter()
+                .map(|x| x.clone())
+                .collect::<Vec<String>>()
+                .join(", ")
+        );
 
-    #[cfg(debug_assertions)]
-    {
-        println!("-> {:?}", cloudflare_q);
-    }
+        if !state.config.cloudflare_enabled {
+            state.cloudflare_q.clear();
+            return;
+        }
 
-    if cloudflare_q.len() >= 10 {
-        cloudflare_q.clear();
+        let mut urls: Vec<String> = Vec::new();
+        for key in state.cloudflare_q.iter() {
+            urls.push(format!("{}{}", state.config.s3_bucket_url, key.clone()));
+        }
+
+        let mut request_data = std::collections::HashMap::new();
+        request_data.insert("files", urls);
+
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", state.config.cloudflare_api_key)).unwrap(),
+        );
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+
+        let client = Client::new();
+        match client
+            .post(&state.config.cloudflare_purge_url)
+            .headers(headers)
+            .json(&request_data)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                if !response.status().is_success() {
+                    error!(
+                        "Failed to purge cloudflare cache: {}",
+                        response.text().await.unwrap()
+                    );
+                    // TODO: Requeue failed s3_keys again for cache purge
+                }
+            }
+            Err(err) => error!("Failed to purge cloudflare cache: {}", err),
+        };
+
+        state.cloudflare_q.clear();
     }
 }
