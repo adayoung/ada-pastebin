@@ -1,6 +1,7 @@
 use crate::forms;
 use crate::runtime;
 use crate::s3;
+use crate::utils;
 use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
@@ -178,30 +179,31 @@ impl Paste {
             PasteFormat::Html(ref html) => html,
         };
 
-        // Determine file extension and content type for S3
+        // Determine file extension for S3
         let ext = match self.format {
             PasteFormat::Text(_) => "txt",
             PasteFormat::Html(_) => "html",
         };
 
+        // Determine content type for S3
         let content_type = match self.format {
             PasteFormat::Text(_) => "text/plain".to_string(),
             PasteFormat::Html(_) => "text/html".to_string(),
         };
 
-        let (s3_key, content_length) = match s3::upload(
-            s3_bucket,
-            &format!("{}{}.{}", s3_prefix, self.paste_id, ext),
-            content,
-            &content_type,
-            &self.title,
-            &format!("{}.{}", self.paste_id, ext),
-        )
-        .await
-        {
+        // Crunch crunch!
+        let (s3_content, content_encoding) = match utils::compress(content).await {
             Ok(response) => response,
-            Err(err) => return Err(err),
+            Err(err) => return Err(format!("Failed to compress content: {}", err)),
         };
+
+        // Let's append .br to the S3 key if we're using brotli compression
+        let mut s3_key = format!("{}{}.{}", s3_prefix, self.paste_id, ext);
+        if content_encoding == "br" {
+            s3_key.push_str(".br");
+        }
+
+        let content_length = s3_content.len() as i32;
 
         // Start a DB transaction
         let mut transaction = match db.begin().await {
@@ -230,12 +232,31 @@ impl Paste {
         .await
         .map_err(|err| format!("Failed to insert paste: {}", err))?;
 
-        match transaction.commit().await {
-            Ok(_) => Ok(self.paste_id.clone()),
-            Err(err) => {
-                error!("Failed to commit transaction: {}", err);
-                Err(format!("Failed to commit transaction: {}", err))
-            }
+        match s3::upload(
+            s3_bucket,
+            &s3_key,
+            s3_content,
+            &content_type,
+            &content_encoding,
+            &self.title,
+            &format!("{}.{}", self.paste_id, ext),
+        )
+        .await
+        {
+            Ok(_) => match transaction.commit().await {
+                Ok(_) => Ok(self.paste_id.clone()),
+                Err(err) => {
+                    error!("Failed to commit transaction: {}", err);
+                    Err(format!("Failed to commit transaction: {}", err))
+                }
+            },
+            Err(err) => match transaction.rollback().await {
+                Ok(_) => Err(format!("Failed to upload to S3: {}", err)),
+                Err(err) => {
+                    error!("Failed to rollback transaction: {}", err);
+                    Err(format!("Failed to rollback transaction: {}", err))
+                }
+            },
         }
     }
 

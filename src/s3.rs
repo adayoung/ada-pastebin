@@ -1,16 +1,15 @@
 use aws_sdk_s3 as s3;
-use brotli::CompressorWriter;
-use std::io::Write;
 use tracing::error;
 
 pub async fn upload(
     bucket: &String,
     key: &str,
-    content: &String,
+    content: Vec<u8>,
     content_type: &String,
+    content_encoding: &str,
     title: &Option<String>,
     paste_id_w_ext: &String,
-) -> Result<(String, i32), String> {
+) -> Result<(), String> {
     let _config = aws_config::load_from_env().await;
 
     let config = s3::Config::from(&_config)
@@ -20,40 +19,25 @@ pub async fn upload(
 
     let client = s3::Client::from_conf(config);
 
-    let mut real_key = key.to_owned();
-    let body: Vec<u8>;
-    let content_encoding: String;
-    match compress(content) {
-        Ok(result) => {
-            body = result.0;
-            content_encoding = result.1;
-            if content_encoding == "br" {
-                real_key.push_str(".br");
-            }
-        }
-        Err(err) => {
-            return Err(err.to_string());
-        }
-    };
-    let content_length = body.len();
-
     let title = match title {
         Some(title) => title,
         None => "",
     };
 
+    let content_length = content.len() as i64;
+
     match client
         .put_object()
         .bucket(bucket)
-        .key(&real_key)
-        .body(body.into())
+        .key(key)
+        .body(content.into())
         .content_type(content_type)
         .content_encoding(content_encoding)
         .content_disposition(format!(
             "attachment; filename=\"{}\"; filename*=UTF-8''{}",
             paste_id_w_ext, paste_id_w_ext
         ))
-        .content_length(content_length as i64)
+        .content_length(content_length)
         .metadata("title", title)
         .send()
         .await
@@ -65,32 +49,7 @@ pub async fn upload(
         }
     };
 
-    Ok((real_key, content_length.try_into().unwrap()))
-}
-
-fn compress(content: &String) -> Result<(Vec<u8>, String), String> {
-    if content.len() < 1024 {
-        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
-    }
-
-    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 6, 22);
-    match encoder.write_all(content.as_bytes()) {
-        Ok(_) => {}
-        Err(err) => {
-            error!("Failed to compress content: {}", err);
-            return Err(format!("{}", err));
-        }
-    };
-
-    match encoder.flush() {
-        Ok(_) => {}
-        Err(err) => {
-            error!("Failed to compress content: {}", err);
-            return Err(format!("{}", err));
-        }
-    };
-
-    Ok((encoder.into_inner(), "br".to_string()))
+    Ok(())
 }
 
 pub async fn delete(bucket: &str, key: &str) -> Result<(), String> {

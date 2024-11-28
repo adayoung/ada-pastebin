@@ -5,7 +5,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
+use brotli::CompressorWriter;
+use std::io::{Error, Write};
 use std::sync::Arc;
+use tracing::error;
 
 pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
     let headers = request.headers().clone();
@@ -90,4 +93,34 @@ pub async fn csp(
     }
 
     Ok(response)
+}
+
+// Compress content using brotli, returning the compressed content and the content encoding
+pub async fn compress(content: &String) -> Result<(Vec<u8>, String), Error> {
+    if content.len() < 1024 {
+        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+    }
+
+    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 6, 22);
+    match encoder.write_all(content.as_bytes()) {
+        Ok(_) => {}
+        Err(err) => {
+            return {
+                error!("Failed to write compressed content: {}", err);
+                Err(err)
+            };
+        }
+    };
+
+    match encoder.flush() {
+        Ok(_) => {}
+        Err(err) => {
+            return {
+                error!("Failed to flush compress content: {}", err);
+                Err(err)
+            };
+        }
+    };
+
+    Ok((encoder.into_inner(), "br".to_string()))
 }
