@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM pastebin\n            WHERE paste_id = $1\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3df84c298669559590e16b9b6b4a7a7c542d4ad18e004c588ff4c0f33e8957f"
+}

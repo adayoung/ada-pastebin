@@ -233,21 +233,19 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
+    match paste::Paste::delete(&state.db, &paste_id).await {
+        Ok(()) => {}
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
         (StatusCode::OK, "/pastebin/").into_response()
     } else {
         (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
     }
-
-    // match paste::delete_paste(&state, &paste_id).await {
-    //     Ok(_) => {
-    //         (StatusCode::OK, paste_id).into_response()
-    //     }
-    //     Err(err) => {
-    //         return err.into_response();
-    //     }
-    // }
 }
 
 // Fallback handler for 404 errors

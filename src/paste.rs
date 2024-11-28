@@ -265,6 +265,34 @@ impl Paste {
         Ok(paste)
     }
 
+    pub async fn delete(db: &PgPool, paste_id: &String) -> Result<(), String> {
+        let mut transaction = match db.begin().await {
+            Ok(transaction) => transaction,
+            Err(err) => return Err(format!("Failed to start transaction: {}", err)),
+        };
+
+        query!(
+            r#"
+            DELETE FROM pastebin
+            WHERE paste_id = $1
+            "#,
+            paste_id
+        )
+        .execute(&mut *transaction)
+        .await
+        .map_err(|err| format!("Failed to delete paste: {}", err))?;
+
+        // TODO: delete files from object store
+
+        match transaction.commit().await {
+            Ok(_) => Ok(()),
+            Err(err) => {
+                error!("Failed to commit transaction: {}", err);
+                Err(format!("Failed to commit transaction: {}", err))
+            }
+        }
+    }
+
     pub fn get_title(&self) -> String {
         if self.title == Some("".to_string()) {
             self.paste_id.clone()
