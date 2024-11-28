@@ -8,7 +8,7 @@ use axum::{
     Form, Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
-use dashmap::DashMap;
+use dashmap::{DashMap, DashSet};
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
@@ -16,6 +16,7 @@ use tower_cookies::{CookieManagerLayer, Cookies, Key};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
+mod cloudflare;
 mod config;
 mod forms;
 mod paste;
@@ -52,10 +53,11 @@ async fn main() {
     let cookie_key = Key::from(config.cookie_key.as_bytes());
 
     let shared_state = Arc::new(runtime::AppState {
+        cloudflare_q: DashSet::new(),
         config,
-        db,
-        counter: DashMap::new(),
         cookie_key,
+        counter: DashMap::new(),
+        db,
     });
 
     let update_views_state = shared_state.clone();
@@ -234,7 +236,10 @@ async fn delpaste(
     }
 
     match paste::Paste::delete(&state.db, &state.config.s3_bucket, &paste_id).await {
-        Ok(()) => {}
+        Ok(()) => {
+            state.cloudflare_q.insert(paste_id.clone());
+            cloudflare::purge_cache(&state.cloudflare_q).await;
+        }
         Err(err) => {
             return err.into_response();
         }
