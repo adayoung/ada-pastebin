@@ -167,9 +167,9 @@ impl Paste {
     async fn save(
         &self,
         db: &PgPool,
-        s3_bucket: &String,
-        s3_prefix: &String,
-        content: &String,
+        s3_bucket: &str,
+        s3_prefix: &str,
+        content: &str,
     ) -> Result<String, String> {
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_deref();
@@ -294,7 +294,7 @@ impl Paste {
     pub async fn delete(
         db: &PgPool,
         s3_bucket: &str,
-        paste_id: &String,
+        paste_id: &str,
     ) -> Result<(), (StatusCode, String)> {
         let mut transaction = match db.begin().await {
             Ok(transaction) => transaction,

@@ -96,7 +96,7 @@ pub async fn csp(
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &String) -> Result<(Vec<u8>, String), Error> {
+pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
     if content.len() < 1024 {
         return Ok((content.as_bytes().to_vec(), "identity".to_string()));
     }

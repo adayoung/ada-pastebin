@@ -2,13 +2,13 @@ use aws_sdk_s3 as s3;
 use tracing::error;
 
 pub async fn upload(
-    bucket: &String,
+    bucket: &str,
     key: &str,
     content: Vec<u8>,
-    content_type: &String,
+    content_type: &str,
     content_encoding: &str,
     title: &Option<String>,
-    paste_id_w_ext: &String,
+    paste_id_w_ext: &str,
 ) -> Result<(), String> {
     let _config = aws_config::load_from_env().await;
 
