@@ -8,7 +8,8 @@ use num_traits::FromPrimitive;
 use rand::Rng;
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
-use sqlx::{query, FromRow};
+use sqlx::Error::RowNotFound;
+use sqlx::{query, query_as, FromRow};
 use tokio::time::{sleep, Duration};
 use tracing::error;
 
@@ -234,7 +235,7 @@ impl Paste {
     }
 
     pub async fn get(db: &PgPool, paste_id: &String) -> Result<Paste, (StatusCode, String)> {
-        let paste = match sqlx::query_as!(
+        let paste = match query_as!(
             Paste,
             r#"
                 SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore, views, last_seen
@@ -248,7 +249,7 @@ impl Paste {
         {
             Ok(paste) => paste,
             Err(err) => match err {
-                sqlx::Error::RowNotFound => {
+                RowNotFound => {
                     return Err((StatusCode::NOT_FOUND, "Paste not found".to_string()));
                 }
                 _ => {
@@ -292,7 +293,7 @@ impl Paste {
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
-        match sqlx::query!(
+        match query!(
             r#"
             UPDATE pastebin
             SET views = $1
@@ -329,7 +330,9 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
                     paste.save_views(&state.db, views as i64).await;
                 }
                 Err(err) => {
-                    error!("Failed to fetch paste: {:?}", err);
+                    if err.0 != StatusCode::NOT_FOUND {
+                        error!("Failed to fetch paste: {:?}", err);
+                    }
                 }
             }
         }
