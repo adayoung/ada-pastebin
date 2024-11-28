@@ -1,10 +1,11 @@
 use crate::runtime;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use reqwest::Client;
+use tokio::time::{sleep, Duration};
 use tracing::{error, info};
 
-pub async fn purge_cache(state: &runtime::AppState) {
-    if state.cloudflare_q.len() >= 10 {
+pub async fn purge_cache(state: &runtime::AppState, now: bool) {
+    if state.cloudflare_q.len() >= 10 || now {
         info!(
             "About to purge the following objects: {}",
             state
@@ -56,5 +57,19 @@ pub async fn purge_cache(state: &runtime::AppState) {
         };
 
         state.cloudflare_q.clear();
+    }
+}
+
+pub async fn cleanup_cache(state: &runtime::AppState, do_sleep: bool, now: bool) {
+    loop {
+        if do_sleep {
+            sleep(Duration::from_secs(3600)).await;
+        }
+
+        purge_cache(state, now).await;
+
+        if !do_sleep {
+            break;
+        }
     }
 }

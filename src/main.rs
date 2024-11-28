@@ -60,16 +60,22 @@ async fn main() {
         db,
     });
 
-    let update_views_state = shared_state.clone();
+    let timer_state = shared_state.clone();
     tokio::spawn(async move {
-        paste::update_views(&update_views_state, true).await;
+        tokio::join!(
+            paste::update_views(&timer_state, true),
+            cloudflare::cleanup_cache(&timer_state, true, false),
+        );
     });
 
     let shutdown_state = shared_state.clone();
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
         info!("Shutting down...");
-        paste::update_views(&shutdown_state, false).await;
+        tokio::join!(
+            paste::update_views(&shutdown_state, false),
+            cloudflare::cleanup_cache(&shutdown_state, false, true),
+        );
         std::process::exit(0);
     });
 
@@ -238,7 +244,7 @@ async fn delpaste(
     match paste::Paste::delete(&state.db, &state.config.s3_bucket, &paste_id).await {
         Ok(s3_key) => {
             state.cloudflare_q.insert(s3_key);
-            cloudflare::purge_cache(&state).await;
+            cloudflare::purge_cache(&state, false).await;
         }
         Err(err) => {
             return err.into_response();
