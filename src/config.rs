@@ -16,6 +16,7 @@ pub struct AppConfig {
     pub cloudflare_enabled: bool,
 
     pub cookie_key: String,
+    pub cookie_salt: String,
     pub csrf_secure_cookie: bool,
     pub update_views_interval: u64,
 
@@ -43,6 +44,7 @@ impl AppConfig {
         config = config.set_default("cloudflare_enabled", true).unwrap();
 
         // config = config.set_default("cookie_key", "-meow-meow-").unwrap();
+        // config = config.set_default("cookie_salt", "-bork-bork-").unwrap();
         config = config.set_default("csrf_secure_cookie", true).unwrap();
         config = config.set_default("update_views_interval", 300).unwrap();
 

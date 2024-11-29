@@ -91,6 +91,7 @@ async fn main() {
         .with_cookie_same_site(SameSite::Strict)
         .with_secure(shared_state.config.csrf_secure_cookie)
         .with_key(Some(csrf_key))
+        .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));
 
     if shared_state.config.csrf_secure_cookie {
