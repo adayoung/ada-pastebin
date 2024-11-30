@@ -54,9 +54,11 @@ textarea#content {
     padding-bottom: 0.2rem;
 }
 
-/* Google reCAPTCHA */
-.grecaptcha-badge {
-    margin-bottom: 2.5rem;
+/* Cloudflare Turnstile */
+#cf-turnstile {
+    position: fixed;
+    right: 0;
+    bottom: 0;
 }
 
 /* paste frame */

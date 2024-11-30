@@ -2,6 +2,7 @@
 
 var authWindow = null; // Yech!
 var gDriveAuthPending = true;
+var turnstileWidgetId = undefined;
 function HandleGAuthComplete(result) {
   if (result === "success") {
     if (document.getElementById("pasteform").reportValidity()) {
@@ -60,6 +61,10 @@ function fancyFormSubmit(token) {
 
       document.getElementById("pasteform-fields").removeAttribute("disabled");
       document.getElementById("content").focus();
+
+      if (turnstileWidgetId != undefined) {
+        turnstile.remove(turnstileWidgetId);
+      }
     });
 }
 
@@ -111,7 +116,7 @@ function fancyFormSubmit(token) {
       }
 
       let rkey = document.getElementById("recaptcha-key").value;
-      turnstile.render("#cf-turnstile", {
+      turnstileWidgetId = turnstile.render("#cf-turnstile", {
         sitekey: rkey,
         action: "paste",
         theme: "dark",
