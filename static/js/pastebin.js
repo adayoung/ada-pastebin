@@ -64,6 +64,7 @@ function fancyFormSubmit(token) {
 
       if (turnstileWidgetId != undefined) {
         turnstile.remove(turnstileWidgetId);
+        turnstileWidgetId = undefined;
       }
     });
 }
@@ -108,10 +109,7 @@ function fancyFormSubmit(token) {
         }
       }
 
-      if (
-        document.getElementById("pasteform-fields").getAttribute("disabled") ===
-        "true"
-      ) {
+      if (turnstileWidgetId != undefined) {
         return; // bail out if it's already in progress
       }
 
