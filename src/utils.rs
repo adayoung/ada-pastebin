@@ -79,9 +79,15 @@ pub async fn csp(
         format!("connect-src 'self' {}", s3_bucket_url),
         format!("form-action 'self'"),
         format!("frame-ancestors 'none'"),
-        format!("frame-src blob: {} https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/", s3_bucket_url),
+        format!(
+            "frame-src blob: {} https://challenges.cloudflare.com",
+            s3_bucket_url
+        ),
         format!("img-src data: {}", static_domain),
-        format!("script-src {} https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/", static_domain),
+        format!(
+            "script-src {} https://challenges.cloudflare.com",
+            static_domain
+        ),
         format!("style-src 'unsafe-inline' {}", static_domain),
         format!("upgrade-insecure-requests"),
     ];

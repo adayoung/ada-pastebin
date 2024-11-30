@@ -1,12 +1,5 @@
 "use strict";
 
-function helloAgainCaptcha() {
-  grecaptcha.ready(function () {
-    let rkey = document.getElementById("recaptcha-key").value;
-    grecaptcha.execute(rkey, { action: "cpaste" });
-  });
-}
-
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Share button

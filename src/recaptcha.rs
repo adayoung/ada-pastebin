@@ -4,7 +4,7 @@ use tracing::warn;
 #[derive(Deserialize)]
 struct RecaptchaResponse {
     success: bool,
-    score: f64,
+    // score: f64,
     action: String,
 }
 
@@ -28,7 +28,7 @@ pub async fn verify(secret: &str, action: &str, token: &str) -> Result<f64, reqw
     let params = [("secret", secret), ("response", token)];
     let client = reqwest::Client::new();
     let response = client
-        .post("https://www.google.com/recaptcha/api/siteverify")
+        .post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
         .form(&params)
         .send()
         .await?
@@ -43,7 +43,7 @@ pub async fn verify(secret: &str, action: &str, token: &str) -> Result<f64, reqw
             );
             return Ok(0.0);
         }
-        return Ok(response.score);
+        return Ok(0.7); // FIXME: Turnstile doesn't return a score
     }
 
     warn!("Recaptcha verification failed for the token: {}", token);

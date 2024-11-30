@@ -59,20 +59,6 @@ textarea#content {
     margin-bottom: 2.5rem;
 }
 
-#grecaptcha-text {
-    display: none;
-}
-
-@media (max-width: 1100px) {
-    .grecaptcha-badge {
-        visibility: hidden;
-    }
-
-    #grecaptcha-text {
-        display: block;
-    }
-}
-
 /* paste frame */
 pre {
     border: 0;

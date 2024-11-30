@@ -19,6 +19,50 @@ function HandleGAuthComplete(result) {
   }
 }
 
+function fancyFormSubmit(token) {
+  let form = document.getElementById("pasteform");
+  let data = new FormData(form);
+  data.set("token", token);
+
+  // Encode the form data using URLSearchParams
+  const encodedData = new URLSearchParams(data);
+
+  document.getElementById("pasteform-fields").setAttribute("disabled", true);
+  fetch(form.getAttribute("action"), {
+    method: form.getAttribute("method"),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      "X-Requested-With": "XMLHttpRequest",
+    },
+    body: encodedData.toString(),
+  })
+    .then((response) => {
+      if (response.ok) {
+        return response.text();
+      } else {
+        alert(
+          `Oops, we couldn't post your paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`,
+        );
+        throw "-flails-";
+      }
+    })
+    .then((result) => {
+      location.replace(result);
+    })
+    .catch((error) => {
+      if (error != "-flails-") {
+        alert(
+          "Oops, we couldn't post your paste :( Maybe the network pipes aren't up?",
+        );
+      }
+      document.getElementById("pastebtn-loading").classList.add("d-none");
+      document.getElementById("pastebtn-ready").classList.remove("d-none");
+
+      document.getElementById("pasteform-fields").removeAttribute("disabled");
+      document.getElementById("content").focus();
+    });
+}
+
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Character counter
@@ -59,72 +103,20 @@ function HandleGAuthComplete(result) {
         }
       }
 
+      if (
+        document.getElementById("pasteform-fields").getAttribute("disabled") ===
+        "true"
+      ) {
+        return; // bail out if it's already in progress
+      }
+
       let rkey = document.getElementById("recaptcha-key").value;
-      // grecaptcha.ready(() => {
-      grecaptcha
-        .execute(rkey, {
-          action: "paste",
-        })
-        .then((token) => {
-          if (
-            document
-              .getElementById("pasteform-fields")
-              .getAttribute("disabled") === "true"
-          ) {
-            return; // bail out if it's already in progress
-          }
-
-          let form = document.getElementById("pasteform");
-          let data = new FormData(form);
-          data.set("token", token);
-
-          // Encode the form data using URLSearchParams
-          const encodedData = new URLSearchParams(data);
-
-          document
-            .getElementById("pasteform-fields")
-            .setAttribute("disabled", true);
-          fetch(form.getAttribute("action"), {
-            method: form.getAttribute("method"),
-            headers: {
-              "Content-Type": "application/x-www-form-urlencoded",
-              "X-Requested-With": "XMLHttpRequest",
-            },
-            body: encodedData.toString(),
-          })
-            .then((response) => {
-              if (response.ok) {
-                return response.text();
-              } else {
-                alert(
-                  `Oops, we couldn't post your paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`,
-                );
-                throw "-flails-";
-              }
-            })
-            .then((result) => {
-              location.replace(result);
-            })
-            .catch((error) => {
-              if (error != "-flails-") {
-                alert(
-                  "Oops, we couldn't post your paste :( Maybe the network pipes aren't up?",
-                );
-              }
-              document
-                .getElementById("pastebtn-loading")
-                .classList.add("d-none");
-              document
-                .getElementById("pastebtn-ready")
-                .classList.remove("d-none");
-
-              document
-                .getElementById("pasteform-fields")
-                .removeAttribute("disabled");
-              document.getElementById("content").focus();
-            });
-        });
-      // });
+      turnstile.render("#cf-turnstile", {
+        sitekey: rkey,
+        action: "paste",
+        theme: "dark",
+        callback: fancyFormSubmit,
+      });
     });
 
     // Keyboard accelerators

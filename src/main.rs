@@ -134,7 +134,6 @@ async fn index(State(state): State<Arc<runtime::AppState>>) -> templates::BaseTe
 async fn about(State(state): State<Arc<runtime::AppState>>) -> templates::AboutTemplate {
     templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
-        recaptcha_key: state.config.recaptcha_key.clone(),
     }
 }
 
@@ -214,7 +213,6 @@ async fn getpaste(
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         s3_bucket_url: state.config.s3_bucket_url.clone(),
-        recaptcha_key: state.config.recaptcha_key.clone(),
         csrf_token: token.authenticity_token().unwrap(),
         paste,
         views,

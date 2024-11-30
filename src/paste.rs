@@ -38,6 +38,16 @@ pub async fn new_paste(
     form: &forms::PasteForm,
     score: f64,
 ) -> Result<String, (StatusCode, String)> {
+    #[cfg(not(debug_assertions))]
+    {
+        if score < 0.7 {
+            return Err((
+                StatusCode::FORBIDDEN,
+                "Oop, bot check failed! This site is for humans!".to_string(),
+            ));
+        }
+    }
+
     let paste = match Paste::new(form, score) {
         Ok(paste) => paste,
         Err(err) => return Err(err),
@@ -340,12 +350,10 @@ impl Paste {
                 }
             },
             Err(err) => match transaction.rollback().await {
-                Ok(_) => {
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to delete from S3: {}", err),
-                    ))
-                }
+                Ok(_) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to delete from S3: {}", err),
+                )),
                 Err(err) => {
                     error!("Failed to commit transaction: {}", err);
                     Err((
