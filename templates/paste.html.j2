@@ -25,7 +25,13 @@
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
                 </button>
 
-                <a href="{{ content_url }}" class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
+                <a href="
+                    {% if paste.gdrivedl.is_some() %}
+                    {{ paste.gdrivedl.as_ref().unwrap() }}
+                    {% else %}
+                    {{ content_url }}
+                    {% endif %}
+                " class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
 
@@ -34,6 +40,12 @@
                 <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit">
                     <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
                 </button>
+                {% endif %}
+
+                {% if paste.gdrivedl.is_some() %}
+                <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!">
+                    <img src="//{{ static_domain }}/static/img/drive.webp" height="16" width="16" alt="Google Drive!" loading="lazy">
+                </a>
                 {% endif %}
             </span>
         </form>

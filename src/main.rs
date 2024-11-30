@@ -9,6 +9,7 @@ use axum::{
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
 use dashmap::{DashMap, DashSet};
+use reqwest::Client;
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
@@ -108,6 +109,7 @@ async fn main() {
         .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
+        .route("/pastebinc/:paste_id/content", get(getdrivecontent))
         .layer(middleware::from_fn(utils::extra_sugar))
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
@@ -212,7 +214,7 @@ async fn getpaste(
     let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
-        content_url: format!("{}{}", state.config.s3_bucket_url, paste.s3_key),
+        content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
         paste,
         views,
@@ -255,6 +257,34 @@ async fn delpaste(
         (StatusCode::OK, "/pastebin/").into_response()
     } else {
         (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
+    }
+}
+
+async fn getdrivecontent(
+    State(state): State<Arc<runtime::AppState>>,
+    Path(paste_id): Path<String>,
+) -> impl IntoResponse {
+    let paste_id = paste_id.chars().take(8).collect();
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    if let Some(gdrivedl_url) = paste.gdrivedl {
+        let client = Client::new();
+        match client.get(gdrivedl_url).send().await {
+            Ok(response) => (response.status(), response.bytes().await.unwrap()).into_response(),
+            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response(),
+        }
+    } else {
+        (
+            StatusCode::TEMPORARY_REDIRECT,
+            [(LOCATION, format!("/pastebin/{}", paste_id))],
+            "",
+        )
+            .into_response()
     }
 }
 

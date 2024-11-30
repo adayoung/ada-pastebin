@@ -368,6 +368,14 @@ impl Paste {
         }
     }
 
+    pub fn get_content_url(&self, s3_bucket_url: &str) -> String {
+        if self.gdrivedl.is_none() {
+            format!("{}{}", s3_bucket_url, self.s3_key)
+        } else {
+            format!("/pastebinc/{}/content", self.paste_id)
+        }
+    }
+
     pub fn get_title(&self) -> String {
         if self.title == Some("".to_string()) {
             self.paste_id.clone()
