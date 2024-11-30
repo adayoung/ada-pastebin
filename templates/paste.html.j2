@@ -25,7 +25,7 @@
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
                 </button>
 
-                <a href="{{ s3_bucket_url }}{{ paste.s3_key }}" class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
+                <a href="{{ content_url }}" class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
 
@@ -45,7 +45,7 @@
         <article id="content" role="main">
             <noscript>
                 <p>Oop, you need Javascript to view this content. Alternatively, you can
-                <a class="text-decorations-none" href="{{ s3_bucket_url }}{{ paste.s3_key }}">download this file</a>
+                <a class="text-decorations-none" href="{{ content_url }}">download this file</a>
                 and open it on your own computer.
             </noscript>
             <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
@@ -64,6 +64,6 @@
 {% block moretail %}
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
-<input type="hidden" id="content-url" value="{{ s3_bucket_url }}{{ paste.s3_key }}">
+<input type="hidden" id="content-url" value="{{ content_url }}">
 <script src="//{{ static_domain }}/static/js/paste.js"></script>
 {% endblock %}

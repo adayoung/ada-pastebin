@@ -212,7 +212,7 @@ async fn getpaste(
     let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
-        s3_bucket_url: state.config.s3_bucket_url.clone(),
+        content_url: format!("{}{}", state.config.s3_bucket_url, paste.s3_key),
         csrf_token: token.authenticity_token().unwrap(),
         paste,
         views,
