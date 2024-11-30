@@ -1,9 +1,10 @@
 use axum::{
+    body::Body,
     extract::{DefaultBodyLimit, Path, State},
     http::header::{CACHE_CONTROL, LOCATION},
     http::{HeaderMap, StatusCode},
     middleware,
-    response::{IntoResponse, Redirect},
+    response::{IntoResponse, Redirect, Response},
     routing::get,
     Form, Router,
 };
@@ -297,7 +298,9 @@ async fn getdrivecontent(
         let mut headers = HeaderMap::new();
         headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
 
-        (response.status(), headers, response.bytes().await.unwrap()).into_response()
+        let mut our_response = Response::new(Body::from_stream(response.bytes_stream()));
+        *our_response.headers_mut() = headers;
+        our_response
     } else {
         (StatusCode::NOT_FOUND, "Paste not found").into_response()
     }
