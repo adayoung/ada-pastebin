@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS "pastebin" (
 	"format" varchar(5) NOT NULL,
 	"date" timestamp with time zone NOT NULL,
 	"gdriveid" varchar(384),
+	"gdrivedl" varchar(384),
 	"s3_key" varchar(32) NOT NULL,
 	"s3_content_length" integer NOT NULL,
 	"rcscore" numeric(2, 1) CHECK (rcscore >= 0.0 AND rcscore <= 1.0) NOT NULL,

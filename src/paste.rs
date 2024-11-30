@@ -97,6 +97,7 @@ pub struct Paste {
     pub format: PasteFormat,
     pub date: DateTime<Utc>,
     pub gdriveid: Option<String>, // Googe Drive object ID
+    pub gdrivedl: Option<String>, // Google Drive download URL
     pub s3_key: String,
     pub rcscore: BigDecimal, // Recaptcha score
     pub views: i64,
@@ -165,6 +166,7 @@ impl Paste {
             format,
             date: now,
             gdriveid: None, // TODO: Get Google Drive ID if available
+            gdrivedl: None, // TODO: Get Google Drive download URL if available
             s3_key: "".to_string(),
             rcscore,
             views: 0,
@@ -223,8 +225,8 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, s3_key, s3_content_length, rcscore, last_seen)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, s3_content_length, rcscore, last_seen)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             "#,
             self.paste_id,
             self.user_id,
@@ -233,6 +235,7 @@ impl Paste {
             format,
             self.date,
             self.gdriveid,
+            self.gdrivedl,
             s3_key,
             content_length,
             self.rcscore,
@@ -274,7 +277,7 @@ impl Paste {
         let paste = match query_as!(
             Paste,
             r#"
-                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore, views, last_seen
+                SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
                 FROM pastebin
                 WHERE paste_id = $1
                 "#,

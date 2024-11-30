@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT paste_id, user_id, title, tags, format, date, gdriveid, s3_key, rcscore, views, last_seen\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
+  "query": "\n                SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
   "describe": {
     "columns": [
       {
@@ -40,21 +40,26 @@
       },
       {
         "ordinal": 7,
-        "name": "s3_key",
+        "name": "gdrivedl",
         "type_info": "Varchar"
       },
       {
         "ordinal": 8,
+        "name": "s3_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
         "name": "rcscore",
         "type_info": "Numeric"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "views",
         "type_info": "Int8"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "last_seen",
         "type_info": "Timestamptz"
       }
@@ -72,11 +77,12 @@
       false,
       false,
       true,
+      true,
       false,
       false,
       false,
       false
     ]
   },
-  "hash": "f9e5d05eebfcbfd6794a313729cc4d66e30dd39999ae3eb3a51aa44c8d2e980f"
+  "hash": "1ccc2313bf61bbeca3f13175aba3bc13041e1f8bd6e1547db5b226142d0af7d3"
 }
