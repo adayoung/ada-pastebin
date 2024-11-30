@@ -75,13 +75,16 @@
     {% endblock %}
     <noscript>
       <p class="text-center text-danger" role="alert">
-        Oops, you have Javascript disabled. Some features are unavailable.
+        Oops, you have Javascript disabled.
+        <a class="text-decoration-none" href="https://www.enable-javascript.com/">
+        You have to enable JavaScript to use this site!
+        </a>
       </p>
     </noscript>
     {% block content %}
     <h1 class="visually-hidden">Welcome to Ada's HTML Pastebin!</h1>
     <form action="/pastebin/" id="pasteform" method="post">
-      <fieldset id="pasteform-fields">
+      <fieldset id="pasteform-fields" disabled>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="hidden" name="token" />
         <legend class="visually-hidden">Pastebin</legend>
