@@ -1,7 +1,7 @@
 use axum::{
     extract::{DefaultBodyLimit, Path, State},
-    http::header::LOCATION,
-    http::StatusCode,
+    http::header::{CACHE_CONTROL, LOCATION},
+    http::{HeaderMap, StatusCode},
     middleware,
     response::{IntoResponse, Redirect},
     routing::get,
@@ -9,7 +9,6 @@ use axum::{
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
 use dashmap::{DashMap, DashSet};
-use reqwest::Client;
 use sqlx::postgres::PgPool;
 use std::env;
 use std::sync::Arc;
@@ -154,7 +153,7 @@ async fn pastebin(
 
 async fn newpaste(
     State(state): State<Arc<runtime::AppState>>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     cookies: Cookies,
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
@@ -226,7 +225,7 @@ async fn getpaste(
 
 async fn delpaste(
     State(state): State<Arc<runtime::AppState>>,
-    headers: axum::http::HeaderMap,
+    headers: HeaderMap,
     cookies: Cookies,
     token: CsrfToken,
     Path(paste_id): Path<String>,
@@ -262,8 +261,18 @@ async fn delpaste(
 
 async fn getdrivecontent(
     State(state): State<Arc<runtime::AppState>>,
+    headers: HeaderMap,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
+    if !headers.contains_key("X-Requested-With") {
+        return (
+            StatusCode::TEMPORARY_REDIRECT,
+            [(LOCATION, format!("/pastebin/{}", paste_id))],
+            "",
+        )
+            .into_response();
+    }
+
     let paste_id = paste_id.chars().take(8).collect();
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
@@ -273,18 +282,24 @@ async fn getdrivecontent(
     };
 
     if let Some(gdrivedl_url) = paste.gdrivedl {
-        let client = Client::new();
-        match client.get(gdrivedl_url).send().await {
-            Ok(response) => (response.status(), response.bytes().await.unwrap()).into_response(),
-            Err(err) => (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response(),
+        let response = match reqwest::get(gdrivedl_url).await {
+            Ok(response) => response,
+            Err(err) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response()
+            }
+        };
+
+        if !response.status().is_success() {
+            // TODO: Detect 404 here and remove metadata if applicable
+            return (StatusCode::BAD_GATEWAY, "Google Drive wouldn't talk to us!").into_response();
         }
+
+        let mut headers = HeaderMap::new();
+        headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
+
+        (response.status(), headers, response.bytes().await.unwrap()).into_response()
     } else {
-        (
-            StatusCode::TEMPORARY_REDIRECT,
-            [(LOCATION, format!("/pastebin/{}", paste_id))],
-            "",
-        )
-            .into_response()
+        (StatusCode::NOT_FOUND, "Paste not found").into_response()
     }
 }
 

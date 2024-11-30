@@ -74,7 +74,11 @@
 
     // Fancy content fetch
     let fetchContent = function (contentURL) {
-      fetch(contentURL)
+      fetch(contentURL, {
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+        },
+      })
         .then((response) => {
           if (response.ok) {
             return response.text();
