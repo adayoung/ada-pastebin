@@ -11,8 +11,6 @@ primary_region = 'iad'
 [env]
   APP_STATIC_DOMAIN = 'ada-young.fly.dev'
   APP_BIND_ADDR = '0.0.0.0'
-  APP_RECAPTCHA_KEY = '6Lfbq7kUAAAAAFd4LBuoZZV4x6lf4fwtTDGRqEnM'
-  APP_CSRF_SECURE_COOKIE = true
   RUST_LOG = 'info'
 
 [http_service]
