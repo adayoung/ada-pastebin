@@ -6,6 +6,10 @@ use tracing::{error, info};
 
 pub async fn purge_cache(state: &runtime::AppState, now: bool) {
     if state.cloudflare_q.len() >= 10 || now {
+        if state.cloudflare_q.is_empty() {
+            return;
+        }
+
         info!(
             "About to purge the following objects: {}",
             state
