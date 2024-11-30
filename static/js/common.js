@@ -1,12 +1,5 @@
 'use strict';
 
-// https://developers.google.com/recaptcha/docs/loading#loading_recaptcha_asynchronously
-try {
-  document.getElementById('pasteform-fields').setAttribute('disabled', true);
-} catch(error) {
-  // Do nothing, we're not on the pastebin form
-}
-
 function helloCaptcha() {
   try {
     document.getElementById('pasteform-fields').removeAttribute('disabled');
