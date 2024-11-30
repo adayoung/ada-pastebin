@@ -12,8 +12,8 @@ strip = "symbols"  # Strip debug symbols
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
-aws-sdk-s3 = "1.62.0"
-axum = "0.7.7"
+aws-sdk-s3 = "1.63.0"
+axum = "0.7.9"
 axum_csrf = { version = "0.10.2", features = ["layer"] }
 bigdecimal = "0.4.6"
 brotli = "7.0.0"
@@ -25,12 +25,12 @@ num-traits = "0.2.19"
 rand = "0.8.5"
 reqwest = { version = "0.12.9", features = ["charset", "http2", "json", "rustls-tls", "stream"], default-features = false }
 rust-embed = "8.5.0"
-serde = { version = "1.0.214", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }
 serde_json = "1.0.133"
 sqlx = { version = "0.8.2", features = ["runtime-tokio", "tls-rustls", "postgres", "bigdecimal", "chrono"] }
 time = "0.3.36"
 tokio = { version = "1.41.1", features = ["full"] }
 tower-cookies = { version = "0.10.0", features = ["private"] }
 tower-http = { version = "0.6.2", features = ["trace"] }
-tracing = "0.1.40"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter"] }
