@@ -3,6 +3,7 @@
 var authWindow = null; // Yech!
 var gDriveAuthPending = true;
 var turnstileWidgetId = undefined;
+var postInProgress = false;
 function HandleGAuthComplete(result) {
   if (result === "success") {
     if (document.getElementById("pasteform").reportValidity()) {
@@ -65,6 +66,7 @@ function fancyFormSubmit(token) {
       if (turnstileWidgetId != undefined) {
         turnstile.remove(turnstileWidgetId);
         turnstileWidgetId = undefined;
+        postInProgress = false;
       }
     });
 }
@@ -109,10 +111,11 @@ function fancyFormSubmit(token) {
         }
       }
 
-      if (turnstileWidgetId != undefined) {
+      if (turnstileWidgetId != undefined || postInProgress) {
         return; // bail out if it's already in progress
       }
 
+      postInProgress = true;
       let rkey = document.getElementById("recaptcha-key").value;
       turnstileWidgetId = turnstile.render("#cf-turnstile", {
         sitekey: rkey,
