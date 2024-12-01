@@ -252,6 +252,7 @@ impl Paste {
             &content_type,
             &content_encoding,
             &self.title,
+            &self.tags,
             &format!("{}.{}", self.paste_id, ext),
         )
         .await
