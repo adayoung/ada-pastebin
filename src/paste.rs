@@ -99,9 +99,8 @@ pub enum PasteFormat {
 impl From<String> for PasteFormat {
     fn from(format: String) -> Self {
         match format.as_str() {
-            "plain" => PasteFormat::Text(format),
             "html" => PasteFormat::Html(format),
-            _ => panic!("Invalid format"),
+            _ => PasteFormat::Text(format),
         }
     }
 }
