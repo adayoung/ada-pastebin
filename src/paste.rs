@@ -33,6 +33,24 @@ fn generate_paste_id() -> String {
     id
 }
 
+pub fn fix_tags(tags: &Option<String>) -> Vec<String> {
+    // Limit tags to 15 of no more than 15 alphanumeric each
+    let tags: Vec<String> = tags
+        .clone()
+        .unwrap_or_default()
+        .split_whitespace()
+        .map(|tag| {
+            tag.chars()
+                .filter(|x| char::is_alphanumeric(*x))
+                .take(15)
+                .collect::<String>()
+                .to_lowercase()
+        })
+        .filter(|tag: &String| !tag.is_empty())
+        .collect();
+    tags
+}
+
 pub async fn new_paste(
     state: &runtime::AppState,
     form: &forms::PasteForm,
@@ -117,21 +135,7 @@ impl Paste {
             title = title.chars().take(50).collect();
         }
 
-        // Limit tags to 15 of no more than 15 alphanumeric each
-        let tags: Vec<String> = form
-            .tags
-            .clone()
-            .unwrap_or_default()
-            .split_whitespace()
-            .map(|tag| {
-                tag.chars()
-                    .filter(|x| char::is_alphanumeric(*x))
-                    .take(15)
-                    .collect::<String>()
-                    .to_lowercase()
-            })
-            .filter(|tag: &String| !tag.is_empty())
-            .collect();
+        let tags = fix_tags(&form.tags);
 
         // We want unique tags with their order preserved so no HashSet
         let mut unique_tags: Vec<String> = vec![];
