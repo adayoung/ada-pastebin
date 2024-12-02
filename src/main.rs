@@ -105,7 +105,7 @@ async fn main() {
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/search/", get(index))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
-        .layer(DefaultBodyLimit::max(4 * 1024 * 1024)) // 4MB is a lot of log!
+        .layer(DefaultBodyLimit::max(16 * 1024 * 1024)) // 16MB is a lot of log!
         .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
