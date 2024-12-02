@@ -117,6 +117,7 @@ async fn main() {
         ))
         .layer(TraceLayer::new_for_http())
         .route("/static/*path", get(static_files::handler))
+        .route("/robots.txt", get(robots))
         .fallback(notfound)
         .with_state(shared_state);
 
@@ -304,6 +305,14 @@ async fn getdrivecontent(
     } else {
         (StatusCode::NOT_FOUND, "Paste not found").into_response()
     }
+}
+
+async fn robots() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        "User-agent: *\nDisallow: /*/content\nAllow: /",
+    )
+        .into_response()
 }
 
 // Fallback handler for 404 errors
