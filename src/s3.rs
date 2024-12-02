@@ -23,6 +23,7 @@ pub async fn upload(
         .unwrap_or_default();
 
     let content_length = content.len() as i64;
+    let paste_id_w_ext: String = paste_id_w_ext.chars().filter(|c| c != &'~').collect();
 
     let _config = aws_config::load_from_env().await;
     let config = s3::Config::from(&_config)
