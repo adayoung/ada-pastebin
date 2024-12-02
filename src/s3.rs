@@ -51,7 +51,7 @@ pub async fn upload(
         Ok(_) => {}
         Err(err) => {
             error!("Failed to upload to S3: {}", err);
-            return Err(format!("{}", err));
+            return Err(err.to_string());
         }
     };
 
@@ -72,7 +72,7 @@ pub async fn delete(bucket: &str, key: &str) -> Result<(), String> {
         Ok(_) => {}
         Err(err) => {
             error!("Failed to delete from S3: {}", err);
-            return Err(format!("{}", err));
+            return Err(err.to_string());
         }
     };
 
