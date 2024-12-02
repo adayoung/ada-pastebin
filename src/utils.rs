@@ -48,20 +48,20 @@ pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoRespon
     Ok(response)
 }
 
-fn generate_permissions_policy() -> String {
-    let permissions: [&str; 9] = [
-        "accelerometer=()",
-        "camera=()",
-        "geolocation=()",
-        "gyroscope=()",
-        "magnetometer=()",
-        "microphone=()",
-        "payment=()",
-        "usb=()",
-        "interest-cohort=()",
-    ];
+const PERMISSIONS_POLICY: [&str; 9] = [
+    "accelerometer=()",
+    "camera=()",
+    "geolocation=()",
+    "gyroscope=()",
+    "magnetometer=()",
+    "microphone=()",
+    "payment=()",
+    "usb=()",
+    "interest-cohort=()",
+];
 
-    permissions.join(",")
+fn generate_permissions_policy() -> String {
+    PERMISSIONS_POLICY.join(",")
 }
 
 pub async fn csp(
