@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen\n            FROM pastebin\n            WHERE\n                tags @> $1::varchar[]\n            ORDER BY date DESC\n            LIMIT 100\n            OFFSET $2\n            ",
+  "query": "\n            SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen\n            FROM pastebin\n            WHERE\n                tags @> $1::varchar[]\n            ORDER BY date DESC\n            LIMIT 10\n            OFFSET $2\n            ",
   "describe": {
     "columns": [
       {
@@ -85,5 +85,5 @@
       false
     ]
   },
-  "hash": "1b6249ce233cf42341cadd4311963c54b2b765ed47276b5676bb05a916049a31"
+  "hash": "22261665ee5966e6302d03fc78ebd8af6bc0e2d96ce36848c2474e44d489667a"
 }

@@ -383,11 +383,11 @@ impl Paste {
             WHERE
                 tags @> $1::varchar[]
             ORDER BY date DESC
-            LIMIT 100
+            LIMIT 10
             OFFSET $2
             ",
             tags,
-            (page - 1) * 100
+            (page - 1) * 10
         )
         .fetch_all(db)
         .await
