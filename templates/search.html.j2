@@ -1,0 +1,34 @@
+{% extends "pastebin.html.j2" %}
+
+{% block content %}
+<div>
+  <div class="row">
+    <div class="spacer"></div>
+    <div class="col">
+      <table class="d-none table table-dark mt-3" id="results">
+        <thead>
+          <tr>
+            <!-- <th>#</th> -->
+            <th>Title</th>
+            <th>Posted</th>
+            <th>Tags</th>
+          </tr>
+        </thead>
+        <tbody id="results-body">
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col">
+      <div class="d-grid mb-3">
+        <a class="d-none btn btn-secondary" data-page="" href="#" id="loadmore">Load more results</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block moretail %}
+<script src="//{{ static_domain }}/static/js/search.js"></script>
+{% endblock %}

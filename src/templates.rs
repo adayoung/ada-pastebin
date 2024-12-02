@@ -35,3 +35,9 @@ pub struct PasteTemplate {
     pub views: u64,
     pub owned: bool,
 }
+
+#[derive(Template)]
+#[template(path = "search.html.j2")]
+pub struct SearchTemplate {
+    pub static_domain: String,
+}

@@ -7,6 +7,7 @@ use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
 use rand::Rng;
+use serde::Serialize;
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::Error::RowNotFound;
@@ -91,6 +92,7 @@ pub async fn new_paste(
     }
 }
 
+#[derive(Serialize)]
 pub enum PasteFormat {
     Text(String),
     Html(String),
@@ -105,7 +107,7 @@ impl From<String> for PasteFormat {
     }
 }
 
-#[derive(FromRow)]
+#[derive(FromRow, Serialize)]
 pub struct Paste {
     pub paste_id: String,
     pub user_id: Option<String>,
@@ -370,6 +372,34 @@ impl Paste {
                 }
             },
         }
+    }
+
+    pub async fn search(db: &PgPool, tags: &Vec<String>, page: i64) -> Result<Vec<Paste>, String> {
+        let pastes = match query_as!(
+            Paste,
+            "
+            SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
+            FROM pastebin
+            WHERE
+                tags @> $1::varchar[]
+            ORDER BY date DESC
+            LIMIT 100
+            OFFSET $2
+            ",
+            tags,
+            (page - 1) * 100
+        )
+        .fetch_all(db)
+        .await
+        {
+            Ok(pastes) => pastes,
+            Err(err) => {
+                error!("Failed to search pastes: {}", err);
+                return Err(format!("Failed to search pastes: {}", err));
+            }
+        };
+
+        Ok(pastes)
     }
 
     pub fn get_content_url(&self, s3_bucket_url: &str) -> String {

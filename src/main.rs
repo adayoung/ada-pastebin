@@ -1,6 +1,6 @@
 use axum::{
     body::Body,
-    extract::{DefaultBodyLimit, Form, Path, State},
+    extract::{DefaultBodyLimit, Form, Path, Query, State},
     http::header::{CACHE_CONTROL, LOCATION},
     http::{HeaderMap, StatusCode},
     middleware,
@@ -10,7 +10,9 @@ use axum::{
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
 use dashmap::{DashMap, DashSet};
+use serde::Serialize;
 use sqlx::postgres::PgPool;
+use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tower_cookies::{CookieManagerLayer, Cookies, Key};
@@ -103,12 +105,12 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
-        .route("/pastebin/search/", get(index))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .layer(DefaultBodyLimit::max(16 * 1024 * 1024)) // 16MB is a lot of log!
         .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
+        .route("/pastebin/search/", get(search))
         .route("/pastebinc/:paste_id/content", get(getdrivecontent))
         .layer(middleware::from_fn(utils::extra_sugar))
         .layer(middleware::from_fn_with_state(
@@ -305,6 +307,59 @@ async fn getdrivecontent(
     } else {
         (StatusCode::NOT_FOUND, "Paste not found").into_response()
     }
+}
+
+async fn search(
+    State(state): State<Arc<runtime::AppState>>,
+    headers: HeaderMap,
+    Query(params): Query<HashMap<String, String>>,
+) -> impl IntoResponse {
+    if !params.contains_key("tags") {
+        return (StatusCode::BAD_REQUEST, "No tags parameter found").into_response();
+    }
+
+    let tags = paste::fix_tags(&params.get("tags").map(|s| s.to_owned()));
+    if tags.is_empty() {
+        return (StatusCode::BAD_REQUEST, "Tags parameter is empty").into_response();
+    }
+
+    let page: i64 = params
+        .get("page")
+        .map(|s| s.parse().unwrap_or(1))
+        .unwrap_or(1);
+
+    if !headers.contains_key("X-Requested-With") {
+        let template = templates::SearchTemplate {
+            static_domain: state.config.static_domain.clone(),
+        };
+        return (StatusCode::OK, template).into_response();
+    }
+
+    let pastes = match paste::Paste::search(&state.db, &tags, page).await {
+        Ok(pastes) => pastes,
+        Err(err) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, err).into_response();
+        }
+    };
+
+    #[derive(Serialize)]
+    #[serde(untagged)]
+    enum ResponseValue {
+        Pastes(Vec<paste::Paste>),
+        Tags(Vec<String>),
+        Page(i64),
+    }
+
+    let mut response: HashMap<&str, ResponseValue> = HashMap::new();
+    response.insert("page", ResponseValue::Page(page + 1));
+    response.insert("pastes", ResponseValue::Pastes(pastes));
+    response.insert("tags", ResponseValue::Tags(tags));
+
+    (
+        StatusCode::OK,
+        serde_json::to_string_pretty(&response).unwrap(),
+    )
+        .into_response()
 }
 
 async fn robots() -> impl IntoResponse {
