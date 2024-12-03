@@ -355,11 +355,7 @@ async fn search(
     response.insert("pastes", ResponseValue::Pastes(pastes));
     response.insert("tags", ResponseValue::Tags(tags));
 
-    (
-        StatusCode::OK,
-        serde_json::to_string_pretty(&response).unwrap(),
-    )
-        .into_response()
+    (StatusCode::OK, serde_json::to_string(&response).unwrap()).into_response()
 }
 
 async fn robots() -> impl IntoResponse {

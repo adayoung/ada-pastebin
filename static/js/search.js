@@ -31,9 +31,9 @@
         })
         .then((result) => {
           this.dataset.page = result.page;
-          if (result.pastes == null) {
-            this.textContent = "No more results ...";
-            this.classList.add("d-none");
+          if (result.pastes.length == 0) {
+            this.textContent = "There are no more results!";
+            this.classList.add("disabled");
           } else {
             this.href = url.toString();
             this.textContent = "Load more results";
@@ -55,10 +55,11 @@
                 item.title = item.paste_id;
               }
 
+              let date = new Date(item.date);
               let row = `
               <tr>
                 <td><a class="text-decoration-none" href="/pastebin/${item.paste_id}">${item.title}</a></td>
-                <td title="${item.i_date}">${item.date}</td>
+                <td title="${date.toTimeString()}">${date.toLocaleString()}</td>
                 <td>${tags.join("")}</td>
               </tr>
             `;
