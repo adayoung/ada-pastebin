@@ -426,10 +426,9 @@ impl Paste {
     }
 
     pub fn get_title(&self) -> String {
-        if self.title == Some("".to_string()) {
-            self.paste_id.clone()
-        } else {
-            self.title.clone().unwrap_or(self.paste_id.clone())
+        match self.title.as_deref() {
+            Some("") | None => self.paste_id.clone(),
+            Some(title) => title.to_string(),
         }
     }
 
