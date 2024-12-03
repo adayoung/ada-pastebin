@@ -51,6 +51,8 @@
               `);
               });
 
+              item.title = item.title || "";
+
               if (item.title.length == 0) {
                 item.title = item.paste_id;
               }
