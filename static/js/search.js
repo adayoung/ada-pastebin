@@ -61,6 +61,7 @@
                 <td><a class="text-decoration-none" href="/pastebin/${item.paste_id}">${item.title}</a></td>
                 <td title="${date.toTimeString()}">${date.toLocaleString()}</td>
                 <td>${tags.join("")}</td>
+                <td class="text-end">${item.views}</td>
               </tr>
             `;
               document

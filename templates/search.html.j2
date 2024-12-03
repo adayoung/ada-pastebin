@@ -1,5 +1,13 @@
 {% extends "pastebin.html.j2" %}
 
+{% block evenmorehead %}
+<style>
+    #results-body > tr:nth-child(3) > td {
+        border-bottom: 0px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div>
   <div class="row">
@@ -8,10 +16,10 @@
       <table class="d-none table table-dark mt-3" id="results">
         <thead>
           <tr>
-            <!-- <th>#</th> -->
             <th>Title</th>
             <th>Posted</th>
             <th>Tags</th>
+            <th class="text-end">Views</th>
           </tr>
         </thead>
         <tbody id="results-body">
@@ -30,5 +38,5 @@
 {% endblock %}
 
 {% block moretail %}
-<script src="//{{ static_domain }}/static/js/search.js?t=20241103"></script>
+<script src="//{{ static_domain }}/static/js/search.js?t=20241103-a"></script>
 {% endblock %}

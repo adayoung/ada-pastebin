@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
-    http::header::{CACHE_CONTROL, LOCATION},
+    http::header::{CACHE_CONTROL, CONTENT_TYPE, LOCATION},
     http::{HeaderMap, StatusCode},
     middleware,
     response::{IntoResponse, Redirect, Response},
@@ -345,7 +345,7 @@ async fn search(
     #[derive(Serialize)]
     #[serde(untagged)]
     enum ResponseValue {
-        Pastes(Vec<paste::Paste>),
+        Pastes(Vec<paste::SearchPaste>),
         Tags(Vec<String>),
         Page(i64),
     }
@@ -355,7 +355,12 @@ async fn search(
     response.insert("pastes", ResponseValue::Pastes(pastes));
     response.insert("tags", ResponseValue::Tags(tags));
 
-    (StatusCode::OK, serde_json::to_string(&response).unwrap()).into_response()
+    (
+        StatusCode::OK,
+        [(CONTENT_TYPE, "application/json")],
+        serde_json::to_string(&response).unwrap(),
+    )
+        .into_response()
 }
 
 async fn robots() -> impl IntoResponse {

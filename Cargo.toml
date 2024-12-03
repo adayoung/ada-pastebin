@@ -15,7 +15,7 @@ aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
 aws-sdk-s3 = "1.63.0"
 axum = "0.7.9"
 axum_csrf = { version = "0.10.2", features = ["layer"] }
-bigdecimal = { version = "0.4.6", features = ["serde-json"] }
+bigdecimal = "0.4.6"
 brotli = "7.0.0"
 chrono = { version = "0.4.38", default-features = false, features = ["now", "serde"] }
 config = "0.14.1"

@@ -93,6 +93,7 @@ pub async fn new_paste(
 }
 
 #[derive(Serialize)]
+#[serde(untagged)]
 pub enum PasteFormat {
     Text(String),
     Html(String),
@@ -107,7 +108,7 @@ impl From<String> for PasteFormat {
     }
 }
 
-#[derive(FromRow, Serialize)]
+#[derive(FromRow)]
 pub struct Paste {
     pub paste_id: String,
     pub user_id: Option<String>,
@@ -126,6 +127,16 @@ pub struct Paste {
 // Used for DELETE /pastes/:paste_id
 struct DeletePaste {
     pub s3_key: String,
+}
+
+#[derive(FromRow, Serialize)]
+pub struct SearchPaste {
+    pub paste_id: String,
+    pub title: Option<String>,
+    pub tags: Option<Vec<String>>,
+    pub format: PasteFormat,
+    pub date: DateTime<Utc>,
+    pub views: i64,
 }
 
 impl Paste {
@@ -374,11 +385,15 @@ impl Paste {
         }
     }
 
-    pub async fn search(db: &PgPool, tags: &Vec<String>, page: i64) -> Result<Vec<Paste>, String> {
+    pub async fn search(
+        db: &PgPool,
+        tags: &Vec<String>,
+        page: i64,
+    ) -> Result<Vec<SearchPaste>, String> {
         let pastes = match query_as!(
-            Paste,
+            SearchPaste,
             "
-            SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
+            SELECT paste_id, title, tags, format, date, views
             FROM pastebin
             WHERE
                 tags @> $1::varchar[]
