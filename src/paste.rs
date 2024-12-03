@@ -429,7 +429,7 @@ impl Paste {
         if self.title == Some("".to_string()) {
             self.paste_id.clone()
         } else {
-            self.title.clone().unwrap()
+            self.title.clone().unwrap_or(self.paste_id.clone())
         }
     }
 
