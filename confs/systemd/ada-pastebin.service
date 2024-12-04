@@ -1,0 +1,14 @@
+[Unit]
+Description=Ada's HTML Pastebin
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+EnvironmentFile=/home/ada-young/pastebin/env-vars
+WorkingDirectory=/home/ada-young/pastebin
+ExecStart=/home/ada-young/pastebin/ada-pastebin
+MemoryMax=256M
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
