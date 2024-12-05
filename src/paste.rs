@@ -143,9 +143,7 @@ impl Paste {
     fn new(form: &forms::PasteForm, score: f64) -> Result<Self, (StatusCode, String)> {
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
-        if title.len() > 50 {
-            title = title.chars().take(50).collect();
-        }
+        title = title.chars().filter(|c| !c.is_control()).take(50).collect();
 
         let tags = fix_tags(&form.tags);
 
