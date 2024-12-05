@@ -84,10 +84,13 @@ pub async fn new_paste(
         Ok(paste_id) => Ok(paste_id),
         Err(err) => {
             error!("Failed to save paste: {}", err);
-            Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                "Meep! We couldn't save that paste :-(".to_string(),
-            ))
+
+            let mut status = StatusCode::INTERNAL_SERVER_ERROR;
+            if err.contains("too large") {
+                status = StatusCode::PAYLOAD_TOO_LARGE;
+            }
+
+            Err((status, "Meep! We couldn't save that paste :-(".to_string()))
         }
     }
 }
@@ -230,6 +233,9 @@ impl Paste {
         }
 
         let content_length = s3_content.len() as i32;
+        if content_length > 2 * 1024 * 1024 {
+            return Err(format!("Content length is too large: {}", content_length));
+        }
 
         // Start a DB transaction
         let mut transaction = match db.begin().await {
