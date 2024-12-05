@@ -42,9 +42,11 @@ function fancyFormSubmit(token) {
       if (response.ok) {
         return response.text();
       } else {
-        alert(
-          `Oops, we couldn't post your paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`,
-        );
+        let alertText = `Oops, we couldn't post your paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`;
+        if (response.status == 403) {
+          alertText += "\n\nMaybe clear your cookies and refresh the page?";
+        }
+        alert(alertText);
         throw "-flails-";
       }
     })
