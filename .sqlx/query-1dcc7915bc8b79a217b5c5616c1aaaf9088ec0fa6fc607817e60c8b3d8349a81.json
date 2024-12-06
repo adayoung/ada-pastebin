@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE pastebin\n            SET views = $1, last_seen = $2\n            WHERE paste_id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1dcc7915bc8b79a217b5c5616c1aaaf9088ec0fa6fc607817e60c8b3d8349a81"
+}

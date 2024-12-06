@@ -456,13 +456,15 @@ impl Paste {
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
+        let now = Utc::now();
         match query!(
             r#"
             UPDATE pastebin
-            SET views = $1
-            WHERE paste_id = $2
+            SET views = $1, last_seen = $2
+            WHERE paste_id = $3
             "#,
             views,
+            now,
             self.paste_id
         )
         .execute(db)
