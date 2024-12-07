@@ -89,7 +89,7 @@ async fn main() {
 
     let csrf_key = axum_csrf::Key::from(shared_state.config.cookie_key.as_bytes());
     let mut csrf_config = CsrfConfig::new()
-        .with_cookie_name("csrf")
+        .with_cookie_name("xsrf")
         .with_cookie_path("/pastebin/")
         .with_cookie_same_site(SameSite::Strict)
         .with_secure(shared_state.config.csrf_secure_cookie)
@@ -98,7 +98,7 @@ async fn main() {
         .with_lifetime(time::Duration::seconds(0));
 
     if shared_state.config.csrf_secure_cookie {
-        csrf_config = csrf_config.with_cookie_name("__Secure-csrf");
+        csrf_config = csrf_config.with_cookie_name("__Secure-xsrf");
     };
 
     // build our application with routes
