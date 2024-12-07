@@ -1,0 +1,28 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            WITH paste AS (\n                DELETE FROM pastebin\n                WHERE paste_id = $1\n                RETURNING s3_key, gdrivedl\n            )\n            SELECT s3_key, gdrivedl FROM paste\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "s3_key",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "gdrivedl",
+        "type_info": "Varchar"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      true
+    ]
+  },
+  "hash": "943e433634b74c9cc8f3cfda2c34b6c0ef34d1888dec5a472f39e9e9ecfdeeba"
+}

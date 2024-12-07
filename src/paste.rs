@@ -1,3 +1,4 @@
+use crate::cloudflare;
 use crate::forms;
 use crate::runtime;
 use crate::s3;
@@ -130,6 +131,7 @@ pub struct Paste {
 // Used for DELETE /pastes/:paste_id
 struct DeletePaste {
     pub s3_key: String,
+    pub gdrivedl: Option<String>,
 }
 
 #[derive(FromRow, Serialize)]
@@ -326,11 +328,11 @@ impl Paste {
     }
 
     pub async fn delete(
-        db: &PgPool,
+        state: &runtime::AppState,
         s3_bucket: &str,
         paste_id: &str,
-    ) -> Result<String, (StatusCode, String)> {
-        let mut transaction = match db.begin().await {
+    ) -> Result<(), (StatusCode, String)> {
+        let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => {
                 error!("Failed to start transaction: {}", err);
@@ -347,9 +349,9 @@ impl Paste {
             WITH paste AS (
                 DELETE FROM pastebin
                 WHERE paste_id = $1
-                RETURNING s3_key
+                RETURNING s3_key, gdrivedl
             )
-            SELECT s3_key FROM paste
+            SELECT s3_key, gdrivedl FROM paste
             "#,
             paste_id
         )
@@ -362,9 +364,14 @@ impl Paste {
             )
         })?;
 
-        match s3::delete(s3_bucket, &paste.s3_key).await {
+        let fake_s3_delete = paste.gdrivedl.is_some();
+        match s3::delete(s3_bucket, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
-                Ok(_) => Ok(paste.s3_key),
+                Ok(_) => {
+                    state.cloudflare_q.insert(paste.s3_key);
+                    cloudflare::purge_cache(state, false).await;
+                    Ok(())
+                }
                 Err(err) => {
                     error!("Failed to commit transaction: {}", err);
                     Err((

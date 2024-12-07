@@ -79,6 +79,7 @@ async fn main() {
             paste::update_views(&shutdown_state, false),
             cloudflare::cleanup_cache(&shutdown_state, false, true),
         );
+        shutdown_state.db.close().await;
         std::process::exit(0);
     });
 
@@ -245,11 +246,8 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    match paste::Paste::delete(&state.db, &state.config.s3_bucket, &paste_id).await {
-        Ok(s3_key) => {
-            state.cloudflare_q.insert(s3_key);
-            cloudflare::purge_cache(&state, false).await;
-        }
+    match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+        Ok(_) => {}
         Err(err) => {
             return err.into_response();
         }
@@ -294,8 +292,20 @@ async fn getdrivecontent(
         };
 
         if !response.status().is_success() {
-            // TODO: Detect 404 here and remove metadata if applicable
-            return (StatusCode::BAD_GATEWAY, "Google Drive wouldn't talk to us!").into_response();
+            // Remove metadata if Google Drive returns a 404
+            if response.status() == StatusCode::NOT_FOUND {
+                match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+                    Ok(_) => {}
+                    Err(err) => {
+                        return err.into_response();
+                    }
+                };
+
+                return (StatusCode::NOT_FOUND, "Paste not found").into_response();
+            } else {
+                return (StatusCode::BAD_GATEWAY, "Google Drive wouldn't talk to us!")
+                    .into_response();
+            }
         }
 
         let mut headers = HeaderMap::new();

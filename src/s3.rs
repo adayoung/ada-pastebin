@@ -59,7 +59,11 @@ pub async fn upload(
     Ok(())
 }
 
-pub async fn delete(bucket: &str, key: &str) -> Result<(), String> {
+pub async fn delete(bucket: &str, key: &str, fake_it: bool) -> Result<(), String> {
+    if fake_it {
+        return Ok(());
+    }
+
     let _config = aws_config::load_from_env().await;
 
     let config = s3::Config::from(&_config)
