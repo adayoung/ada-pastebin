@@ -96,6 +96,7 @@ article div#content-terminal {
 
     width: 100%;
     min-height: 60vh;
+    overflow: hidden; /* Prevent overflow */
 }
 
 .c-paste-btn:hover {

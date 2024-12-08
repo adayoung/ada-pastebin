@@ -95,6 +95,10 @@
         })
         .then((result) => {
           if (document.getElementById("format").value == "log") {
+            document
+              .getElementById("content-terminal")
+              .classList.remove("d-none");
+
             // const lineCount = (result.match(/\r\n|\n/g) || []).length;
             const lines = result.split(/\r\n|\n/g);
             const longest = lines.reduce((a, b) =>
@@ -115,9 +119,23 @@
             term.onWriteParsed(() => term.scrollToTop());
             term.write(data);
 
-            document
-              .getElementById("content-terminal")
-              .classList.remove("d-none");
+            /* Adjust the terminal columns to fit the container */
+            const containerWidth =
+              document.getElementById("content-terminal").clientWidth;
+            const cols =
+              Math.floor(
+                containerWidth /
+                  term._core._renderService.dimensions.css.cell.width,
+              ) - 1;
+
+            /* Account for lines that are going to be wrapped */
+            let extraRows = 0;
+            lines.forEach((line) => {
+              extraRows += Math.ceil(line.length / cols) - 1;
+            });
+
+            term.resize(cols, lineCount + extraRows);
+
             document.getElementById("loader").classList.add("d-none");
           } else if (document.getElementById("format").value == "html") {
             document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
