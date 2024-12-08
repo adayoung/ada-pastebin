@@ -95,11 +95,20 @@
         })
         .then((result) => {
           if (document.getElementById("format").value == "log") {
-            const lineCount = (result.match(/\r\n|\n/g) || []).length;
+            // const lineCount = (result.match(/\r\n|\n/g) || []).length;
+            const lines = result.split(/\r\n|\n/g);
+            const longest = lines.reduce((a, b) =>
+              a.length > b.length ? a : b,
+            );
+            const lineCount = lines.length;
             const data = result.replace(/\n/g, "\r\n");
 
             const term = new Terminal({
+              cols: longest.length,
+              rows: lineCount,
+              screenReaderMode: true,
               scrollback: lineCount,
+              wrap: true,
             });
             term.open(document.getElementById("content-terminal"));
             term.onWriteParsed(() => term.scrollToTop());
