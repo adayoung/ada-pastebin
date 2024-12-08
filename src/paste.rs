@@ -99,7 +99,7 @@ pub async fn new_paste(
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum PasteFormat {
-    ANSI(String),
+    Ansi(String),
     Html(String),
     Text(String),
 }
@@ -107,7 +107,7 @@ pub enum PasteFormat {
 impl From<String> for PasteFormat {
     fn from(format: String) -> Self {
         match format.as_str() {
-            "log" => PasteFormat::ANSI(format),
+            "log" => PasteFormat::Ansi(format),
             "html" => PasteFormat::Html(format),
             _ => PasteFormat::Text(format),
         }
@@ -167,7 +167,7 @@ impl Paste {
         }
 
         let format = match form.format.as_str() {
-            "log" => PasteFormat::ANSI(form.format.clone()),
+            "log" => PasteFormat::Ansi(form.format.clone()),
             "html" => PasteFormat::Html(form.format.clone()),
             "plain" => PasteFormat::Text(form.format.clone()),
             _ => return Err((StatusCode::BAD_REQUEST, "Invalid format".to_string())),
@@ -209,21 +209,21 @@ impl Paste {
         let tags: Option<&[String]> = self.tags.as_deref();
 
         let format = match self.format {
-            PasteFormat::ANSI(ref ansi) => ansi,
+            PasteFormat::Ansi(ref ansi) => ansi,
             PasteFormat::Html(ref html) => html,
             PasteFormat::Text(ref text) => text,
         };
 
         // Determine file extension for S3
         let ext = match self.format {
-            PasteFormat::ANSI(_) => "log",
+            PasteFormat::Ansi(_) => "log",
             PasteFormat::Text(_) => "txt",
             PasteFormat::Html(_) => "html",
         };
 
         // Determine content type for S3
         let content_type = match self.format {
-            PasteFormat::ANSI(_) => "text/plain".to_string(),
+            PasteFormat::Ansi(_) => "text/plain".to_string(),
             PasteFormat::Text(_) => "text/plain".to_string(),
             PasteFormat::Html(_) => "text/html".to_string(),
         };
@@ -451,7 +451,7 @@ impl Paste {
 
     pub fn get_format(&self) -> String {
         match self.format {
-            PasteFormat::ANSI(_) => "log".to_string(),
+            PasteFormat::Ansi(_) => "log".to_string(),
             PasteFormat::Text(_) => "plain".to_string(),
             PasteFormat::Html(_) => "html".to_string(),
         }
