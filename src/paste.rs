@@ -99,13 +99,15 @@ pub async fn new_paste(
 #[derive(Serialize)]
 #[serde(untagged)]
 pub enum PasteFormat {
-    Text(String),
+    ANSI(String),
     Html(String),
+    Text(String),
 }
 
 impl From<String> for PasteFormat {
     fn from(format: String) -> Self {
         match format.as_str() {
+            "log" => PasteFormat::ANSI(format),
             "html" => PasteFormat::Html(format),
             _ => PasteFormat::Text(format),
         }
@@ -165,8 +167,9 @@ impl Paste {
         }
 
         let format = match form.format.as_str() {
-            "plain" => PasteFormat::Text(form.format.clone()),
+            "log" => PasteFormat::ANSI(form.format.clone()),
             "html" => PasteFormat::Html(form.format.clone()),
+            "plain" => PasteFormat::Text(form.format.clone()),
             _ => return Err((StatusCode::BAD_REQUEST, "Invalid format".to_string())),
         };
 
@@ -206,18 +209,21 @@ impl Paste {
         let tags: Option<&[String]> = self.tags.as_deref();
 
         let format = match self.format {
-            PasteFormat::Text(ref text) => text,
+            PasteFormat::ANSI(ref ansi) => ansi,
             PasteFormat::Html(ref html) => html,
+            PasteFormat::Text(ref text) => text,
         };
 
         // Determine file extension for S3
         let ext = match self.format {
+            PasteFormat::ANSI(_) => "log",
             PasteFormat::Text(_) => "txt",
             PasteFormat::Html(_) => "html",
         };
 
         // Determine content type for S3
         let content_type = match self.format {
+            PasteFormat::ANSI(_) => "text/plain".to_string(),
             PasteFormat::Text(_) => "text/plain".to_string(),
             PasteFormat::Html(_) => "text/html".to_string(),
         };
@@ -445,6 +451,7 @@ impl Paste {
 
     pub fn get_format(&self) -> String {
         match self.format {
+            PasteFormat::ANSI(_) => "log".to_string(),
             PasteFormat::Text(_) => "plain".to_string(),
             PasteFormat::Html(_) => "html".to_string(),
         }

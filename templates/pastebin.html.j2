@@ -13,7 +13,7 @@
 {% block title %}Ada's HTML Pastebin{% endblock %}
 
 {% block morehead %}
-<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css" />
+<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css?t=20241108" />
 {% block captcha %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=helloCaptcha" defer></script>
 {% endblock %}
@@ -113,6 +113,9 @@
 
               <input class="btn-check" id="html" name="format" type="radio" value="html">
               <label class="btn btn-outline-primary" for="html">Colourful HTML</label>
+
+              <input class="btn-check" id="log" name="format" type="radio" value="log">
+              <label class="btn btn-outline-primary" for="log">ANSI Log</label>
             </div>
           </div>
           <div class="me-3 pb-3">

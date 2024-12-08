@@ -94,7 +94,22 @@
           }
         })
         .then((result) => {
-          if (document.getElementById("format").value == "html") {
+          if (document.getElementById("format").value == "log") {
+            const lineCount = (result.match(/\r\n|\n/g) || []).length;
+            const data = result.replace(/\n/g, "\r\n");
+
+            const term = new Terminal({
+              scrollback: lineCount,
+            });
+            term.open(document.getElementById("content-terminal"));
+            term.onWriteParsed(() => term.scrollToTop());
+            term.write(data);
+
+            document
+              .getElementById("content-terminal")
+              .classList.remove("d-none");
+            document.getElementById("loader").classList.add("d-none");
+          } else if (document.getElementById("format").value == "html") {
             document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
             document.getElementById("content-frame").classList.remove("d-none");
             document.getElementById("loader").classList.add("d-none");
@@ -115,6 +130,7 @@
         })
         .catch((error) => {
           if (error != "-flails-") {
+            console.log(error);
             document.getElementById("loader-result").textContent =
               "Meep! I couldn't get your content :( Maybe the network pipes aren't up?";
           }

@@ -85,11 +85,12 @@ pub async fn csp(
         ),
         format!("img-src data: {}", static_domain),
         format!(
-            "script-src {} https://challenges.cloudflare.com",
+            "script-src {} https://challenges.cloudflare.com https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.js",
             static_domain
         ),
-        format!("style-src 'unsafe-inline' {}", static_domain),
+        format!("style-src 'unsafe-inline' {} https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.css", static_domain),
         format!("upgrade-insecure-requests"),
+        format!("require-trusted-types-for 'script'"),
     ];
 
     if let Ok(csp_header) = HeaderValue::from_str(&policy.join("; ").to_string()) {
