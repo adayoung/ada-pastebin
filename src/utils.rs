@@ -90,7 +90,6 @@ pub async fn csp(
         ),
         format!("style-src 'unsafe-inline' {} https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.css", static_domain),
         format!("upgrade-insecure-requests"),
-        format!("require-trusted-types-for 'script'"),
     ];
 
     if let Ok(csp_header) = HeaderValue::from_str(&policy.join("; ").to_string()) {
