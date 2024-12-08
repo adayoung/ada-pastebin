@@ -120,13 +120,14 @@
             term.write(data);
 
             /* Adjust the terminal columns to fit the container */
-            const containerWidth =
-              document.getElementById("content-terminal").clientWidth;
-            const cols =
-              Math.floor(
-                containerWidth /
-                  term._core._renderService.dimensions.css.cell.width,
-              ) - 1;
+            // const containerWidth =
+            //   document.getElementById("content-terminal").clientWidth;
+            // const cols =
+            //   Math.floor(
+            //     containerWidth /
+            //       term._core._renderService.dimensions.css.cell.width,
+            //   ) - 1;
+            const cols = 120; // this is a more sane default
 
             /* Account for lines that are going to be wrapped */
             let extraRows = 0;
