@@ -58,9 +58,11 @@
               }
 
               let date = new Date(item.date);
+              let cleanTitle = document.createElement("span");
+              cleanTitle.textContent = item.title;
               let row = `
               <tr>
-                <td><a class="text-decoration-none" href="/pastebin/${item.paste_id}">${item.title}</a></td>
+                <td><a class="text-decoration-none" href="/pastebin/${item.paste_id}">${cleanTitle.innerHTML}</a></td>
                 <td title="${date.toTimeString()}">${date.toLocaleString()}</td>
                 <td>${tags.join("")}</td>
                 <td class="text-end">${item.views}</td>
