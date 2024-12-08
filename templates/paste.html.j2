@@ -53,6 +53,12 @@
                 </button>
                 {% endif %}
 
+                {% if paste.get_format() == "log" %}
+                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="terminal-btn" title="This is an ANSI log!">
+                    <img src="//{{ static_domain }}/static/img/terminal.svg" height="16" width="16" alt="ANSI log!" loading="lazy" />
+                </a>
+                {% endif %}
+
                 {% if paste.gdrivedl.is_some() %}
                 <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!">
                     <img src="//{{ static_domain }}/static/img/drive.webp" height="16" width="16" alt="Google Drive!" loading="lazy">
