@@ -108,6 +108,7 @@
               rows: lineCount,
               screenReaderMode: true,
               scrollback: lineCount,
+              disableStdin: true,
               wrap: true,
             });
             term.open(document.getElementById("content-terminal"));
