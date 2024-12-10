@@ -1,5 +1,9 @@
 "use strict";
 
+var lines; // placed here for debugging
+var term; // placed here for debugging
+// term.resize(cols, lineCount + extraRows);
+
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Share button
@@ -99,43 +103,27 @@
               .getElementById("content-terminal")
               .classList.remove("d-none");
 
-            // const lineCount = (result.match(/\r\n|\n/g) || []).length;
-            const lines = result.split(/\r\n|\n/g);
-            const longest = lines.reduce((a, b) =>
-              a.length > b.length ? a : b,
-            );
-            const lineCount = lines.length;
-            const data = result.replace(/\n/g, "\r\n");
+            lines = result.split(/\r\n|\n/g);
 
-            const term = new Terminal({
-              cols: longest.length,
-              rows: lineCount,
-              screenReaderMode: true,
-              scrollback: lineCount,
-              disableStdin: true,
-              wrap: true,
-            });
-            term.open(document.getElementById("content-terminal"));
-            term.onWriteParsed(() => term.scrollToTop());
-            term.write(data);
-
-            /* Adjust the terminal columns to fit the container */
-            // const containerWidth =
-            //   document.getElementById("content-terminal").clientWidth;
-            // const cols =
-            //   Math.floor(
-            //     containerWidth /
-            //       term._core._renderService.dimensions.css.cell.width,
-            //   ) - 1;
-            const cols = 120; // this is a more sane default
-
-            /* Account for lines that are going to be wrapped */
+            let cols = 120; // this is a more sane default
+            let rows = lines.length;
             let extraRows = 0;
             lines.forEach((line) => {
               extraRows += Math.ceil(line.length / cols) - 1;
             });
+            let totalRows = rows + extraRows;
 
-            term.resize(cols, lineCount + extraRows);
+            term = new Terminal({
+              cols: cols,
+              rows: totalRows,
+              convertEol: true,
+              disableStdin: true,
+              screenReaderMode: true,
+              scrollback: totalRows,
+            });
+            term.open(document.getElementById("content-terminal"));
+            term.onWriteParsed(() => term.scrollToTop());
+            term.write(result);
 
             document.getElementById("loader").classList.add("d-none");
           } else if (document.getElementById("format").value == "html") {
