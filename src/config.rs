@@ -23,6 +23,11 @@ pub struct AppConfig {
     pub s3_bucket_url: String,
     pub s3_bucket: String,
     pub s3_prefix: String,
+
+    pub aws_region: String,
+    pub aws_access_key_id: String,
+    pub aws_secret_access_key: String,
+    pub aws_endpoint: String,
 }
 
 impl AppConfig {
@@ -55,6 +60,13 @@ impl AppConfig {
             .set_default("s3_bucket", "bin.ada-young.com")
             .unwrap();
         config = config.set_default("s3_prefix", "content/").unwrap();
+
+        config = config.set_default("aws_region", "us-east-1").unwrap();
+        config = config.set_default("aws_access_key_id", "").unwrap();
+        config = config.set_default("aws_secret_access_key", "").unwrap();
+        config = config
+            .set_default("aws_endpoint", "s3.amazonaws.com")
+            .unwrap();
 
         // Check for the presence of a config.toml file and use it
         if std::path::Path::new("config.toml").is_file() {

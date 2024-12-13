@@ -12,6 +12,7 @@ strip = "symbols"  # Strip debug symbols
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
+aws-credential-types = "1.2.1"
 aws-sdk-s3 = "1.63.0"
 axum = "0.7.9"
 axum_csrf = { version = "0.10.2", features = ["layer"] }

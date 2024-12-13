@@ -246,7 +246,7 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+    match paste::Paste::delete(&state, &paste_id).await {
         Ok(_) => {}
         Err(err) => {
             return err.into_response();
@@ -294,7 +294,7 @@ async fn getdrivecontent(
         if !response.status().is_success() {
             // Remove metadata if Google Drive returns a 404
             if response.status() == StatusCode::NOT_FOUND {
-                match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+                match paste::Paste::delete(&state, &paste_id).await {
                     Ok(_) => {}
                     Err(err) => {
                         return err.into_response();
