@@ -1,10 +1,13 @@
 use crate::runtime;
 use aws_credential_types::Credentials;
 use aws_sdk_s3 as s3;
+use std::sync::OnceLock;
 use tracing::error;
 
-async fn build_aws_config(state: &runtime::AppState) -> aws_config::SdkConfig {
-    aws_config::defaults(aws_config::BehaviorVersion::v2024_03_28())
+static S3_CLIENT: OnceLock<s3::Client> = OnceLock::new();
+
+pub async fn init_s3_client(state: &runtime::AppState) {
+    let _config = aws_config::defaults(aws_config::BehaviorVersion::v2024_03_28())
         .region(aws_config::Region::new(state.config.aws_region.clone()))
         .endpoint_url(&state.config.aws_endpoint)
         .credentials_provider(Credentials::new(
@@ -15,7 +18,21 @@ async fn build_aws_config(state: &runtime::AppState) -> aws_config::SdkConfig {
             "custom",
         ))
         .load()
-        .await
+        .await;
+
+    let s3_config = s3::Config::from(&_config)
+        .to_builder()
+        .force_path_style(true)
+        .build();
+
+    let client = s3::Client::from_conf(s3_config);
+
+    // This will panic if called more than once!
+    S3_CLIENT.set(client).unwrap();
+}
+
+fn get_client() -> &'static s3::Client {
+    S3_CLIENT.get().expect("S3 client not initialized")
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -41,16 +58,7 @@ pub async fn upload(
 
     let content_length = content.len() as i64;
     let paste_id_w_ext: String = paste_id_w_ext.chars().filter(|c| c != &'~').collect();
-
-    let _config = build_aws_config(state).await;
-
-    let config = s3::Config::from(&_config)
-        .to_builder()
-        .force_path_style(true)
-        .build();
-
-    let client = s3::Client::from_conf(config);
-    match client
+    match get_client()
         .put_object()
         .bucket(state.config.s3_bucket.clone())
         .key(key)
@@ -82,16 +90,7 @@ pub async fn delete(state: &runtime::AppState, key: &str, fake_it: bool) -> Resu
         return Ok(());
     }
 
-    let _config = build_aws_config(state).await;
-
-    let config = s3::Config::from(&_config)
-        .to_builder()
-        .force_path_style(true)
-        .build();
-
-    let client = s3::Client::from_conf(config);
-
-    match client
+    match get_client()
         .delete_object()
         .bucket(state.config.s3_bucket.clone())
         .key(key)

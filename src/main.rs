@@ -63,6 +63,8 @@ async fn main() {
         db,
     });
 
+    s3::init_s3_client(&shared_state).await;
+
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
         tokio::join!(
