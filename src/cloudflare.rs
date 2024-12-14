@@ -1,8 +1,14 @@
 use crate::runtime;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
-use reqwest::Client;
+use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::{error, info};
+
+static CF_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+
+fn get_client() -> &'static reqwest::Client {
+    CF_CLIENT.get_or_init(|| reqwest::Client::new())
+}
 
 pub async fn purge_cache(state: &runtime::AppState, now: bool) {
     if state.cloudflare_q.len() >= 10 || now {
@@ -40,8 +46,7 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
         );
         headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
 
-        let client = Client::new();
-        match client
+        match get_client()
             .post(&state.config.cloudflare_purge_url)
             .headers(headers)
             .json(&request_data)
