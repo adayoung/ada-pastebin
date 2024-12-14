@@ -69,7 +69,7 @@ async fn main() {
     tokio::spawn(async move {
         tokio::join!(
             paste::update_views(&timer_state, true),
-            cloudflare::cleanup_cache(&timer_state, true, false),
+            cloudflare::cleanup_cache(&timer_state, true, true),
         );
     });
 
