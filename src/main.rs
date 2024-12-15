@@ -91,18 +91,14 @@ async fn main() {
     );
 
     let csrf_key = axum_csrf::Key::from(shared_state.config.cookie_key.as_bytes());
-    let mut csrf_config = CsrfConfig::new()
-        .with_cookie_name("xsrf")
+    let csrf_config = CsrfConfig::new()
+        .with_cookie_name(utils::get_cookie_name(&shared_state, "xsrf").as_str())
         .with_cookie_path("/pastebin/")
         .with_cookie_same_site(SameSite::Strict)
         .with_secure(shared_state.config.csrf_secure_cookie)
         .with_key(Some(csrf_key))
         .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));
-
-    if shared_state.config.csrf_secure_cookie {
-        csrf_config = csrf_config.with_cookie_name("__Secure-xsrf");
-    };
 
     // build our application with routes
     let app = Router::new()
@@ -187,7 +183,7 @@ async fn newpaste(
     };
 
     // Update the session with the new paste_id
-    session::update_session(&state.cookie_key, &cookies, &paste_id);
+    session::update_session(&state, &cookies, &paste_id);
 
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
@@ -217,7 +213,7 @@ async fn getpaste(
     };
 
     let views = paste.get_views(&state);
-    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
+    let owned = session::is_paste_in_session(&state, &cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
@@ -243,7 +239,7 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
     }
 
-    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
+    let owned = session::is_paste_in_session(&state, &cookies, &paste_id);
     if !owned {
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }

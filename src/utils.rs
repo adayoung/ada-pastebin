@@ -130,3 +130,11 @@ pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
 
     Ok((encoder.into_inner(), "br".to_string()))
 }
+
+pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {
+    if state.config.csrf_secure_cookie {
+        format!("__Secure-{}", name)
+    } else {
+        name.to_string()
+    }
+}

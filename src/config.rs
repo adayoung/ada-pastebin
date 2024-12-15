@@ -17,7 +17,7 @@ pub struct AppConfig {
 
     pub cookie_key: String,
     pub cookie_salt: String,
-    pub csrf_secure_cookie: bool,
+    pub csrf_secure_cookie: bool, // FIXME: rename to secure_cookie
     pub update_views_interval: u64,
 
     pub s3_bucket_url: String,
