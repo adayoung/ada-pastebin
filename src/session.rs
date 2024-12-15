@@ -1,11 +1,10 @@
 use crate::{runtime, utils};
 use std::collections::VecDeque;
 use std::sync::Arc;
-use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 
 pub fn update_session(state: &Arc<runtime::AppState>, cookies: &Cookies, paste_id: &str) {
-    let mut paste_ids = get_session(&state, cookies);
+    let mut paste_ids = get_session(state, cookies);
 
     paste_ids.push_back(paste_id.to_owned());
     if paste_ids.len() > 10 {
@@ -20,7 +19,7 @@ pub fn update_session(state: &Arc<runtime::AppState>, cookies: &Cookies, paste_i
             .path("/pastebin/")
             .http_only(true)
             .secure(state.config.csrf_secure_cookie)
-            .same_site(SameSite::Strict)
+            .same_site(utils::get_cookie_samesite(state))
             .into(),
     );
 }

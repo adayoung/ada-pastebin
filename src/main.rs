@@ -8,7 +8,7 @@ use axum::{
     routing::get,
     Router,
 };
-use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
+use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
 use dashmap::{DashMap, DashSet};
 use serde::Serialize;
 use sqlx::postgres::PgPool;
@@ -94,7 +94,7 @@ async fn main() {
     let csrf_config = CsrfConfig::new()
         .with_cookie_name(utils::get_cookie_name(&shared_state, "xsrf").as_str())
         .with_cookie_path("/pastebin/")
-        .with_cookie_same_site(SameSite::Strict)
+        .with_cookie_same_site(utils::get_cookie_samesite(&shared_state))
         .with_secure(shared_state.config.csrf_secure_cookie)
         .with_key(Some(csrf_key))
         .with_salt(shared_state.config.cookie_salt.clone())

@@ -8,6 +8,7 @@ use axum::{
 use brotli::CompressorWriter;
 use std::io::{Error, Write};
 use std::sync::Arc;
+use tower_cookies::cookie::SameSite;
 use tracing::error;
 
 pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
@@ -136,5 +137,13 @@ pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {
         format!("__Secure-{}", name)
     } else {
         name.to_string()
+    }
+}
+
+pub fn get_cookie_samesite(state: &Arc<runtime::AppState>) -> SameSite {
+    if state.config.csrf_secure_cookie {
+        SameSite::Strict
+    } else {
+        SameSite::Lax
     }
 }
