@@ -107,8 +107,9 @@ pub async fn finish(
     let state_param = params.get("state").unwrap().to_string();
 
     let cookies = cookies.private(&state.cookie_key);
-    let pkce_challenge_secret = cookies.get("discord-pkce");
-    let csrf_token_secret = cookies.get("discord-csrf");
+    let pkce_challenge_secret =
+        cookies.get(utils::get_cookie_name(&state, "discord-pkce").as_str());
+    let csrf_token_secret = cookies.get(utils::get_cookie_name(&state, "discord-csrf").as_str());
 
     if pkce_challenge_secret.is_none() || csrf_token_secret.is_none() {
         return (
@@ -152,7 +153,7 @@ pub async fn finish(
     };
 
     let now = Utc::now();
-    let session_id = format!("{}-{}", user_id, now.timestamp());
+    let session_id = format!("{}-ADA-{}", user_id, now.timestamp());
     cookies.add(
         Cookie::build((utils::get_cookie_name(&state, "_app_session"), session_id))
             .path("/pastebin/")
