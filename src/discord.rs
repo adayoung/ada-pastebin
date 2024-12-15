@@ -42,18 +42,20 @@ pub fn init_discord_client(state: &Arc<runtime::AppState>) {
     OAUTH_CLIENT.set(client).unwrap();
 }
 
-fn get_client() -> &'static BasicClient {
+fn get_oauth_client() -> &'static BasicClient {
     OAUTH_CLIENT.get().expect("Discord client not initialized")
+}
+
+static IDENTITY_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+fn get_identity_client() -> &'static reqwest::Client {
+    IDENTITY_CLIENT.get_or_init(reqwest::Client::new)
 }
 
 pub async fn start(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
-    // Get the client!
-    let client = get_client();
-
-    // Generate a PKCE challenge.
+    let client = get_oauth_client();
     let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
 
     // Stuff the PKCE verifier into the cookie!
@@ -70,7 +72,6 @@ pub async fn start(
         .into(),
     );
 
-    // Generate the full authorization URL.
     let (auth_url, csrf_token) = client
         .authorize_url(CsrfToken::new_random)
         .add_scope(Scope::new(state.config.discord_oauth.scopes.clone()))
@@ -125,14 +126,11 @@ pub async fn finish(
     // Reconstruct the PKCE verifier!
     let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.unwrap().value().to_string());
 
-    // Clear the cookies!
+    // Nom nom nom!
     cookies.remove(utils::get_cookie_name(&state, "discord-pkce").into());
     cookies.remove(utils::get_cookie_name(&state, "discord-csrf").into());
 
-    //  Get the client! Again!
-    let client = get_client();
-
-    // Exchange the code for a token!
+    let client = get_oauth_client();
     let token = match client
         .exchange_code(AuthorizationCode::new(code))
         .set_pkce_verifier(pkce_verifier)
@@ -173,8 +171,7 @@ struct User {
 }
 
 pub async fn identify(token: &str) -> Result<String, reqwest::Error> {
-    let client = reqwest::Client::new();
-    let user = client
+    let user = get_identity_client()
         .get("https://discord.com/api/users/@me")
         .header("Authorization", format!("Bearer {}", token))
         .send()
