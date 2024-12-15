@@ -133,7 +133,7 @@ pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
 }
 
 pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {
-    if state.config.csrf_secure_cookie {
+    if state.config.cookie_secure {
         format!("__Secure-{}", name)
     } else {
         name.to_string()
@@ -141,7 +141,7 @@ pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {
 }
 
 pub fn get_cookie_samesite(state: &Arc<runtime::AppState>) -> SameSite {
-    if state.config.csrf_secure_cookie {
+    if state.config.cookie_secure {
         SameSite::Strict
     } else {
         SameSite::Lax

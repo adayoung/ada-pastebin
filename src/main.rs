@@ -95,7 +95,7 @@ async fn main() {
         .with_cookie_name(utils::get_cookie_name(&shared_state, "xsrf").as_str())
         .with_cookie_path("/pastebin/")
         .with_cookie_same_site(utils::get_cookie_samesite(&shared_state))
-        .with_secure(shared_state.config.csrf_secure_cookie)
+        .with_secure(shared_state.config.cookie_secure)
         .with_key(Some(csrf_key))
         .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));

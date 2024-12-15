@@ -18,7 +18,7 @@ pub fn update_session(state: &Arc<runtime::AppState>, cookies: &Cookies, paste_i
         Cookie::build((utils::get_cookie_name(state, "_pb_session"), paste_ids))
             .path("/pastebin/")
             .http_only(true)
-            .secure(state.config.csrf_secure_cookie)
+            .secure(state.config.cookie_secure)
             .same_site(utils::get_cookie_samesite(state))
             .into(),
     );
