@@ -2,19 +2,21 @@ use crate::runtime;
 use crate::utils;
 use axum::{
     extract::{Query, State},
+    http::header::LOCATION,
     http::StatusCode,
     response::{IntoResponse, Redirect},
 };
+use chrono::Utc;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenUrl,
+    PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
 };
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use tower_cookies::cookie::SameSite;
 use tower_cookies::{Cookie, Cookies};
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
@@ -63,8 +65,8 @@ pub async fn start(
         ))
         .path("/pastebin/auth/discord/finish")
         .http_only(true)
-        .secure(state.config.csrf_secure_cookie)
-        .same_site(SameSite::Strict)
+        .secure(state.config.cookie_secure)
+        .same_site(utils::get_cookie_samesite(&state))
         .into(),
     );
 
@@ -83,8 +85,8 @@ pub async fn start(
         ))
         .path("/pastebin/auth/discord/finish")
         .http_only(true)
-        .secure(state.config.csrf_secure_cookie)
-        .same_site(SameSite::Strict)
+        .secure(state.config.cookie_secure)
+        .same_site(utils::get_cookie_samesite(&state))
         .into(),
     );
 
@@ -123,6 +125,10 @@ pub async fn finish(
     // Reconstruct the PKCE verifier!
     let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.unwrap().value().to_string());
 
+    // Clear the cookies!
+    cookies.remove(utils::get_cookie_name(&state, "discord-pkce").into());
+    cookies.remove(utils::get_cookie_name(&state, "discord-csrf").into());
+
     //  Get the client! Again!
     let client = get_client();
 
@@ -139,7 +145,42 @@ pub async fn finish(
         }
     };
 
-    println!("Token -> {:?}", token);
+    // Identify who is logged in!
+    let user_id = match identify(token.access_token().secret()).await {
+        Ok(user_id) => user_id,
+        Err(err) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response();
+        }
+    };
 
-    (StatusCode::OK, "Ok").into_response()
+    let now = Utc::now();
+    let session_id = format!("{}-{}", user_id, now.timestamp());
+    cookies.add(
+        Cookie::build((utils::get_cookie_name(&state, "_app_session"), session_id))
+            .path("/pastebin/")
+            .http_only(true)
+            .secure(state.config.cookie_secure)
+            .same_site(utils::get_cookie_samesite(&state))
+            .into(),
+    );
+
+    (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
+}
+
+#[derive(Deserialize)]
+struct User {
+    id: String,
+}
+
+pub async fn identify(token: &str) -> Result<String, reqwest::Error> {
+    let client = reqwest::Client::new();
+    let user = client
+        .get("https://discord.com/api/users/@me")
+        .header("Authorization", format!("Bearer {}", token))
+        .send()
+        .await?
+        .json::<User>()
+        .await?;
+
+    Ok(user.id)
 }
