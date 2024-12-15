@@ -21,6 +21,7 @@ use tracing::{error, info};
 
 mod cloudflare;
 mod config;
+mod discord;
 mod forms;
 mod paste;
 mod recaptcha;
@@ -64,6 +65,7 @@ async fn main() {
     });
 
     s3::init_s3_client(&shared_state).await;
+    discord::init_discord_client(&shared_state);
 
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
@@ -105,6 +107,8 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
+        .route("/pastebin/auth/discord/start", get(discord::start))
+        .route("/pastebin/auth/discord/finish", get(discord::finish))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
         .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))

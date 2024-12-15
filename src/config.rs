@@ -3,6 +3,17 @@ use serde::Deserialize;
 use tracing::{error, info};
 
 #[derive(Deserialize)]
+pub struct OauthConfig {
+    pub auth_url: String,
+    pub token_url: String,
+
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_url: String,
+    pub scopes: String,
+}
+
+#[derive(Deserialize)]
 pub struct AppConfig {
     pub static_domain: String,
     pub bind_addr: String,
@@ -28,6 +39,9 @@ pub struct AppConfig {
     pub aws_access_key_id: String,
     pub aws_secret_access_key: String,
     pub aws_endpoint: String,
+
+    pub discord_oauth: OauthConfig,
+    // pub drive_oauth: OauthConfig,
 }
 
 impl AppConfig {
