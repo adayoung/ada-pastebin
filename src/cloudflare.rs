@@ -7,7 +7,7 @@ use tracing::{error, info};
 static CF_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 fn get_client() -> &'static reqwest::Client {
-    CF_CLIENT.get_or_init(|| reqwest::Client::new())
+    CF_CLIENT.get_or_init(reqwest::Client::new)
 }
 
 pub async fn purge_cache(state: &runtime::AppState, now: bool) {

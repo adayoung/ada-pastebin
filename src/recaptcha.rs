@@ -12,7 +12,7 @@ struct RecaptchaResponse {
 }
 
 fn get_client() -> &'static reqwest::Client {
-    RECAPTCHA_CLIENT.get_or_init(|| reqwest::Client::new())
+    RECAPTCHA_CLIENT.get_or_init(reqwest::Client::new)
 }
 
 fn is_debug() -> bool {
