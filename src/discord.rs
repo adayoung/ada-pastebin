@@ -51,6 +51,15 @@ fn get_identity_client() -> &'static reqwest::Client {
     IDENTITY_CLIENT.get_or_init(reqwest::Client::new)
 }
 
+fn build_cookie<'a>(state: &Arc<runtime::AppState>, name: &str, value: String) -> Cookie<'a> {
+    Cookie::build((utils::get_cookie_name(state, name), value))
+        .path("/pastebin/auth/discord/finish")
+        .http_only(true)
+        .secure(state.config.cookie_secure)
+        .same_site(utils::get_cookie_samesite(state))
+        .into()
+}
+
 pub async fn start(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
@@ -60,17 +69,11 @@ pub async fn start(
 
     // Stuff the PKCE verifier into the cookie!
     let cookies = cookies.private(&state.cookie_key);
-    cookies.add(
-        Cookie::build((
-            utils::get_cookie_name(&state, "discord-pkce"),
-            pkce_verifier.secret().clone(),
-        ))
-        .path("/pastebin/auth/discord/finish")
-        .http_only(true)
-        .secure(state.config.cookie_secure)
-        .same_site(utils::get_cookie_samesite(&state))
-        .into(),
-    );
+    cookies.add(build_cookie(
+        &state,
+        "discord-pkce",
+        pkce_verifier.secret().clone(),
+    ));
 
     let (auth_url, csrf_token) = client
         .authorize_url(CsrfToken::new_random)
@@ -79,17 +82,11 @@ pub async fn start(
         .url();
 
     // Stuff the CSRF token into the cookie!
-    cookies.add(
-        Cookie::build((
-            utils::get_cookie_name(&state, "discord-csrf"),
-            csrf_token.secret().clone(),
-        ))
-        .path("/pastebin/auth/discord/finish")
-        .http_only(true)
-        .secure(state.config.cookie_secure)
-        .same_site(utils::get_cookie_samesite(&state))
-        .into(),
-    );
+    cookies.add(build_cookie(
+        &state,
+        "discord-csrf",
+        csrf_token.secret().clone(),
+    ));
 
     Redirect::to(auth_url.as_str())
 }
@@ -128,8 +125,8 @@ pub async fn finish(
     let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.unwrap().value().to_string());
 
     // Nom nom nom!
-    cookies.remove(utils::get_cookie_name(&state, "discord-pkce").into());
-    cookies.remove(utils::get_cookie_name(&state, "discord-csrf").into());
+    cookies.remove(build_cookie(&state, "discord-pkce", "".to_string()));
+    cookies.remove(build_cookie(&state, "discord-csrf", "".to_string()));
 
     let client = get_oauth_client();
     let token = match client
