@@ -283,6 +283,7 @@ impl Paste {
     }
 
     pub async fn get(db: &PgPool, paste_id: &String) -> Result<Paste, (StatusCode, String)> {
+        let paste_id = paste_id.clone().chars().take(8).collect::<String>();
         let paste = match query_as!(
             Paste,
             r#"
@@ -481,7 +482,6 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             let views = *entry.value();
 
             let paste_result = Paste::get(&state.db, &paste_id).await;
-
             match paste_result {
                 Ok(paste) => {
                     paste.save_views(&state.db, views as i64).await;

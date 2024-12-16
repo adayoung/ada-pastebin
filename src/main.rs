@@ -218,7 +218,6 @@ async fn getpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
-    let paste_id = paste_id.chars().take(8).collect();
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
@@ -289,7 +288,6 @@ async fn getdrivecontent(
             .into_response();
     }
 
-    let paste_id = paste_id.chars().take(8).collect();
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
