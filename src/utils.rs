@@ -157,7 +157,7 @@ pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> C
         .into()
 }
 
-pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: Cookies) -> Option<String> {
+pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: &Cookies) -> Option<String> {
     let cookies = cookies.private(&state.cookie_key);
     let session_id = cookies.get(get_cookie_name(state, "_app_session").as_str());
     if let Some(session_id) = session_id {

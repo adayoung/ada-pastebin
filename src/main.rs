@@ -145,7 +145,7 @@ async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
 ) -> templates::AboutTemplate {
-    let user_id = utils::get_user_id(&state, cookies);
+    let user_id = utils::get_user_id(&state, &cookies);
     templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id,
@@ -157,7 +157,7 @@ async fn pastebin(
     cookies: Cookies,
     token: CsrfToken,
 ) -> impl IntoResponse {
-    let user_id = utils::get_user_id(&state, cookies);
+    let user_id = utils::get_user_id(&state, &cookies);
     let template = templates::PastebinTemplate {
         static_domain: state.config.static_domain.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
@@ -352,7 +352,7 @@ async fn search(
         .unwrap_or(1);
 
     if !headers.contains_key("X-Requested-With") {
-        let user_id = utils::get_user_id(&state, cookies);
+        let user_id = utils::get_user_id(&state, &cookies);
         let template = templates::SearchTemplate {
             static_domain: state.config.static_domain.clone(),
             user_id,
