@@ -17,7 +17,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
@@ -56,7 +56,7 @@ fn build_cookie<'a>(state: &Arc<runtime::AppState>, name: &str, value: String) -
         .path("/pastebin/auth/discord/finish")
         .http_only(true)
         .secure(state.config.cookie_secure)
-        .same_site(utils::get_cookie_samesite(state))
+        .same_site(SameSite::Lax) // This can't be Strict because of the redirect
         .into()
 }
 

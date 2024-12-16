@@ -153,13 +153,13 @@ pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> C
         .path("/pastebin/")
         .http_only(true)
         .secure(state.config.cookie_secure)
-        .same_site(get_cookie_samesite(&state))
+        .same_site(get_cookie_samesite(state))
         .into()
 }
 
 pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: Cookies) -> Option<String> {
     let cookies = cookies.private(&state.cookie_key);
-    let session_id = cookies.get(get_cookie_name(&state, "_app_session").as_str());
+    let session_id = cookies.get(get_cookie_name(state, "_app_session").as_str());
     if let Some(session_id) = session_id {
         let session_id = session_id.value().to_string();
         let parts = session_id.split("-ADA-").collect::<Vec<&str>>();
