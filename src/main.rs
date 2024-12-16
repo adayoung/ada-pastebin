@@ -273,7 +273,7 @@ async fn delpaste(
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    match paste::Paste::delete(&state, &paste_id).await {
+    match paste.delete(&state).await {
         Ok(_) => {}
         Err(err) => {
             return err.into_response();
@@ -309,7 +309,7 @@ async fn getdrivecontent(
         }
     };
 
-    if let Some(gdrivedl_url) = paste.gdrivedl {
+    if let Some(gdrivedl_url) = &paste.gdrivedl {
         let response = match reqwest::get(gdrivedl_url).await {
             Ok(response) => response,
             Err(err) => {
@@ -320,7 +320,7 @@ async fn getdrivecontent(
         if !response.status().is_success() {
             // Remove metadata if Google Drive returns a 404
             if response.status() == StatusCode::NOT_FOUND {
-                match paste::Paste::delete(&state, &paste_id).await {
+                match paste.delete(&state).await {
                     Ok(_) => {}
                     Err(err) => {
                         return err.into_response();

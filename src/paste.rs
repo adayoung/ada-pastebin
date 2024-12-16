@@ -287,8 +287,8 @@ impl Paste {
         }
     }
 
-    pub async fn get(db: &PgPool, paste_id: &String) -> Result<Paste, (StatusCode, String)> {
-        let paste_id = paste_id.clone().chars().take(8).collect::<String>();
+    pub async fn get(db: &PgPool, paste_id: &str) -> Result<Paste, (StatusCode, String)> {
+        let paste_id = paste_id.chars().take(8).collect::<String>();
         let paste = match query_as!(
             Paste,
             r#"
@@ -319,10 +319,7 @@ impl Paste {
         Ok(paste)
     }
 
-    pub async fn delete(
-        state: &runtime::AppState,
-        paste_id: &str,
-    ) -> Result<(), (StatusCode, String)> {
+    pub async fn delete(&self, state: &runtime::AppState) -> Result<(), (StatusCode, String)> {
         let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => {
@@ -344,7 +341,7 @@ impl Paste {
             )
             SELECT s3_key, gdrivedl FROM paste
             "#,
-            paste_id
+            self.paste_id
         )
         .fetch_one(&mut *transaction)
         .await
