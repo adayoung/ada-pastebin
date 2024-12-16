@@ -153,7 +153,7 @@ pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> C
         .path("/pastebin/")
         .http_only(true)
         .secure(state.config.cookie_secure)
-        .same_site(get_cookie_samesite(state))
+        .same_site(SameSite::Lax) // FIXME: This can't be Strict because of the redirect from discord
         .into()
 }
 
