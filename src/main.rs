@@ -175,6 +175,8 @@ async fn newpaste(
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
+
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
@@ -189,7 +191,7 @@ async fn newpaste(
         });
 
     // Create the paste
-    let paste_id = match paste::new_paste(&state, &payload, score).await {
+    let paste_id = match paste::new_paste(&state, &payload, score, user_id).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();
@@ -218,6 +220,8 @@ async fn getpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
+
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
@@ -225,8 +229,8 @@ async fn getpaste(
         }
     };
 
-    let owned = session::is_paste_in_session(&state, &cookies, &paste_id);
-    let user_id = utils::get_user_id(&state, cookies);
+    let owned =
+        session::is_paste_in_session(&state, &cookies, &paste_id) || user_id == paste.user_id;
     let views = paste.get_views(&state);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
@@ -249,12 +253,22 @@ async fn delpaste(
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteDeleteForm>,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
+
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
     }
 
-    let owned = session::is_paste_in_session(&state, &cookies, &paste_id);
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    let owned =
+        session::is_paste_in_session(&state, &cookies, &paste_id) || user_id == paste.user_id;
     if !owned {
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }

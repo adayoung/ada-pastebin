@@ -57,6 +57,7 @@ pub async fn new_paste(
     state: &runtime::AppState,
     form: &forms::PasteForm,
     score: f64,
+    user_id: Option<String>,
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
     {
@@ -68,7 +69,7 @@ pub async fn new_paste(
         }
     }
 
-    let paste = match Paste::new(form, score) {
+    let paste = match Paste::new(form, score, user_id) {
         Ok(paste) => paste,
         Err(err) => return Err(err),
     };
@@ -137,7 +138,11 @@ pub struct SearchPaste {
 }
 
 impl Paste {
-    fn new(form: &forms::PasteForm, score: f64) -> Result<Self, (StatusCode, String)> {
+    fn new(
+        form: &forms::PasteForm,
+        score: f64,
+        user_id: Option<String>,
+    ) -> Result<Self, (StatusCode, String)> {
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
@@ -171,7 +176,7 @@ impl Paste {
         let paste_id = generate_paste_id(); // FIXME: Check for duplicates before using
         let paste = Paste {
             paste_id: paste_id.clone(),
-            user_id: None, // TODO: Get user ID once we have an auth system
+            user_id,
             title: Some(title),
             tags: Some(unique_tags),
             format,
