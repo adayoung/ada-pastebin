@@ -8,7 +8,7 @@ use axum::{
 use brotli::CompressorWriter;
 use std::io::{Error, Write};
 use std::sync::Arc;
-use tower_cookies::cookie::SameSite;
+use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use tracing::error;
 
 pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
@@ -146,4 +146,26 @@ pub fn get_cookie_samesite(state: &Arc<runtime::AppState>) -> SameSite {
     } else {
         SameSite::Lax
     }
+}
+
+pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> Cookie<'a> {
+    Cookie::build((get_cookie_name(state, "_app_session"), value))
+        .path("/pastebin/")
+        .http_only(true)
+        .secure(state.config.cookie_secure)
+        .same_site(get_cookie_samesite(&state))
+        .into()
+}
+
+pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: Cookies) -> Option<String> {
+    let cookies = cookies.private(&state.cookie_key);
+    let session_id = cookies.get(get_cookie_name(&state, "_app_session").as_str());
+    if let Some(session_id) = session_id {
+        let session_id = session_id.value().to_string();
+        let parts = session_id.split("-ADA-").collect::<Vec<&str>>();
+        let user_id = parts.first().map(|s| s.to_string());
+        return user_id;
+    }
+
+    None
 }

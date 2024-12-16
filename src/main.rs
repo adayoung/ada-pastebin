@@ -6,6 +6,7 @@ use axum::{
     middleware,
     response::{IntoResponse, Json, Redirect, Response},
     routing::get,
+    routing::post,
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
@@ -109,12 +110,13 @@ async fn main() {
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
+        .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
-        .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
         .route("/pastebin/search/", get(search))
         .route("/pastebinc/:paste_id/content", get(getdrivecontent))
+        .layer(CookieManagerLayer::new())
         .layer(middleware::from_fn(utils::extra_sugar))
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
@@ -139,20 +141,28 @@ async fn index(State(state): State<Arc<runtime::AppState>>) -> templates::BaseTe
     }
 }
 
-async fn about(State(state): State<Arc<runtime::AppState>>) -> templates::AboutTemplate {
+async fn about(
+    State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
+) -> templates::AboutTemplate {
+    let user_id = utils::get_user_id(&state, cookies);
     templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
+        user_id,
     }
 }
 
 async fn pastebin(
     State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
     token: CsrfToken,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, cookies);
     let template = templates::PastebinTemplate {
         static_domain: state.config.static_domain.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
         csrf_token: token.authenticity_token().unwrap(),
+        user_id,
     };
 
     (token, template)
@@ -216,12 +226,14 @@ async fn getpaste(
         }
     };
 
-    let views = paste.get_views(&state);
     let owned = session::is_paste_in_session(&state, &cookies, &paste_id);
+    let user_id = utils::get_user_id(&state, cookies);
+    let views = paste.get_views(&state);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
+        user_id,
         paste,
         views,
         owned,
@@ -324,6 +336,7 @@ async fn getdrivecontent(
 async fn search(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
+    cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     if !params.contains_key("tags") {
@@ -341,8 +354,10 @@ async fn search(
         .unwrap_or(1);
 
     if !headers.contains_key("X-Requested-With") {
+        let user_id = utils::get_user_id(&state, cookies);
         let template = templates::SearchTemplate {
             static_domain: state.config.static_domain.clone(),
+            user_id,
         };
         return (StatusCode::OK, template).into_response();
     }
@@ -368,6 +383,15 @@ async fn search(
     response.insert("tags", ResponseValue::Tags(tags));
 
     (StatusCode::OK, Json(response)).into_response()
+}
+
+async fn logout(
+    State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
+) -> impl IntoResponse {
+    let cookies = cookies.private(&state.cookie_key);
+    cookies.remove(utils::build_auth_cookie(&state, "".to_string()));
+    (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
 }
 
 async fn robots() -> impl IntoResponse {

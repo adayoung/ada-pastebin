@@ -151,14 +151,7 @@ pub async fn finish(
 
     let now = Utc::now();
     let session_id = format!("{}-ADA-{}", user_id, now.timestamp());
-    cookies.add(
-        Cookie::build((utils::get_cookie_name(&state, "_app_session"), session_id))
-            .path("/pastebin/")
-            .http_only(true)
-            .secure(state.config.cookie_secure)
-            .same_site(utils::get_cookie_samesite(&state))
-            .into(),
-    );
+    cookies.add(utils::build_auth_cookie(&state, session_id));
 
     (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
 }
