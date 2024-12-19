@@ -9,7 +9,7 @@ use axum::{
 };
 use chrono::Utc;
 use oauth2::basic::BasicClient;
-use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenResponse, TokenUrl};
+use oauth2::TokenResponse;
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -19,24 +19,7 @@ use tower_cookies::Cookies;
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
 pub fn init_discord_client(state: &Arc<runtime::AppState>) {
-    let auth_url =
-        AuthUrl::new(state.config.discord_oauth.auth_url.clone()).expect("Invalid auth URL");
-    let token_url =
-        TokenUrl::new(state.config.discord_oauth.token_url.clone()).expect("Invalid token URL");
-    let redirect_url = RedirectUrl::new(state.config.discord_oauth.redirect_url.clone())
-        .expect("Invalid redirect URL");
-
-    let client = BasicClient::new(
-        ClientId::new(state.config.discord_oauth.client_id.clone()),
-        Some(ClientSecret::new(
-            state.config.discord_oauth.client_secret.clone(),
-        )),
-        auth_url,
-        Some(token_url),
-    )
-    .set_redirect_uri(redirect_url);
-
-    OAUTH_CLIENT.set(client).unwrap();
+    oauth::init_oauth_client(&state.config.discord_oauth, &OAUTH_CLIENT);
 }
 
 fn get_oauth_client() -> &'static BasicClient {

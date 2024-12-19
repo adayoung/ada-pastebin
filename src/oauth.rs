@@ -1,15 +1,33 @@
+use crate::config;
 use crate::runtime;
 use crate::utils;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
-use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
-    basic::BasicTokenType, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge,
-    PkceCodeVerifier, Scope, StandardTokenResponse,
+    basic::{BasicClient, BasicTokenType},
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields,
+    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, StandardTokenResponse, TokenUrl,
 };
 use std::sync::Arc;
+use std::sync::OnceLock;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
+
+pub fn init_oauth_client(config: &config::OauthConfig, oauth_client: &OnceLock<BasicClient>) {
+    let auth_url = AuthUrl::new(config.auth_url.clone()).expect("Invalid auth URL");
+    let token_url = TokenUrl::new(config.token_url.clone()).expect("Invalid token URL");
+    let redirect_url = RedirectUrl::new(config.redirect_url.clone()).expect("Invalid redirect URL");
+
+    let client = BasicClient::new(
+        ClientId::new(config.client_id.clone()),
+        Some(ClientSecret::new(config.client_secret.clone())),
+        auth_url,
+        Some(token_url),
+    )
+    .set_redirect_uri(redirect_url);
+
+    oauth_client.set(client).unwrap();
+}
 
 fn build_cookie<'a>(
     state: &Arc<runtime::AppState>,
