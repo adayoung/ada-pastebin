@@ -231,10 +231,8 @@ async fn getpaste(
     };
 
     let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
-    if user_id.is_some() {
-        if user_id == paste.user_id {
-            owned = true;
-        }
+    if user_id.is_some() && user_id == paste.user_id {
+        owned = true;
     }
     let views = paste.get_views(&state);
     let template = templates::PasteTemplate {
@@ -273,10 +271,8 @@ async fn delpaste(
     };
 
     let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
-    if user_id.is_some() {
-        if user_id == paste.user_id {
-            owned = true;
-        }
+    if user_id.is_some() && user_id == paste.user_id {
+        owned = true;
     }
     if !owned {
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
