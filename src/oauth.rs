@@ -9,15 +9,15 @@ use oauth2::{
     PkceCodeVerifier, Scope, StandardTokenResponse,
 };
 use std::sync::Arc;
-use tower_cookies::{cookie::SameSite, Cookie, Cookies};
+use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
 
 fn build_cookie<'a>(
     state: &Arc<runtime::AppState>,
-    name: &str,
+    name: String,
     value: String,
     path: String,
 ) -> Cookie<'a> {
-    Cookie::build((utils::get_cookie_name(state, name), value))
+    Cookie::build((utils::get_cookie_name(state, name.as_str()), value))
         .path(path)
         .http_only(true)
         .secure(state.config.cookie_secure)
@@ -39,7 +39,7 @@ pub fn init(
     let cookies = cookies.private(&state.cookie_key);
     cookies.add(build_cookie(
         state,
-        format!("{}-pkce", name).as_str(),
+        format!("{}-pkce", name),
         pkce_verifier.secret().clone(),
         cookie_path.to_string(),
     ));
@@ -53,7 +53,7 @@ pub fn init(
     // Stuff the CSRF token into the cookie!
     cookies.add(build_cookie(
         state,
-        format!("{}-csrf", name).as_str(),
+        format!("{}-csrf", name),
         csrf_token.secret().clone(),
         cookie_path.to_string(),
     ));
@@ -62,12 +62,40 @@ pub fn init(
 }
 
 pub async fn finish(
+    state: &Arc<runtime::AppState>,
     client: &BasicClient,
+    cookies: &Cookies,
+    name: &str,
     code: &str,
-    pkce_challenge_secret: &str,
+    csrf_state_param: &str,
+    cookie_path: &str,
 ) -> Result<StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>, (StatusCode, String)> {
-    let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.to_string());
+    let csrf_cookie = utils::get_cookie_name(state, format!("{}-csrf", name).as_str());
+    let pkce_cookie = utils::get_cookie_name(state, format!("{}-pkce", name).as_str());
 
+    let cookies = cookies.private(&state.cookie_key);
+    let pkce_challenge_secret = cookies.get(pkce_cookie.as_str());
+    let csrf_token_secret = cookies.get(csrf_cookie.as_str());
+
+    if pkce_challenge_secret.is_none() || csrf_token_secret.is_none() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "Missing cookies! Where are teh cookies?!".to_string(),
+        ));
+    }
+
+    let csrf_token_secret = csrf_token_secret.unwrap().value().to_string();
+    if csrf_token_secret != csrf_state_param {
+        return Err((StatusCode::FORBIDDEN, "CSRF token mismatch!".to_string()));
+    }
+
+    // Reconstruct the PKCE verifier!
+    let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.unwrap().value().to_string());
+
+    // Nom nom nom!
+    clear_cookies(state, name, cookie_path, cookies);
+
+    // Let's exchange code for token!
     match client
         .exchange_code(AuthorizationCode::new(code.to_string()))
         .set_pkce_verifier(pkce_verifier)
@@ -77,4 +105,25 @@ pub async fn finish(
         Ok(token) => Ok(token),
         Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err))),
     }
+}
+
+fn clear_cookies(
+    state: &Arc<runtime::AppState>,
+    name: &str,
+    cookie_path: &str,
+    cookies: PrivateCookies,
+) {
+    cookies.remove(build_cookie(
+        state,
+        format!("{}-csrf", name),
+        "".to_string(),
+        cookie_path.to_string(),
+    ));
+
+    cookies.remove(build_cookie(
+        state,
+        format!("{}-pkce", name),
+        "".to_string(),
+        cookie_path.to_string(),
+    ));
 }

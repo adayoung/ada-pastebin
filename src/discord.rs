@@ -14,7 +14,7 @@ use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use tower_cookies::{cookie::SameSite, Cookie, Cookies};
+use tower_cookies::Cookies;
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
@@ -48,15 +48,6 @@ fn get_identity_client() -> &'static reqwest::Client {
     IDENTITY_CLIENT.get_or_init(reqwest::Client::new)
 }
 
-fn build_cookie<'a>(state: &Arc<runtime::AppState>, name: &str, value: String) -> Cookie<'a> {
-    Cookie::build((utils::get_cookie_name(state, name), value))
-        .path("/pastebin/auth/discord/finish")
-        .http_only(true)
-        .secure(state.config.cookie_secure)
-        .same_site(SameSite::Lax) // This can't be Strict because of the redirect from discord
-        .into()
-}
-
 pub async fn start(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
@@ -84,32 +75,18 @@ pub async fn finish(
     let code = params.get("code").unwrap().to_string();
     let state_param = params.get("state").unwrap().to_string();
 
-    let cookies = cookies.private(&state.cookie_key);
-    let pkce_challenge_secret =
-        cookies.get(utils::get_cookie_name(&state, "discord-pkce").as_str());
-    let csrf_token_secret = cookies.get(utils::get_cookie_name(&state, "discord-csrf").as_str());
-
-    if pkce_challenge_secret.is_none() || csrf_token_secret.is_none() {
-        return (
-            StatusCode::BAD_REQUEST,
-            "Missing cookies! Where are teh cookies?!",
-        )
-            .into_response();
-    }
-
-    let csrf_token_secret = csrf_token_secret.unwrap().value().to_string();
-    if csrf_token_secret != state_param {
-        return (StatusCode::FORBIDDEN, "CSRF token mismatch!").into_response();
-    }
-
-    cookies.remove(build_cookie(&state, "discord-csrf", "".to_string()));
-
-    // Reconstruct the PKCE verifier!
-    let pkce_verifier = pkce_challenge_secret.unwrap().value().to_string();
-    cookies.remove(build_cookie(&state, "discord-pkce", "".to_string()));
-
     let client = get_oauth_client();
-    let token = match oauth::finish(client, &code, &pkce_verifier).await {
+    let token = match oauth::finish(
+        &state,
+        client,
+        &cookies,
+        "discord",
+        &code,
+        state_param.as_str(),
+        "/pastebin/auth/discord/finish",
+    )
+    .await
+    {
         Ok(token) => token,
         Err(err) => {
             return err.into_response();
@@ -126,6 +103,8 @@ pub async fn finish(
 
     let now = Utc::now();
     let session_id = format!("{}-ADA-{}", user_id, now.timestamp());
+
+    let cookies = cookies.private(&state.cookie_key);
     cookies.add(utils::build_auth_cookie(&state, session_id));
 
     (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
