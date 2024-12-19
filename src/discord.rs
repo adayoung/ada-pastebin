@@ -9,11 +9,7 @@ use axum::{
 };
 use chrono::Utc;
 use oauth2::basic::BasicClient;
-use oauth2::reqwest::async_http_client;
-use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, PkceCodeVerifier, RedirectUrl,
-    TokenResponse, TokenUrl,
-};
+use oauth2::{AuthUrl, ClientId, ClientSecret, RedirectUrl, TokenResponse, TokenUrl};
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -106,23 +102,17 @@ pub async fn finish(
         return (StatusCode::FORBIDDEN, "CSRF token mismatch!").into_response();
     }
 
-    // Reconstruct the PKCE verifier!
-    let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.unwrap().value().to_string());
-
-    // Nom nom nom!
-    cookies.remove(build_cookie(&state, "discord-pkce", "".to_string()));
     cookies.remove(build_cookie(&state, "discord-csrf", "".to_string()));
 
+    // Reconstruct the PKCE verifier!
+    let pkce_verifier = pkce_challenge_secret.unwrap().value().to_string();
+    cookies.remove(build_cookie(&state, "discord-pkce", "".to_string()));
+
     let client = get_oauth_client();
-    let token = match client
-        .exchange_code(AuthorizationCode::new(code))
-        .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
-        .await
-    {
+    let token = match oauth::finish(client, &code, &pkce_verifier).await {
         Ok(token) => token,
         Err(err) => {
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response();
+            return err.into_response();
         }
     };
 

@@ -1,8 +1,13 @@
 use crate::runtime;
 use crate::utils;
+use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use oauth2::basic::BasicClient;
-use oauth2::{CsrfToken, PkceCodeChallenge, Scope};
+use oauth2::reqwest::async_http_client;
+use oauth2::{
+    basic::BasicTokenType, AuthorizationCode, CsrfToken, EmptyExtraTokenFields, PkceCodeChallenge,
+    PkceCodeVerifier, Scope, StandardTokenResponse,
+};
 use std::sync::Arc;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 
@@ -54,4 +59,22 @@ pub fn init(
     ));
 
     Redirect::to(auth_url.as_str())
+}
+
+pub async fn finish(
+    client: &BasicClient,
+    code: &str,
+    pkce_challenge_secret: &str,
+) -> Result<StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>, (StatusCode, String)> {
+    let pkce_verifier = PkceCodeVerifier::new(pkce_challenge_secret.to_string());
+
+    match client
+        .exchange_code(AuthorizationCode::new(code.to_string()))
+        .set_pkce_verifier(pkce_verifier)
+        .request_async(async_http_client)
+        .await
+    {
+        Ok(token) => Ok(token),
+        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err))),
+    }
 }
