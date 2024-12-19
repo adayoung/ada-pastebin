@@ -24,6 +24,7 @@ mod cloudflare;
 mod config;
 mod discord;
 mod forms;
+mod oauth;
 mod paste;
 mod recaptcha;
 mod runtime;

@@ -1,17 +1,18 @@
+use crate::oauth;
 use crate::runtime;
 use crate::utils;
 use axum::{
     extract::{Query, State},
     http::header::LOCATION,
     http::StatusCode,
-    response::{IntoResponse, Redirect},
+    response::IntoResponse,
 };
 use chrono::Utc;
 use oauth2::basic::BasicClient;
 use oauth2::reqwest::async_http_client;
 use oauth2::{
-    AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, PkceCodeChallenge,
-    PkceCodeVerifier, RedirectUrl, Scope, TokenResponse, TokenUrl,
+    AuthUrl, AuthorizationCode, ClientId, ClientSecret, PkceCodeVerifier, RedirectUrl,
+    TokenResponse, TokenUrl,
 };
 use serde::Deserialize;
 use std::collections::HashMap;
@@ -65,30 +66,14 @@ pub async fn start(
     cookies: Cookies,
 ) -> impl IntoResponse {
     let client = get_oauth_client();
-    let (pkce_challenge, pkce_verifier) = PkceCodeChallenge::new_random_sha256();
-
-    // Stuff the PKCE verifier into the cookie!
-    let cookies = cookies.private(&state.cookie_key);
-    cookies.add(build_cookie(
+    oauth::init(
         &state,
-        "discord-pkce",
-        pkce_verifier.secret().clone(),
-    ));
-
-    let (auth_url, csrf_token) = client
-        .authorize_url(CsrfToken::new_random)
-        .add_scope(Scope::new(state.config.discord_oauth.scopes.clone()))
-        .set_pkce_challenge(pkce_challenge)
-        .url();
-
-    // Stuff the CSRF token into the cookie!
-    cookies.add(build_cookie(
-        &state,
-        "discord-csrf",
-        csrf_token.secret().clone(),
-    ));
-
-    Redirect::to(auth_url.as_str())
+        client,
+        &cookies,
+        "discord",
+        &state.config.discord_oauth.scopes,
+        "/pastebin/auth/discord/finish",
+    )
 }
 
 pub async fn finish(
