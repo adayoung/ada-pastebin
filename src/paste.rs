@@ -8,7 +8,7 @@ use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
 use rand::Rng;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::Error::RowNotFound;
@@ -89,7 +89,7 @@ pub async fn new_paste(
     }
 }
 
-#[derive(Serialize)]
+#[derive(Clone, Deserialize, Serialize)]
 #[serde(untagged)]
 pub enum PasteFormat {
     Ansi(String),
@@ -115,7 +115,7 @@ pub struct Paste {
     pub tags: Option<Vec<String>>,
     pub format: PasteFormat,
     pub date: DateTime<Utc>,
-    pub gdriveid: Option<String>, // Googe Drive object ID
+    pub gdriveid: Option<String>, // Google Drive object ID
     pub gdrivedl: Option<String>, // Google Drive download URL
     pub s3_key: String,
     pub rcscore: BigDecimal, // Recaptcha score
@@ -163,13 +163,7 @@ impl Paste {
             }
         }
 
-        let format = match form.format.as_str() {
-            "log" => PasteFormat::Ansi(form.format.clone()),
-            "html" => PasteFormat::Html(form.format.clone()),
-            "plain" => PasteFormat::Text(form.format.clone()),
-            _ => return Err((StatusCode::BAD_REQUEST, "Invalid format".to_string())),
-        };
-
+        let format = form.format.clone();
         let rcscore = match BigDecimal::from_f64(score) {
             Some(score) => score,
             None => return Err((StatusCode::BAD_REQUEST, "Invalid score".to_string())),
