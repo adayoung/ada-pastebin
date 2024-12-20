@@ -1,11 +1,18 @@
 use serde::Deserialize;
+use std::sync::OnceLock;
 use tracing::warn;
+
+static RECAPTCHA_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
 #[derive(Deserialize)]
 struct RecaptchaResponse {
     success: bool,
     // score: f64,
     action: String,
+}
+
+fn get_client() -> &'static reqwest::Client {
+    RECAPTCHA_CLIENT.get_or_init(reqwest::Client::new)
 }
 
 fn is_debug() -> bool {
@@ -26,8 +33,7 @@ pub async fn verify(secret: &str, action: &str, token: &str) -> Result<f64, reqw
     }
 
     let params = [("secret", secret), ("response", token)];
-    let client = reqwest::Client::new();
-    let response = client
+    let response = get_client()
         .post("https://challenges.cloudflare.com/turnstile/v0/siteverify")
         .form(&params)
         .send()

@@ -1,14 +1,15 @@
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
-    http::header::{CACHE_CONTROL, CONTENT_TYPE, LOCATION},
+    http::header::{CACHE_CONTROL, LOCATION},
     http::{HeaderMap, StatusCode},
     middleware,
-    response::{IntoResponse, Redirect, Response},
+    response::{IntoResponse, Json, Redirect, Response},
     routing::get,
+    routing::post,
     Router,
 };
-use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken, SameSite};
+use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
 use dashmap::{DashMap, DashSet};
 use serde::Serialize;
 use sqlx::postgres::PgPool;
@@ -21,7 +22,9 @@ use tracing::{error, info};
 
 mod cloudflare;
 mod config;
+mod discord;
 mod forms;
+mod oauth;
 mod paste;
 mod recaptcha;
 mod runtime;
@@ -63,11 +66,14 @@ async fn main() {
         db,
     });
 
+    s3::init_s3_client(&shared_state).await;
+    discord::init_discord_client(&shared_state);
+
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
         tokio::join!(
             paste::update_views(&timer_state, true),
-            cloudflare::cleanup_cache(&timer_state, true, false),
+            cloudflare::cleanup_cache(&timer_state, true, true),
         );
     });
 
@@ -89,30 +95,29 @@ async fn main() {
     );
 
     let csrf_key = axum_csrf::Key::from(shared_state.config.cookie_key.as_bytes());
-    let mut csrf_config = CsrfConfig::new()
-        .with_cookie_name("xsrf")
+    let csrf_config = CsrfConfig::new()
+        .with_cookie_name(utils::get_cookie_name(&shared_state, "xsrf").as_str())
         .with_cookie_path("/pastebin/")
-        .with_cookie_same_site(SameSite::Strict)
-        .with_secure(shared_state.config.csrf_secure_cookie)
+        .with_cookie_same_site(utils::get_cookie_samesite(&shared_state))
+        .with_secure(shared_state.config.cookie_secure)
         .with_key(Some(csrf_key))
         .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));
-
-    if shared_state.config.csrf_secure_cookie {
-        csrf_config = csrf_config.with_cookie_name("__Secure-xsrf");
-    };
 
     // build our application with routes
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
+        .route("/pastebin/auth/discord/start", get(discord::start))
+        .route("/pastebin/auth/discord/finish", get(discord::finish))
+        .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
-        .layer(CookieManagerLayer::new())
         .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
         .route("/pastebin/search/", get(search))
         .route("/pastebinc/:paste_id/content", get(getdrivecontent))
+        .layer(CookieManagerLayer::new())
         .layer(middleware::from_fn(utils::extra_sugar))
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
@@ -137,20 +142,28 @@ async fn index(State(state): State<Arc<runtime::AppState>>) -> templates::BaseTe
     }
 }
 
-async fn about(State(state): State<Arc<runtime::AppState>>) -> templates::AboutTemplate {
+async fn about(
+    State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
+) -> templates::AboutTemplate {
+    let user_id = utils::get_user_id(&state, &cookies);
     templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
+        user_id,
     }
 }
 
 async fn pastebin(
     State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
     token: CsrfToken,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
     let template = templates::PastebinTemplate {
         static_domain: state.config.static_domain.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
         csrf_token: token.authenticity_token().unwrap(),
+        user_id,
     };
 
     (token, template)
@@ -163,6 +176,8 @@ async fn newpaste(
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
+
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
@@ -177,7 +192,7 @@ async fn newpaste(
         });
 
     // Create the paste
-    let paste_id = match paste::new_paste(&state, &payload, score).await {
+    let paste_id = match paste::new_paste(&state, &payload, score, user_id).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();
@@ -185,7 +200,7 @@ async fn newpaste(
     };
 
     // Update the session with the new paste_id
-    session::update_session(&state.cookie_key, &cookies, &paste_id);
+    session::update_session(&state, &cookies, &paste_id);
 
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
@@ -206,7 +221,8 @@ async fn getpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
-    let paste_id = paste_id.chars().take(8).collect();
+    let user_id = utils::get_user_id(&state, &cookies);
+
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
@@ -214,12 +230,16 @@ async fn getpaste(
         }
     };
 
+    let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
+    if user_id.is_some() && user_id == paste.user_id {
+        owned = true;
+    }
     let views = paste.get_views(&state);
-    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
+        user_id,
         paste,
         views,
         owned,
@@ -236,17 +256,29 @@ async fn delpaste(
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteDeleteForm>,
 ) -> impl IntoResponse {
+    let user_id = utils::get_user_id(&state, &cookies);
+
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
     }
 
-    let owned = session::is_paste_in_session(&state.cookie_key, &cookies, &paste_id);
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
+    if user_id.is_some() && user_id == paste.user_id {
+        owned = true;
+    }
     if !owned {
         return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
     }
 
-    match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+    match paste.delete(&state).await {
         Ok(_) => {}
         Err(err) => {
             return err.into_response();
@@ -275,7 +307,6 @@ async fn getdrivecontent(
             .into_response();
     }
 
-    let paste_id = paste_id.chars().take(8).collect();
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
@@ -283,7 +314,7 @@ async fn getdrivecontent(
         }
     };
 
-    if let Some(gdrivedl_url) = paste.gdrivedl {
+    if let Some(gdrivedl_url) = &paste.gdrivedl {
         let response = match reqwest::get(gdrivedl_url).await {
             Ok(response) => response,
             Err(err) => {
@@ -294,7 +325,7 @@ async fn getdrivecontent(
         if !response.status().is_success() {
             // Remove metadata if Google Drive returns a 404
             if response.status() == StatusCode::NOT_FOUND {
-                match paste::Paste::delete(&state, &state.config.s3_bucket, &paste_id).await {
+                match paste.delete(&state).await {
                     Ok(_) => {}
                     Err(err) => {
                         return err.into_response();
@@ -322,6 +353,7 @@ async fn getdrivecontent(
 async fn search(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
+    cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
 ) -> impl IntoResponse {
     if !params.contains_key("tags") {
@@ -339,8 +371,10 @@ async fn search(
         .unwrap_or(1);
 
     if !headers.contains_key("X-Requested-With") {
+        let user_id = utils::get_user_id(&state, &cookies);
         let template = templates::SearchTemplate {
             static_domain: state.config.static_domain.clone(),
+            user_id,
         };
         return (StatusCode::OK, template).into_response();
     }
@@ -365,12 +399,16 @@ async fn search(
     response.insert("pastes", ResponseValue::Pastes(pastes));
     response.insert("tags", ResponseValue::Tags(tags));
 
-    (
-        StatusCode::OK,
-        [(CONTENT_TYPE, "application/json")],
-        serde_json::to_string(&response).unwrap(),
-    )
-        .into_response()
+    (StatusCode::OK, Json(response)).into_response()
+}
+
+async fn logout(
+    State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
+) -> impl IntoResponse {
+    let cookies = cookies.private(&state.cookie_key);
+    cookies.remove(utils::build_auth_cookie(&state, "".to_string()));
+    (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
 }
 
 async fn robots() -> impl IntoResponse {

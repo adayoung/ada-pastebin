@@ -15,6 +15,7 @@ pub struct BaseTemplate {
 #[template(path = "about.html.j2")]
 pub struct AboutTemplate {
     pub static_domain: String,
+    pub user_id: Option<String>,
 }
 
 #[derive(Template)]
@@ -23,6 +24,7 @@ pub struct PastebinTemplate {
     pub static_domain: String,
     pub recaptcha_key: String,
     pub csrf_token: String,
+    pub user_id: Option<String>,
 }
 
 #[derive(Template)]
@@ -31,6 +33,7 @@ pub struct PasteTemplate {
     pub static_domain: String,
     pub content_url: String,
     pub csrf_token: String,
+    pub user_id: Option<String>,
     pub paste: Paste,
     pub views: u64,
     pub owned: bool,
@@ -40,4 +43,5 @@ pub struct PasteTemplate {
 #[template(path = "search.html.j2")]
 pub struct SearchTemplate {
     pub static_domain: String,
+    pub user_id: Option<String>,
 }

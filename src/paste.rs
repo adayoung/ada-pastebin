@@ -57,6 +57,7 @@ pub async fn new_paste(
     state: &runtime::AppState,
     form: &forms::PasteForm,
     score: f64,
+    user_id: Option<String>,
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
     {
@@ -68,20 +69,12 @@ pub async fn new_paste(
         }
     }
 
-    let paste = match Paste::new(form, score) {
+    let paste = match Paste::new(form, score, user_id) {
         Ok(paste) => paste,
         Err(err) => return Err(err),
     };
 
-    match paste
-        .save(
-            &state.db,
-            &state.config.s3_bucket,
-            &state.config.s3_prefix,
-            &form.content,
-        )
-        .await
-    {
+    match paste.save(state, &form.content).await {
         Ok(paste_id) => Ok(paste_id),
         Err(err) => {
             error!("Failed to save paste: {}", err);
@@ -147,7 +140,11 @@ pub struct SearchPaste {
 }
 
 impl Paste {
-    fn new(form: &forms::PasteForm, score: f64) -> Result<Self, (StatusCode, String)> {
+    fn new(
+        form: &forms::PasteForm,
+        score: f64,
+        user_id: Option<String>,
+    ) -> Result<Self, (StatusCode, String)> {
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
@@ -182,7 +179,7 @@ impl Paste {
         let paste_id = generate_paste_id(); // FIXME: Check for duplicates before using
         let paste = Paste {
             paste_id: paste_id.clone(),
-            user_id: None, // TODO: Get user ID once we have an auth system
+            user_id,
             title: Some(title),
             tags: Some(unique_tags),
             format,
@@ -198,13 +195,7 @@ impl Paste {
         Ok(paste)
     }
 
-    async fn save(
-        &self,
-        db: &PgPool,
-        s3_bucket: &str,
-        s3_prefix: &str,
-        content: &str,
-    ) -> Result<String, String> {
+    async fn save(&self, state: &runtime::AppState, content: &str) -> Result<String, String> {
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_deref();
 
@@ -235,7 +226,7 @@ impl Paste {
         };
 
         // Let's append .br to the S3 key if we're using brotli compression
-        let mut s3_key = format!("{}{}.{}", s3_prefix, self.paste_id, ext);
+        let mut s3_key = format!("{}{}.{}", state.config.s3_prefix, self.paste_id, ext);
         if content_encoding == "br" {
             s3_key.push_str(".br");
         }
@@ -246,7 +237,7 @@ impl Paste {
         }
 
         // Start a DB transaction
-        let mut transaction = match db.begin().await {
+        let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => return Err(format!("Failed to start transaction: {}", err)),
         };
@@ -274,7 +265,7 @@ impl Paste {
         .map_err(|err| format!("Failed to insert paste: {}", err))?;
 
         match s3::upload(
-            s3_bucket,
+            state,
             &s3_key,
             s3_content,
             &content_type,
@@ -302,7 +293,8 @@ impl Paste {
         }
     }
 
-    pub async fn get(db: &PgPool, paste_id: &String) -> Result<Paste, (StatusCode, String)> {
+    pub async fn get(db: &PgPool, paste_id: &str) -> Result<Paste, (StatusCode, String)> {
+        let paste_id = paste_id.chars().take(8).collect::<String>();
         let paste = match query_as!(
             Paste,
             r#"
@@ -333,11 +325,7 @@ impl Paste {
         Ok(paste)
     }
 
-    pub async fn delete(
-        state: &runtime::AppState,
-        s3_bucket: &str,
-        paste_id: &str,
-    ) -> Result<(), (StatusCode, String)> {
+    pub async fn delete(&self, state: &runtime::AppState) -> Result<(), (StatusCode, String)> {
         let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => {
@@ -359,7 +347,7 @@ impl Paste {
             )
             SELECT s3_key, gdrivedl FROM paste
             "#,
-            paste_id
+            self.paste_id
         )
         .fetch_one(&mut *transaction)
         .await
@@ -371,7 +359,7 @@ impl Paste {
         })?;
 
         let fake_s3_delete = paste.gdrivedl.is_some();
-        match s3::delete(s3_bucket, &paste.s3_key, fake_s3_delete).await {
+        match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
                     state.cloudflare_q.insert(paste.s3_key);
@@ -503,7 +491,6 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             let views = *entry.value();
 
             let paste_result = Paste::get(&state.db, &paste_id).await;
-
             match paste_result {
                 Ok(paste) => {
                     paste.save_views(&state.db, views as i64).await;

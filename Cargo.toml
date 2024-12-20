@@ -12,6 +12,7 @@ strip = "symbols"  # Strip debug symbols
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
 aws-config = { version = "1.5.10", features = ["behavior-version-latest"] }
+aws-credential-types = "1.2.1"
 aws-sdk-s3 = "1.63.0"
 axum = "0.7.9"
 axum_csrf = { version = "0.10.2", features = ["layer"] }
@@ -22,6 +23,7 @@ config = "0.14.1"
 dashmap = "6.1.0"
 mime_guess = "2.0.5"
 num-traits = "0.2.19"
+oauth2 = "4.4.2"
 rand = "0.8.5"
 reqwest = { version = "0.12.9", features = ["charset", "http2", "json", "rustls-tls", "stream"], default-features = false }
 rust-embed = "8.5.0"

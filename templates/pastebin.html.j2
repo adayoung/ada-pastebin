@@ -39,6 +39,16 @@
           <li class="nav-item"><a class="nav-link" href="https://github.com/adayoung/ada-pastebin/" target="_blank"
               rel="noopener">GitHub!</a>
           </li>
+
+          {% if user_id.is_some() %}
+          <li class="nav-item">
+            <form action="/pastebin/auth/logout" id="logout" method="post">
+              <button class="nav-link" type="submit">Sign Out</button>
+            </form>
+          </li>
+          {% else %}
+          <li class="nav-item"><a class="nav-link" href="/pastebin/auth/discord/start">Sign In</a></li>
+          {% endif %}
         </ul>
         <form class="ms-auto" action="/pastebin/search/" method="get" role="search">
           <label class="visually-hidden" for="searchbox">Search Tags</label>

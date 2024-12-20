@@ -3,6 +3,17 @@ use serde::Deserialize;
 use tracing::{error, info};
 
 #[derive(Deserialize)]
+pub struct OauthConfig {
+    pub auth_url: String,
+    pub token_url: String,
+
+    pub client_id: String,
+    pub client_secret: String,
+    pub redirect_url: String,
+    pub scopes: String,
+}
+
+#[derive(Deserialize)]
 pub struct AppConfig {
     pub static_domain: String,
     pub bind_addr: String,
@@ -17,12 +28,20 @@ pub struct AppConfig {
 
     pub cookie_key: String,
     pub cookie_salt: String,
-    pub csrf_secure_cookie: bool,
+    pub cookie_secure: bool,
     pub update_views_interval: u64,
 
     pub s3_bucket_url: String,
     pub s3_bucket: String,
     pub s3_prefix: String,
+
+    pub aws_region: String,
+    pub aws_access_key_id: String,
+    pub aws_secret_access_key: String,
+    pub aws_endpoint: String,
+
+    pub discord_oauth: OauthConfig,
+    // pub drive_oauth: OauthConfig,
 }
 
 impl AppConfig {
@@ -55,6 +74,13 @@ impl AppConfig {
             .set_default("s3_bucket", "bin.ada-young.com")
             .unwrap();
         config = config.set_default("s3_prefix", "content/").unwrap();
+
+        config = config.set_default("aws_region", "us-east-1").unwrap();
+        config = config.set_default("aws_access_key_id", "").unwrap();
+        config = config.set_default("aws_secret_access_key", "").unwrap();
+        config = config
+            .set_default("aws_endpoint", "s3.amazonaws.com")
+            .unwrap();
 
         // Check for the presence of a config.toml file and use it
         if std::path::Path::new("config.toml").is_file() {
