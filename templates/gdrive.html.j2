@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>OAuth2 Response Handler - ada-young.com</title>
+</head>
+<body>
+    <p>This window should close on its own! Close it if it doesn't :o</p>
+    <input id="result" type="hidden" value="{{ result }}">
+    <script>
+    "use strict";
+
+    let result = document.getElementById("result").value;
+    try {
+        window.opener.HandleGAuthComplete(result);
+    } catch(e) {
+        // TODO: handle errors if any
+    }
+    window.close();
+    </script>
+</body>
+</html>

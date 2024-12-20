@@ -41,7 +41,7 @@ pub struct AppConfig {
     pub aws_endpoint: String,
 
     pub discord_oauth: OauthConfig,
-    // pub drive_oauth: OauthConfig,
+    pub drive_oauth: OauthConfig,
 }
 
 impl AppConfig {

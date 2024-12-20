@@ -86,7 +86,7 @@ pub async fn csp(
         ),
         format!("img-src data: {}", static_domain),
         format!(
-            "script-src {} https://challenges.cloudflare.com",
+            "script-src {} https://challenges.cloudflare.com 'sha256-Kh7z5uN5f6WzJriXlPY/hfklAtevSrublssQEZyvSck='",
             static_domain
         ),
         format!("style-src 'unsafe-inline' {}", static_domain),

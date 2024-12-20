@@ -24,6 +24,7 @@ mod cloudflare;
 mod config;
 mod discord;
 mod forms;
+mod gdrive;
 mod oauth;
 mod paste;
 mod recaptcha;
@@ -68,6 +69,7 @@ async fn main() {
 
     s3::init_s3_client(&shared_state).await;
     discord::init_discord_client(&shared_state);
+    gdrive::init_drive_client(&shared_state);
 
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
@@ -111,6 +113,8 @@ async fn main() {
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
+        .route("/pastebin/auth/gdrive/start", get(gdrive::start))
+        .route("/pastebin/auth/gdrive/finish", get(gdrive::finish))
         .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))

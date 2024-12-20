@@ -45,3 +45,9 @@ pub struct SearchTemplate {
     pub static_domain: String,
     pub user_id: Option<String>,
 }
+
+#[derive(Template)]
+#[template(path = "gdrive.html.j2")]
+pub struct GDriveTemplate {
+    pub result: String,
+}

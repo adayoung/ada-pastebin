@@ -145,7 +145,7 @@ function fancyFormSubmit(token) {
     });
 
     // Javascript enabled features
-    // document.getElementById("gdrive").removeAttribute("disabled");
+    document.getElementById("gdrive").removeAttribute("disabled");
     document.getElementById("noc-text").classList.add("d-md-block");
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((e) => {
       return new bootstrap.Tooltip(e);
