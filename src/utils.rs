@@ -1,4 +1,4 @@
-use crate::runtime;
+use crate::{forms::ValidDestination, runtime};
 use axum::{
     extract::{Request, State},
     http::HeaderValue,
@@ -103,7 +103,13 @@ pub async fn csp(
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
+pub async fn compress(content: &str, destination: &ValidDestination) -> Result<(Vec<u8>, String), Error> {
+    // Avoid compression if the destination is GDrive
+    if destination == &ValidDestination::GDrive {
+        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+    }
+
+    // Avoid compression if the content is too small
     if content.len() < 1024 {
         return Ok((content.as_bytes().to_vec(), "identity".to_string()));
     }
@@ -123,7 +129,7 @@ pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
         Ok(_) => {}
         Err(err) => {
             return {
-                error!("Failed to flush compress content: {}", err);
+                error!("Failed to flush compressed content: {}", err);
                 Err(err)
             };
         }

@@ -1,7 +1,14 @@
 use crate::paste::PasteFormat;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
-#[derive(Deserialize, Serialize)] // TODO: Remove Serialize
+#[derive(Debug, Deserialize, PartialEq)]
+#[serde(rename_all = "lowercase")]
+pub enum ValidDestination {
+    DataStore,
+    GDrive,
+}
+
+#[derive(Deserialize)]
 pub struct PasteForm {
     pub csrf_token: String,
     pub token: String,
@@ -10,7 +17,7 @@ pub struct PasteForm {
     pub title: Option<String>,
     pub tags: Option<String>,
     pub format: PasteFormat,
-    pub destination: String,
+    pub destination: ValidDestination,
 }
 
 #[derive(Deserialize)]

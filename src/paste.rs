@@ -1,5 +1,6 @@
 use crate::cloudflare;
 use crate::forms;
+use crate::forms::ValidDestination;
 use crate::runtime;
 use crate::s3;
 use crate::utils;
@@ -74,7 +75,7 @@ pub async fn new_paste(
         Err(err) => return Err(err),
     };
 
-    match paste.save(state, &form.content).await {
+    match paste.save(state, &form.content, &form.destination).await {
         Ok(paste_id) => Ok(paste_id),
         Err(err) => {
             error!("Failed to save paste: {}", err);
@@ -187,7 +188,7 @@ impl Paste {
         Ok(paste)
     }
 
-    async fn save(&self, state: &runtime::AppState, content: &str) -> Result<String, String> {
+    async fn save(&self, state: &runtime::AppState, content: &str, destination: &ValidDestination) -> Result<String, String> {
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_deref();
 
@@ -209,7 +210,7 @@ impl Paste {
         };
 
         // Crunch crunch!
-        let (s3_content, content_encoding) = match utils::compress(content).await {
+        let (s3_content, content_encoding) = match utils::compress(content, destination).await {
             Ok(response) => response,
             Err(err) => return Err(format!("Failed to compress content: {}", err)),
         };
@@ -223,6 +224,10 @@ impl Paste {
         let content_length = s3_content.len() as i32;
         if content_length > 2 * 1024 * 1024 {
             return Err(format!("Content length is too large: {}", content_length));
+        }
+
+        if destination == &ValidDestination::GDrive { // FIXME: Remove this once we support GDrive uploads
+            return Err("Oop, we don't support Google Drive uploads yet!".to_string());
         }
 
         // Start a DB transaction
