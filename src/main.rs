@@ -20,6 +20,7 @@ use tower_cookies::{CookieManagerLayer, Cookies, Key};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
+mod api;
 mod cloudflare;
 mod config;
 mod discord;
@@ -108,6 +109,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/api/v1/create", post(api::create))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
