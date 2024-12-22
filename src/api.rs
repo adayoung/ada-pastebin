@@ -33,14 +33,14 @@ pub async fn create(
     };
     let cookies = Cookies::default();
     cookies.add(utils::build_auth_cookie(&state, token.to_string()));
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, session_id) = utils::get_user_id(&state, &cookies);
 
     if user_id.is_none() {
         return (StatusCode::UNAUTHORIZED, "Invalid API token!").into_response();
     }
 
     // Create the paste, use the special score 0.9 for API pastes
-    let paste_id = match paste::new_paste(&state, &payload, 0.9, user_id).await {
+    let paste_id = match paste::new_paste(&state, &payload, 0.9, user_id, session_id).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();
