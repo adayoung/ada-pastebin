@@ -12,7 +12,7 @@ use tower_cookies::Cookies;
 pub async fn create(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    Form(payload): Form<forms::PasteForm>,
+    Form(payload): Form<forms::PasteAPIForm>,
 ) -> impl IntoResponse {
     let token = headers.get("Authorization");
     if token.is_none() {
@@ -38,6 +38,16 @@ pub async fn create(
     if user_id.is_none() {
         return (StatusCode::UNAUTHORIZED, "Invalid API token!").into_response();
     }
+
+    let payload = forms::PasteForm {
+        content: payload.content,
+        title: payload.title,
+        tags: payload.tags,
+        format: payload.format,
+        destination: "datastore".to_string(),
+        csrf_token: "".to_string(),
+        token: "".to_string(),
+    };
 
     // Create the paste, use the special score 0.9 for API pastes
     let paste_id = match paste::new_paste(&state, &payload, 0.9, user_id, session_id).await {
