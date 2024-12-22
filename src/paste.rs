@@ -91,6 +91,7 @@ pub async fn new_paste(
 }
 
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(from = "String")]
 #[serde(untagged)]
 pub enum PasteFormat {
     Text(String),
