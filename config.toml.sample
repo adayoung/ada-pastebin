@@ -1,0 +1,40 @@
+static_domain = "localhost:2024"
+bind_addr = "127.0.0.1"
+port = 2024
+
+cookie_key="<stick a 64 character long random gibberish here!>"
+cookie_salt="<stick a 16 character long random gibberish here!>"
+update_views_interval=300
+cookie_secure=false # this should be true if you're on the internet!
+
+s3_bucket_url="<put your s3 bucket URL here!>"
+s3_bucket="<go team bucket!>"
+s3_prefix="<here be prefix!>"
+
+aws_region="<region goes here!>"
+aws_access_key_id="<s3 access key!>"
+aws_secret_access_key="<s3 secret key!>"
+aws_endpoint="<s3 endpoint!>"
+
+recaptcha_key = "<turnstile site key goes here!>"
+recaptcha_secret = "<turnstile secret key goes here!>"
+
+cloudflare_api_key = "<cloudflare API key goes here!>"
+cloudflare_purge_url = "https://api.cloudflare.com/client/v4/zones/<put your zoneID here!>/purge_cache"
+cloudflare_enabled = false # make this true if you have Cloudflare CDN
+
+[discord_oauth]
+auth_url="https://discord.com/oauth2/authorize"
+token_url="https://discord.com/api/oauth2/token"
+client_id="<discord client id!>"
+client_secret="<discord client secret!>"
+redirect_url="http://localhost:2024/pastebin/auth/discord/finish"
+scopes="identify"
+
+[drive_oauth]
+auth_url="https://accounts.google.com/o/oauth2/auth"
+token_url="https://oauth2.googleapis.com/token"
+client_id="<google client id!>"
+client_secret="<google client secret!>"
+redirect_url="http://localhost:2024/pastebin/auth/gdrive/finish"
+scopes="https://www.googleapis.com/auth/drive.file"

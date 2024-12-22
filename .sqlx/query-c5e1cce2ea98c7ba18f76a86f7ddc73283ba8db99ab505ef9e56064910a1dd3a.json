@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n                SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
+  "query": "\n                SELECT paste_id, user_id, session_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen\n                FROM pastebin\n                WHERE paste_id = $1\n                ",
   "describe": {
     "columns": [
       {
@@ -15,51 +15,56 @@
       },
       {
         "ordinal": 2,
-        "name": "title",
+        "name": "session_id",
         "type_info": "Varchar"
       },
       {
         "ordinal": 3,
+        "name": "title",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
         "name": "tags",
         "type_info": "VarcharArray"
       },
       {
-        "ordinal": 4,
+        "ordinal": 5,
         "name": "format",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "date",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "gdriveid",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "gdrivedl",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "s3_key",
         "type_info": "Varchar"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "rcscore",
         "type_info": "Numeric"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "views",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "last_seen",
         "type_info": "Timestamptz"
       }
@@ -74,6 +79,7 @@
       true,
       true,
       true,
+      true,
       false,
       false,
       true,
@@ -84,5 +90,5 @@
       false
     ]
   },
-  "hash": "1ccc2313bf61bbeca3f13175aba3bc13041e1f8bd6e1547db5b226142d0af7d3"
+  "hash": "c5e1cce2ea98c7ba18f76a86f7ddc73283ba8db99ab505ef9e56064910a1dd3a"
 }

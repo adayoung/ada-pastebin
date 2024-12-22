@@ -60,6 +60,7 @@ pub async fn new_paste(
     form: &forms::PasteForm,
     score: f64,
     user_id: Option<String>,
+    session_id: Option<String>,
     gdrive_token: &str,
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
@@ -72,7 +73,7 @@ pub async fn new_paste(
         }
     }
 
-    let mut paste = match Paste::new(form, score, user_id) {
+    let mut paste = match Paste::new(form, score, user_id, session_id) {
         Ok(paste) => paste,
         Err(err) => return Err(err),
     };
@@ -93,6 +94,7 @@ pub async fn new_paste(
 }
 
 #[derive(Clone, Deserialize, Serialize)]
+#[serde(from = "String")]
 #[serde(untagged)]
 pub enum PasteFormat {
     Text(String),
@@ -112,6 +114,7 @@ impl From<String> for PasteFormat {
 pub struct Paste {
     pub paste_id: String,
     pub user_id: Option<String>,
+    pub session_id: Option<String>,
     pub title: Option<String>,
     pub tags: Option<Vec<String>>,
     pub format: PasteFormat,
@@ -145,7 +148,12 @@ impl Paste {
         form: &forms::PasteForm,
         score: f64,
         user_id: Option<String>,
+        session_id: Option<String>,
     ) -> Result<Self, (StatusCode, String)> {
+        if form.content.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "Content is empty!".to_string()));
+        }
+
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
@@ -175,6 +183,7 @@ impl Paste {
         let paste = Paste {
             paste_id: paste_id.clone(),
             user_id,
+            session_id,
             title: Some(title),
             tags: Some(unique_tags),
             format,
@@ -264,11 +273,12 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, s3_content_length, rcscore, last_seen)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            INSERT INTO pastebin (paste_id, user_id, session_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, s3_content_length, rcscore, views, last_seen)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
             "#,
             self.paste_id,
             self.user_id,
+            self.session_id,
             self.title,
             tags,
             format,
@@ -278,6 +288,7 @@ impl Paste {
             s3_key,
             content_length,
             self.rcscore,
+            0,
             self.last_seen
         )
         .execute(&mut *transaction)
@@ -319,7 +330,7 @@ impl Paste {
         let paste = match query_as!(
             Paste,
             r#"
-                SELECT paste_id, user_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
+                SELECT paste_id, user_id, session_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
                 FROM pastebin
                 WHERE paste_id = $1
                 "#,

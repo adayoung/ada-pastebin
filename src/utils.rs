@@ -168,15 +168,16 @@ pub fn build_app_cookie<'a>(state: &Arc<runtime::AppState>, name: String, value:
         .into()
 }
 
-pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: &Cookies) -> Option<String> {
+pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: &Cookies) -> (Option<String>, Option<String>) {
     let cookies = cookies.private(&state.cookie_key);
     let session_id = cookies.get(get_cookie_name(state, "_app_session").as_str());
     if let Some(session_id) = session_id {
         let session_id = session_id.value().to_string();
         let parts = session_id.split("-ADA-").collect::<Vec<&str>>();
         let user_id = parts.first().map(|s| s.to_string());
-        return user_id;
+        let timestamp = parts.last().map(|s| s.to_string());
+        return (user_id, timestamp);
     }
 
-    None
+    (None, None)
 }
