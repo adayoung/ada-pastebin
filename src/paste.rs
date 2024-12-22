@@ -143,6 +143,10 @@ impl Paste {
         score: f64,
         user_id: Option<String>,
     ) -> Result<Self, (StatusCode, String)> {
+        if form.content.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "Content is empty!".to_string()));
+        }
+
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
