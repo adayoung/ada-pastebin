@@ -20,6 +20,7 @@ use tower_cookies::{CookieManagerLayer, Cookies, Key};
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
+mod api;
 mod cloudflare;
 mod config;
 mod discord;
@@ -108,6 +109,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/api/v1/create", post(api::create))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
@@ -146,7 +148,7 @@ async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
 ) -> templates::AboutTemplate {
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
     templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id,
@@ -158,7 +160,7 @@ async fn pastebin(
     cookies: Cookies,
     token: CsrfToken,
 ) -> impl IntoResponse {
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
     let template = templates::PastebinTemplate {
         static_domain: state.config.static_domain.clone(),
         recaptcha_key: state.config.recaptcha_key.clone(),
@@ -176,7 +178,7 @@ async fn newpaste(
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
 ) -> impl IntoResponse {
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, session_id) = utils::get_user_id(&state, &cookies);
 
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
@@ -192,7 +194,7 @@ async fn newpaste(
         });
 
     // Create the paste
-    let paste_id = match paste::new_paste(&state, &payload, score, user_id).await {
+    let paste_id = match paste::new_paste(&state, &payload, score, user_id, session_id).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();
@@ -221,7 +223,7 @@ async fn getpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
 
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
@@ -256,7 +258,7 @@ async fn delpaste(
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteDeleteForm>,
 ) -> impl IntoResponse {
-    let user_id = utils::get_user_id(&state, &cookies);
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
 
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
@@ -371,7 +373,7 @@ async fn search(
         .unwrap_or(1);
 
     if !headers.contains_key("X-Requested-With") {
-        let user_id = utils::get_user_id(&state, &cookies);
+        let (user_id, _) = utils::get_user_id(&state, &cookies);
         let template = templates::SearchTemplate {
             static_domain: state.config.static_domain.clone(),
             user_id,
