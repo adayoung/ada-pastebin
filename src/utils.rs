@@ -155,11 +155,16 @@ pub fn get_cookie_samesite(state: &Arc<runtime::AppState>) -> SameSite {
 }
 
 pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> Cookie<'a> {
-    Cookie::build((get_cookie_name(state, "_app_session"), value))
+    // FIXME: This should be SameSite::Strict, but it breaks the OAuth flow
+    build_app_cookie(state, "_app_session".to_string(), value, SameSite::Lax)
+}
+
+pub fn build_app_cookie<'a>(state: &Arc<runtime::AppState>, name: String, value: String, same_site: SameSite) -> Cookie<'a> {
+    Cookie::build((get_cookie_name(state, &name), value))
         .path("/pastebin/")
         .http_only(true)
         .secure(state.config.cookie_secure)
-        .same_site(SameSite::Lax) // FIXME: This can't be Strict because of the redirect from discord
+        .same_site(same_site)
         .into()
 }
 

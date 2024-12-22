@@ -12,7 +12,7 @@ use oauth2::TokenResponse;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
-use tower_cookies::{Cookie, Cookies};
+use tower_cookies::Cookies;
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
@@ -29,7 +29,7 @@ fn get_oauth_client() -> &'static BasicClient {
 //     DRIVE_CLIENT.get_or_init(reqwest::Client::new)
 // }
 
-pub async fn start(
+pub async fn auth_start(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
 ) -> impl IntoResponse {
@@ -44,7 +44,7 @@ pub async fn start(
     )
 }
 
-pub async fn finish(
+pub async fn auth_finish(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
@@ -83,20 +83,45 @@ pub async fn finish(
     };
 
     let cookies = cookies.private(&state.cookie_key);
-    cookies.add(
-        Cookie::build((
-            utils::get_cookie_name(&state, "_drive_token"),
-            token.access_token().secret().clone(),
-        ))
-        .path("/pastebin/")
-        .http_only(true)
-        .secure(state.config.cookie_secure)
-        .same_site(utils::get_cookie_samesite(&state))
-        .into(),
-    );
+    cookies.add(utils::build_app_cookie(
+        &state,
+        "_drive_token".to_string(),
+        token.access_token().secret().clone(),
+        utils::get_cookie_samesite(&state),
+    ));
 
     let template = templates::GDriveTemplate {
         result: "success".to_string(),
     };
     (StatusCode::OK, template).into_response()
+}
+
+pub fn get_drive_token(state: &Arc<runtime::AppState>, cookies: &Cookies) -> String {
+    let cookies = cookies.private(&state.cookie_key);
+    let token = cookies.get(utils::get_cookie_name(state, "_drive_token").as_str());
+    if token.is_none() {
+        return "".to_string();
+    }
+
+    // Nom nom nom!
+    cookies.remove(utils::build_app_cookie(
+        state,
+        "_drive_token".to_string(),
+        "".to_string(),
+        utils::get_cookie_samesite(state),
+    ));
+
+    token.unwrap().value().to_string()
+}
+
+pub async fn upload(
+    _token: &str,
+    _content: &[u8],
+    _content_type: &str,
+    _title: &Option<String>,
+    _tags: &Option<Vec<String>>,
+    _filename: &str,
+) -> Result<(String, String), String> {
+    // FIXME: Remove this once we support GDrive uploads
+    Err("Oop, we don't support Google Drive uploads yet!".to_string())
 }

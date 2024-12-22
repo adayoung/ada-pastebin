@@ -44,8 +44,13 @@ pub async fn upload(
     content_encoding: &str,
     title: &Option<String>,
     tags: &Option<Vec<String>>,
-    paste_id_w_ext: &str,
+    filename: &str,
+    fake_it: bool,
 ) -> Result<(), String> {
+    if fake_it {
+        return Ok(());
+    }
+
     let title = match title {
         Some(title) => title,
         None => "",
@@ -57,7 +62,7 @@ pub async fn upload(
         .unwrap_or_default();
 
     let content_length = content.len() as i64;
-    let paste_id_w_ext: String = paste_id_w_ext.chars().filter(|c| c != &'~').collect();
+    let filename: String = filename.chars().filter(|c| c != &'~').collect();
     match get_client()
         .put_object()
         .bucket(state.config.s3_bucket.clone())
@@ -67,7 +72,7 @@ pub async fn upload(
         .content_encoding(content_encoding)
         .content_disposition(format!(
             "attachment; filename=\"{}\"; filename*=UTF-8''{}",
-            paste_id_w_ext, paste_id_w_ext
+            filename, filename
         ))
         .content_length(content_length)
         .metadata("title", title)

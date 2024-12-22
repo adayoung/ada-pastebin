@@ -113,8 +113,8 @@ async fn main() {
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
-        .route("/pastebin/auth/gdrive/start", get(gdrive::start))
-        .route("/pastebin/auth/gdrive/finish", get(gdrive::finish))
+        .route("/pastebin/auth/gdrive/start", get(gdrive::auth_start))
+        .route("/pastebin/auth/gdrive/finish", get(gdrive::auth_finish))
         .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
@@ -195,8 +195,13 @@ async fn newpaste(
             0.0
         });
 
+    let gdrive_token = gdrive::get_drive_token(&state, &cookies);
+    if payload.destination == forms::ValidDestination::GDrive && gdrive_token.is_empty() {
+        return (StatusCode::FORBIDDEN, "Google Drive not authorized!").into_response();
+    }
+
     // Create the paste
-    let paste_id = match paste::new_paste(&state, &payload, score, user_id).await {
+    let paste_id = match paste::new_paste(&state, &payload, score, user_id, &gdrive_token).await {
         Ok(id) => id,
         Err(err) => {
             return err.into_response();

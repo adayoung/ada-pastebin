@@ -1,6 +1,7 @@
 use crate::cloudflare;
 use crate::forms;
 use crate::forms::ValidDestination;
+use crate::gdrive;
 use crate::runtime;
 use crate::s3;
 use crate::utils;
@@ -59,6 +60,7 @@ pub async fn new_paste(
     form: &forms::PasteForm,
     score: f64,
     user_id: Option<String>,
+    gdrive_token: &str,
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
     {
@@ -70,12 +72,12 @@ pub async fn new_paste(
         }
     }
 
-    let paste = match Paste::new(form, score, user_id) {
+    let mut paste = match Paste::new(form, score, user_id) {
         Ok(paste) => paste,
         Err(err) => return Err(err),
     };
 
-    match paste.save(state, &form.content, &form.destination).await {
+    match paste.save(state, &form.content, &form.destination, gdrive_token).await {
         Ok(paste_id) => Ok(paste_id),
         Err(err) => {
             error!("Failed to save paste: {}", err);
@@ -188,7 +190,13 @@ impl Paste {
         Ok(paste)
     }
 
-    async fn save(&self, state: &runtime::AppState, content: &str, destination: &ValidDestination) -> Result<String, String> {
+    async fn save(
+        &mut self,
+        state: &runtime::AppState,
+        content: &str,
+        destination: &ValidDestination,
+        gdrive_token: &str,
+    ) -> Result<String, String> {
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_deref();
 
@@ -226,8 +234,26 @@ impl Paste {
             return Err(format!("Content length is too large: {}", content_length));
         }
 
-        if destination == &ValidDestination::GDrive { // FIXME: Remove this once we support GDrive uploads
-            return Err("Oop, we don't support Google Drive uploads yet!".to_string());
+        if destination == &ValidDestination::GDrive {
+            match gdrive::upload(
+                gdrive_token,
+                &s3_content,
+                &content_type,
+                &self.title,
+                &self.tags,
+                &format!("{}.{}", self.paste_id, ext),
+            )
+            .await
+            {
+                Ok((gdriveid, gdrivedl)) => {
+                    self.gdriveid = Some(gdriveid);
+                    self.gdrivedl = Some(gdrivedl);
+                }
+                Err(err) => {
+                    error!("Failed to upload to Google Drive: {}", err); // FIXME: log error at source
+                    return Err(format!("Failed to upload to Google Drive: {}", err));
+                }
+            };
         }
 
         // Start a DB transaction
@@ -267,6 +293,7 @@ impl Paste {
             &self.title,
             &self.tags,
             &format!("{}.{}", self.paste_id, ext),
+            destination != &ValidDestination::GDrive,
         )
         .await
         {
