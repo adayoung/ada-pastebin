@@ -1,3 +1,5 @@
+[![Rust](https://github.com/adayoung/ada-pastebin/actions/workflows/rust.yml/badge.svg)](https://github.com/adayoung/ada-pastebin/actions/workflows/rust.yml)
+
 # ada-pastebin
 Hi! This is a little pastebin application with colourful HTML support!
 
