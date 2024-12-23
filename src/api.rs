@@ -2,7 +2,7 @@ use crate::forms;
 use crate::paste;
 use crate::runtime;
 use crate::utils;
-use axum::extract::{Json as JsonForm, State};
+use axum::extract::{Json as JsonForm, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
 use dashmap::DashSet;
@@ -143,7 +143,7 @@ pub async fn create(
 pub async fn delete(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    JsonForm(payload): JsonForm<forms::PasteAPIDeleteForm>,
+    Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers) {
         Ok(response) => response,
@@ -167,7 +167,6 @@ pub async fn delete(
         ).into_response();
     }
 
-    let paste_id = payload.paste_id;
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {

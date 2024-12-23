@@ -12,7 +12,7 @@
 {% block content %}
 <div class="row mb-3">
     <div class="col">
-        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="post">
+        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="delete">
             <span>
                 {% for tag in paste.get_tags() %}
                 <em><a class="text-decoration-none" href="/pastebin/search/?tags={{ tag }}">{{ tag }}</a></em>
