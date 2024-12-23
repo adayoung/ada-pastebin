@@ -45,3 +45,11 @@ pub struct SearchTemplate {
     pub static_domain: String,
     pub user_id: Option<String>,
 }
+
+#[derive(Template)]
+#[template(path = "api-about.html.j2")]
+pub struct APIAboutTemplate {
+    pub static_domain: String,
+    pub user_id: Option<String>,
+    pub api_key: String,
+}

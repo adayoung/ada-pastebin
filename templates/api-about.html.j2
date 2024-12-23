@@ -1,0 +1,86 @@
+{% extends "pastebin.html.j2" %}
+
+{% block meta %}
+<meta name="author" content="Ada Young">
+<meta name="description" content="About Ada's HTML Pastebin's API!">
+<meta name="application-name" content="Ada's HTML Pastebin!">
+{% endblock %}
+
+{% block title %}API - Ada's HTML Pastebin{% endblock %}
+
+{% block captcha %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col">
+    <article class="text-light mb-3" id="content" role="main">
+      <h1 class="text-decoration-underline mb-5">API Access</h1>
+
+      <p>
+        Hi! We have an API for pasting too! You just need a client that's capable of making POST requests.
+      </p>
+
+      <p>
+        You will need an API key to use the API.
+        {% if api_key.is_empty() %}
+        You can get one by <a class="text-decoration-none" href="/pastebin/auth/discord/start">Signing in</a>!
+        {% else %}
+        Yay you already have one!<br>
+        Your API key is: <code>{{ api_key }}</code>
+        {% endif %}
+      </p>
+
+      <p>
+        The POST request should be made to this URL: <code>https://ada-young.com/pastebin/api/v1/create</code>
+      </p>
+
+      <p>The following parameters are available:</p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="text-nowrap">POST Parameter</th>
+            <th class="text-nowrap">Required/Optional</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>content</td>
+            <td>Required</td>
+            <td>
+              This is the content of your paste. It's the same thing you'd paste in big white box on the site.
+            </td>
+          </tr>
+          <tr>
+            <td>format</td>
+            <td>Required</td>
+            <td>
+              This is the format of your paste. Supported values are <code>plain</code>, <code>html</code>, and
+              <code>log</code>.
+            </td>
+          </tr>
+          <tr>
+            <td>title</td>
+            <td>Optional</td>
+            <td>
+              This is the title of your paste. A title above 50 characters is silently truncated.
+            </td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>Optional</td>
+            <td>
+              Tags help classify your paste and allow people to search for them. You can supply multiple tags separated
+              by space here. Tags longer than 15 characters are silently truncated. Non-alphanumeric characters are
+              silently stripped. Duplicate tags are dropped. A maximum of 15 tags are accepted.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </article>
+  </div>
+</div>
+{% endblock %}
+
+{% block moretail %}
+{% endblock %}

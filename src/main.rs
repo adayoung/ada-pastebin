@@ -110,6 +110,7 @@ async fn main() {
     let app = Router::new()
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/api/v1/about", get(api::about))
         .route("/pastebin/api/v1/create", post(api::create))
         .route("/pastebin/api/v1/:paste_id", delete(api::delete))
         .route("/pastebin/:paste_id", get(getpaste).delete(delpaste))
