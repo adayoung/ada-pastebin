@@ -82,3 +82,39 @@ pub async fn create(
 
     (StatusCode::CREATED, Json(response)).into_response()
 }
+
+pub async fn delete(
+    State(state): State<Arc<runtime::AppState>>,
+    headers: HeaderMap,
+    Form(payload): Form<forms::PasteAPIDeleteForm>,
+) -> impl IntoResponse {
+    let (user_id, _) = match identify_user(&state, headers) {
+        Ok(response) => response,
+        Err(err) => return err.into_response(),
+    };
+
+    let paste_id = payload.paste_id;
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    if Some(user_id) == paste.user_id {
+        match paste.delete(&state).await {
+            Ok(_) => {}
+            Err(err) => {
+                return err.into_response();
+            }
+        };
+    } else {
+        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+    }
+
+    let response = json!({
+        "status": "success",
+    });
+
+    (StatusCode::OK, Json(response)).into_response()
+}

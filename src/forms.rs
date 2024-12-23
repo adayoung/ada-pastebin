@@ -25,3 +25,8 @@ pub struct PasteAPIForm {
     pub tags: Option<String>,
     pub format: PasteFormat,
 }
+
+#[derive(Deserialize)]
+pub struct PasteAPIDeleteForm {
+    pub paste_id: String,
+}

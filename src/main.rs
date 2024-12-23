@@ -5,8 +5,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     middleware,
     response::{IntoResponse, Json, Redirect, Response},
-    routing::get,
-    routing::post,
+    routing::{delete, get, post},
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
@@ -110,6 +109,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/api/v1/create", post(api::create))
+        .route("/pastebin/api/v1/delete", delete(api::delete))
         .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
