@@ -2,7 +2,7 @@ use crate::forms;
 use crate::paste;
 use crate::runtime;
 use crate::utils;
-use axum::extract::{Form, State};
+use axum::extract::{Json as JsonForm, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
 use serde_json::json;
@@ -50,7 +50,7 @@ fn identify_user(
 pub async fn create(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    Form(payload): Form<forms::PasteAPIForm>,
+    JsonForm(payload): JsonForm<forms::PasteAPIForm>,
 ) -> impl IntoResponse {
     let (user_id, session_id) = match identify_user(&state, headers) {
         Ok(response) => response,
@@ -86,7 +86,7 @@ pub async fn create(
 pub async fn delete(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    Form(payload): Form<forms::PasteAPIDeleteForm>,
+    JsonForm(payload): JsonForm<forms::PasteAPIDeleteForm>,
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers) {
         Ok(response) => response,
