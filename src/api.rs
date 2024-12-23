@@ -5,9 +5,29 @@ use crate::utils;
 use axum::extract::{Json as JsonForm, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
-use serde_json::json;
+use dashmap::DashSet;
+use serde::Serialize;
 use std::sync::Arc;
+use std::sync::OnceLock;
+use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
+
+static RECENT_API_USERS: OnceLock<DashSet<String>> = OnceLock::new();
+fn recent_users() -> &'static DashSet<String> {
+    RECENT_API_USERS.get_or_init(DashSet::new)
+}
+
+#[derive(Serialize)]
+struct APISuccess {
+    status: String,
+    paste_id: String,
+}
+
+#[derive(Serialize)]
+struct APIError {
+    status: String,
+    error: String,
+}
 
 fn identify_user(
     state: &Arc<runtime::AppState>,
@@ -54,8 +74,27 @@ pub async fn create(
 ) -> impl IntoResponse {
     let (user_id, session_id) = match identify_user(&state, headers) {
         Ok(response) => response,
-        Err(err) => return err.into_response(),
+        Err(err) => {
+            return (
+                err.0,
+                Json(APIError {
+                    status: "error".to_string(),
+                    error: err.1,
+                }),
+            ).into_response()
+        }
     };
+
+    // Check if the user is rate limited
+    if recent_users().contains(&user_id) {
+        return (
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(APIError {
+                status: "error".to_string(),
+                error: "Eep slow down!".to_string(),
+            }),
+        ).into_response();
+    }
 
     let payload = forms::PasteForm {
         content: payload.content,
@@ -68,19 +107,37 @@ pub async fn create(
     };
 
     // Create the paste, use the special score 0.9 for API pastes
-    let paste_id = match paste::new_paste(&state, &payload, 0.9, Some(user_id), Some(session_id)).await {
+    let paste_id = match paste::new_paste(
+        &state,
+        &payload,
+        0.9,
+        Some(user_id.clone()),
+        Some(session_id),
+    )
+    .await
+    {
         Ok(id) => id,
         Err(err) => {
-            return err.into_response();
+            return (
+                err.0,
+                Json(APIError {
+                    status: "error".to_string(),
+                    error: err.1,
+                }),
+            ).into_response()
         }
     };
 
-    let response = json!({
-        "status": "success",
-        "paste_id": paste_id,
-    });
+    // Add the user to the recent users list
+    recent_users().insert(user_id);
 
-    (StatusCode::CREATED, Json(response)).into_response()
+    (
+        StatusCode::CREATED,
+        Json(APISuccess {
+            status: "success".to_string(),
+            paste_id,
+        }),
+    ).into_response()
 }
 
 pub async fn delete(
@@ -90,31 +147,69 @@ pub async fn delete(
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers) {
         Ok(response) => response,
-        Err(err) => return err.into_response(),
+        Err(err) => return (
+                err.0,
+                Json(APIError {
+                    status: "error".to_string(),
+                    error: err.1,
+                }),
+            ).into_response(),
     };
+
+    // Check if the user is rate limited
+    if recent_users().contains(&user_id) {
+        return (StatusCode::TOO_MANY_REQUESTS, "Eep slow down!").into_response();
+    }
 
     let paste_id = payload.paste_id;
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
-            return err.into_response();
+            return (
+                err.0,
+                Json(APIError {
+                    status: "error".to_string(),
+                    error: err.1,
+                }),
+            ).into_response();
         }
     };
 
-    if Some(user_id) == paste.user_id {
+    if Some(&user_id) == paste.user_id.as_ref() {
         match paste.delete(&state).await {
             Ok(_) => {}
             Err(err) => {
-                return err.into_response();
+                return (
+                    err.0,
+                    Json(APIError {
+                        status: "error".to_string(),
+                        error: err.1,
+                    }),
+                ).into_response();
             }
         };
     } else {
-        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+        return (StatusCode::FORBIDDEN, Json(APIError{
+            status: "error".to_string(),
+            error: "You don't own this paste!".to_string(),
+        })).into_response();
     }
 
-    let response = json!({
-        "status": "success",
-    });
+    // Add the user to the recent users list
+    recent_users().insert(user_id);
 
-    (StatusCode::OK, Json(response)).into_response()
+    (
+        StatusCode::OK,
+        Json(APISuccess {
+            status: "success".to_string(),
+            paste_id,
+        }),
+    ).into_response()
+}
+
+pub async fn reset_api_limiter() {
+    loop {
+        sleep(Duration::from_secs(30)).await;
+        recent_users().clear();
+    }
 }
