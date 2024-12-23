@@ -77,6 +77,32 @@
           </tr>
         </tbody>
       </table>
+      <p>
+        Here is how you create a new paste using Python:
+        <pre>
+          import requests
+
+          url = 'https://ada-young.com/pastebin/api/v1/create'
+          headers = {
+            {% if api_key.is_empty() -%}
+            "Authorization": "Bearer YOUR-API-KEY",
+            {%- else -%}
+            "Authorization": "Bearer {{ api_key }}",
+            {%- endif %}
+            "Content-Type": "application/json",
+          }
+
+          data = {
+            "content": "Hello, World!",
+            "format": "plain",
+            "title": "Hello, World!",
+            "tags": "hello world",
+          }
+
+          response = requests.post(url, headers=headers, json=data)
+          print(response.json())
+        </pre>
+      </p>
     </article>
   </div>
 </div>
