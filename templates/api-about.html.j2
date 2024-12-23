@@ -77,6 +77,70 @@
           </tr>
         </tbody>
       </table>
+      <p>
+        Here is how you create a new paste using <a class="text-decoration-none"
+          href="https://www.python.org/" target="_blank" rel="noopener">Python</a>:
+        <pre>
+          import requests
+
+          url = 'https://ada-young.com/pastebin/api/v1/create'
+          headers = {
+            {% if api_key.is_empty() -%}
+            "Authorization": "Bearer YOUR-API-KEY",
+            {%- else -%}
+            "Authorization": "Bearer {{ api_key }}",
+            {%- endif %}
+            "Content-Type": "application/json",
+          }
+
+          data = {
+            "content": "Hello, World!",
+            "format": "plain",
+            "title": "Hello, World!",
+            "tags": "hello world",
+          }
+
+          response = requests.post(url, headers=headers, json=data)
+          print(response.json())
+        </pre>
+      </p>
+      <p>
+        And here is how you can create a new paste from <a class="text-decoration-none"
+          href="https://www.mudlet.org/" target="_blank" rel="noopener">Mudlet</a> using
+          the <a class="text-decoration-none" href="https://wiki.mudlet.org/w/Manual:Lua_Functions#postHTTP"
+          target="_blank" rel="noopener">postHTTP</a> function:
+        <pre>
+          local url = "https://ada-young.com/pastebin/api/v1/create"
+
+          local headers = {
+            {% if api_key.is_empty() -%}
+            ["Authorization"] = "Bearer YOUR-API-KEY",
+            {%- else -%}
+            ["Authorization"] = "Bearer {{ api_key }}",
+            {%- endif %}
+            ["Content-Type"] = "application/json",
+          }
+
+          local data = {
+            ["content"] = "Hello world from Mudlet!",
+            ["format"] = "plain",
+            ["title"] = "Hello, World!",
+            ["tags"] = "hello world",
+          }
+
+          function onHttpPostDone(_, url, body)
+            display(body)
+          end
+
+          function onHttpPostError(_, body, url)
+            display(body)
+          end
+
+          registerAnonymousEventHandler("sysPostHttpDone", onHttpPostDone)
+          registerAnonymousEventHandler("sysPostHttpError", onHttpPostError)
+          postHTTP(yajl.to_string(data), url, headers)
+        </pre>
+      </p>
     </article>
   </div>
 </div>
