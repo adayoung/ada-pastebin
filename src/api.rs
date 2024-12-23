@@ -158,7 +158,13 @@ pub async fn delete(
 
     // Check if the user is rate limited
     if recent_users().contains(&user_id) {
-        return (StatusCode::TOO_MANY_REQUESTS, "Eep slow down!").into_response();
+        return (
+            StatusCode::TOO_MANY_REQUESTS,
+            Json(APIError {
+                status: "error".to_string(),
+                error: "Eep slow down!".to_string(),
+            }),
+        ).into_response();
     }
 
     let paste_id = payload.paste_id;
