@@ -1,8 +1,9 @@
 use crate::forms;
 use crate::paste;
 use crate::runtime;
+use crate::templates;
 use crate::utils;
-use axum::extract::{Json as JsonForm, State};
+use axum::extract::{Host, Json as JsonForm, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
 use dashmap::DashSet;
@@ -19,13 +20,14 @@ fn recent_users() -> &'static DashSet<String> {
 
 #[derive(Serialize)]
 struct APISuccess {
-    status: String,
+    success: bool,
     paste_id: String,
+    url: String,
 }
 
 #[derive(Serialize)]
 struct APIError {
-    status: String,
+    success: bool,
     error: String,
 }
 
@@ -70,6 +72,7 @@ fn identify_user(
 pub async fn create(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
+    Host(hostname): Host,
     JsonForm(payload): JsonForm<forms::PasteAPIForm>,
 ) -> impl IntoResponse {
     let (user_id, session_id) = match identify_user(&state, headers) {
@@ -78,7 +81,7 @@ pub async fn create(
             return (
                 err.0,
                 Json(APIError {
-                    status: "error".to_string(),
+                    success: false,
                     error: err.1,
                 }),
             ).into_response()
@@ -90,7 +93,7 @@ pub async fn create(
         return (
             StatusCode::TOO_MANY_REQUESTS,
             Json(APIError {
-                status: "error".to_string(),
+                success: false,
                 error: "Eep slow down!".to_string(),
             }),
         ).into_response();
@@ -121,7 +124,7 @@ pub async fn create(
             return (
                 err.0,
                 Json(APIError {
-                    status: "error".to_string(),
+                    success: false,
                     error: err.1,
                 }),
             ).into_response()
@@ -134,7 +137,8 @@ pub async fn create(
     (
         StatusCode::CREATED,
         Json(APISuccess {
-            status: "success".to_string(),
+            success: true,
+            url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
     ).into_response()
@@ -143,14 +147,15 @@ pub async fn create(
 pub async fn delete(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    JsonForm(payload): JsonForm<forms::PasteAPIDeleteForm>,
+    Host(hostname): Host,
+    Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers) {
         Ok(response) => response,
         Err(err) => return (
                 err.0,
                 Json(APIError {
-                    status: "error".to_string(),
+                    success: false,
                     error: err.1,
                 }),
             ).into_response(),
@@ -161,20 +166,19 @@ pub async fn delete(
         return (
             StatusCode::TOO_MANY_REQUESTS,
             Json(APIError {
-                status: "error".to_string(),
+                success: false,
                 error: "Eep slow down!".to_string(),
             }),
         ).into_response();
     }
 
-    let paste_id = payload.paste_id;
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
             return (
                 err.0,
                 Json(APIError {
-                    status: "error".to_string(),
+                    success: false,
                     error: err.1,
                 }),
             ).into_response();
@@ -188,7 +192,7 @@ pub async fn delete(
                 return (
                     err.0,
                     Json(APIError {
-                        status: "error".to_string(),
+                        success: false,
                         error: err.1,
                     }),
                 ).into_response();
@@ -196,7 +200,7 @@ pub async fn delete(
         };
     } else {
         return (StatusCode::FORBIDDEN, Json(APIError{
-            status: "error".to_string(),
+            success: false,
             error: "You don't own this paste!".to_string(),
         })).into_response();
     }
@@ -207,7 +211,8 @@ pub async fn delete(
     (
         StatusCode::OK,
         Json(APISuccess {
-            status: "success".to_string(),
+            success: true,
+            url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
     ).into_response()
@@ -217,5 +222,19 @@ pub async fn reset_api_limiter() {
     loop {
         sleep(Duration::from_secs(30)).await;
         recent_users().clear();
+    }
+}
+
+pub async fn about(
+    State(state): State<Arc<runtime::AppState>>,
+    cookies: Cookies,
+) -> templates::APIAboutTemplate {
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
+    let api_key = cookies.get(utils::get_cookie_name(&state, "_app_session")
+        .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
+    templates::APIAboutTemplate {
+        static_domain: state.config.static_domain.clone(),
+        user_id,
+        api_key,
     }
 }
