@@ -16,14 +16,15 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
             return;
         }
 
+        let items: Vec<String> = state
+            .cloudflare_q
+            .iter()
+            .map(|x| x.clone())
+            .collect();
+
         info!(
             "About to purge the following objects: {}",
-            state
-                .cloudflare_q
-                .iter()
-                .map(|x| x.clone())
-                .collect::<Vec<String>>()
-                .join(", ")
+            items.join(", ")
         );
 
         if !state.config.cloudflare_enabled {
@@ -32,7 +33,7 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
         }
 
         let mut urls: Vec<String> = Vec::new();
-        for key in state.cloudflare_q.iter() {
+        for key in items {
             urls.push(format!("{}{}", state.config.s3_bucket_url, key.clone()));
         }
 
