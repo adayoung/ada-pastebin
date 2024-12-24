@@ -1,11 +1,9 @@
 use crate::config;
-use dashmap::DashSet;
 use sqlx::postgres::PgPool;
 use tokio::signal;
 use tower_cookies::Key;
 
 pub struct AppState {
-    pub cloudflare_q: DashSet<String>,
     pub config: config::AppConfig,
     pub cookie_key: Key,
     pub db: PgPool,

@@ -9,7 +9,6 @@ use axum::{
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use dashmap::DashSet;
 use serde::Serialize;
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
@@ -59,7 +58,6 @@ async fn main() {
     let cookie_key = Key::from(config.cookie_key.as_bytes());
 
     let shared_state = Arc::new(runtime::AppState {
-        cloudflare_q: DashSet::new(),
         config,
         cookie_key,
         db,
