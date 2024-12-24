@@ -228,7 +228,11 @@ async fn getpaste(
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
-            return err.into_response();
+            if err.0 == StatusCode::NOT_FOUND {
+                return utils::not_found_response();
+            } else {
+                return err.into_response();
+            }
         }
     };
 
@@ -421,7 +425,6 @@ async fn robots() -> impl IntoResponse {
 }
 
 // Fallback handler for 404 errors
-async fn notfound() -> impl IntoResponse {
-    let template = templates::NotFoundTemplate {};
-    (StatusCode::NOT_FOUND, template)
+async fn notfound() -> Response {
+    utils::not_found_response()
 }

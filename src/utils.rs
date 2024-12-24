@@ -1,7 +1,7 @@
 use crate::runtime;
 use axum::{
     extract::{Request, State},
-    http::HeaderValue,
+    http::{HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -102,6 +102,11 @@ pub async fn csp(
     Ok(response)
 }
 
+pub fn not_found_response() -> Response {
+    let template = crate::templates::NotFoundTemplate {};
+    (StatusCode::NOT_FOUND, template).into_response()
+}
+
 // Compress content using brotli, returning the compressed content and the content encoding
 pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
     if content.len() < 1024 {
@@ -157,7 +162,10 @@ pub fn build_auth_cookie<'a>(state: &Arc<runtime::AppState>, value: String) -> C
         .into()
 }
 
-pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: &Cookies) -> (Option<String>, Option<String>) {
+pub fn get_user_id(
+    state: &Arc<runtime::AppState>,
+    cookies: &Cookies,
+) -> (Option<String>, Option<String>) {
     let cookies = cookies.private(&state.cookie_key);
     let session_id = cookies.get(get_cookie_name(state, "_app_session").as_str());
     if let Some(session_id) = session_id {
