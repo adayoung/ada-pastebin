@@ -9,7 +9,6 @@ use axum::{
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use dashmap::{DashMap, DashSet};
 use serde::Serialize;
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
@@ -59,10 +58,8 @@ async fn main() {
     let cookie_key = Key::from(config.cookie_key.as_bytes());
 
     let shared_state = Arc::new(runtime::AppState {
-        cloudflare_q: DashSet::new(),
         config,
         cookie_key,
-        counter: DashMap::new(),
         db,
     });
 
@@ -231,7 +228,11 @@ async fn getpaste(
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
-            return err.into_response();
+            if err.0 == StatusCode::NOT_FOUND {
+                return utils::not_found_response();
+            } else {
+                return err.into_response();
+            }
         }
     };
 
@@ -239,14 +240,13 @@ async fn getpaste(
     if user_id.is_some() && user_id == paste.user_id {
         owned = true;
     }
-    let views = paste.get_views(&state);
+
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
         user_id,
         paste,
-        views,
         owned,
     };
 
@@ -425,7 +425,6 @@ async fn robots() -> impl IntoResponse {
 }
 
 // Fallback handler for 404 errors
-async fn notfound() -> impl IntoResponse {
-    let template = templates::NotFoundTemplate {};
-    (StatusCode::NOT_FOUND, template)
+async fn notfound() -> Response {
+    utils::not_found_response()
 }

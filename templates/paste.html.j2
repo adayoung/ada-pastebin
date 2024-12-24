@@ -30,7 +30,7 @@
                 {% endfor %}
             </span>
             <span class="d-none d-md-block text-muted ms-auto">
-                <small class="me-2">VIEWS - {{ views }}</small>
+                <small class="me-2">VIEWS - {{ paste.get_views() }}</small>
 
                 <button class="d-none btn btn-outline-secondary btn-sm c-paste-btn" id="share-btn" title="Share">
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
@@ -62,6 +62,12 @@
                 {% if paste.gdrivedl.is_some() %}
                 <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!">
                     <img src="//{{ static_domain }}/static/img/drive.webp" height="16" width="16" alt="Google Drive!" loading="lazy">
+                </a>
+                {% endif %}
+
+                {% if paste.get_rcscore() == 0.9 %}
+                <a href="/pastebin/api/v1/about" class="btn btn-outline-secondary btn-sm c-paste-btn" title="This paste was made from the API!">
+                    <img src="//{{ static_domain }}/static/img/code.svg" height="16" width="16" alt="API Paste!" loading="lazy">
                 </a>
                 {% endif %}
             </span>

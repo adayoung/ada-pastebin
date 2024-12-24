@@ -6,15 +6,23 @@ use crate::utils;
 use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
+use dashmap::DashMap;
 use num_traits::FromPrimitive;
+use num_traits::ToPrimitive;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::Error::RowNotFound;
 use sqlx::{query, query_as, FromRow};
+use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::error;
+
+static COUNTER: OnceLock<DashMap<String, u64>> = OnceLock::new();
+fn counter() -> &'static DashMap<String, u64> {
+    COUNTER.get_or_init(DashMap::new)
+}
 
 fn generate_paste_id() -> String {
     let all_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
@@ -367,7 +375,7 @@ impl Paste {
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
-                    state.cloudflare_q.insert(paste.s3_key);
+                    cloudflare::queue().insert(paste.s3_key);
                     cloudflare::purge_cache(state, false).await;
                     Ok(())
                 }
@@ -454,12 +462,24 @@ impl Paste {
         self.tags.clone().unwrap_or_default()
     }
 
-    pub fn get_views(&self, state: &runtime::AppState) -> u64 {
-        *state
-            .counter
-            .entry(self.paste_id.clone())
-            .and_modify(|counter| *counter += 1)
-            .or_insert_with(|| self.views as u64 + 1)
+    pub fn get_rcscore(&self) -> f64 {
+        self.rcscore.to_f64().unwrap_or(0.0)
+    }
+
+    pub fn get_views(&self) -> u64 {
+        let counter = counter();
+        // Use get_mut() for a single atomic operation
+        match counter.get_mut(&self.paste_id) {
+            Some(mut count) => {
+                *count += 1;
+                *count
+            }
+            None => {
+                let initial = self.views as u64 + 1;
+                counter.insert(self.paste_id.clone(), initial);
+                initial
+            }
+        }
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
@@ -491,14 +511,16 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        for entry in state.counter.iter() {
-            let paste_id = entry.key().clone();
-            let views = *entry.value();
+        let items: Vec<(String, i64)> = counter()
+            .iter()
+            .map(|entry| (entry.key().clone(), *entry.value() as i64))
+            .collect();
 
-            let paste_result = Paste::get(&state.db, &paste_id).await;
+        for (paste_id, views) in items.iter() {
+            let paste_result = Paste::get(&state.db, paste_id).await;
             match paste_result {
                 Ok(paste) => {
-                    paste.save_views(&state.db, views as i64).await;
+                    paste.save_views(&state.db, *views).await;
                 }
                 Err(err) => {
                     if err.0 != StatusCode::NOT_FOUND {
@@ -508,7 +530,7 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             }
         }
 
-        state.counter.clear();
+        counter().clear();
         if !do_sleep {
             break;
         }

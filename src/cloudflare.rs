@@ -1,8 +1,14 @@
 use crate::runtime;
+use dashmap::DashSet;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::{error, info};
+
+static PURGE_QUEUE: OnceLock<DashSet<String>> = OnceLock::new();
+pub fn queue() -> &'static DashSet<String> {
+    PURGE_QUEUE.get_or_init(DashSet::new)
+}
 
 static CF_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
 
@@ -11,24 +17,17 @@ fn get_client() -> &'static reqwest::Client {
 }
 
 pub async fn purge_cache(state: &runtime::AppState, now: bool) {
-    if state.cloudflare_q.len() >= 10 || now {
-        if state.cloudflare_q.is_empty() {
+    if queue().len() >= 10 || now {
+        if queue().is_empty() {
             return;
         }
 
-        let items: Vec<String> = state
-            .cloudflare_q
-            .iter()
-            .map(|x| x.clone())
-            .collect();
+        let items: Vec<String> = queue().iter().map(|x| x.clone()).collect();
 
-        info!(
-            "About to purge the following objects: {}",
-            items.join(", ")
-        );
+        info!("About to purge the following objects: {}", items.join(", "));
 
         if !state.config.cloudflare_enabled {
-            state.cloudflare_q.clear();
+            queue().clear();
             return;
         }
 
@@ -66,7 +65,7 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
             Err(err) => error!("Failed to purge cloudflare cache: {}", err),
         };
 
-        state.cloudflare_q.clear();
+        queue().clear();
     }
 }
 

@@ -24,3 +24,7 @@ Building and running the thing has a few requirements:
  * Setup database with `cargo install sqlx-cli` and then `sqlx db create` followed with `sqlx migration run`
  * Run it with `cargo run` (or build it with `cargo build --release`)
  * Point your browser to http://localhost:2024/
+
+## Icons
+
+We have pretty icons from [Feather!](https://feathericons.com/)
