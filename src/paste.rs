@@ -7,6 +7,7 @@ use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
+use num_traits::ToPrimitive;
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
@@ -446,6 +447,10 @@ impl Paste {
 
     pub fn get_tags(&self) -> Vec<String> {
         self.tags.clone().unwrap_or_default()
+    }
+
+    pub fn get_rcscore(&self) -> f64 {
+        self.rcscore.to_f64().unwrap_or(0.0)
     }
 
     pub fn get_views(&self, state: &runtime::AppState) -> u64 {
