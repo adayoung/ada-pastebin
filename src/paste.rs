@@ -505,7 +505,8 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        for entry in counter().iter() {
+        let items = counter().iter().collect::<Vec<_>>();
+        for entry in items.iter() {
             let paste_id = entry.key().clone();
             let views = *entry.value();
 
