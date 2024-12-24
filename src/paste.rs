@@ -6,6 +6,7 @@ use crate::utils;
 use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
+use dashmap::DashMap;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
 use rand::Rng;
@@ -14,8 +15,14 @@ use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::Error::RowNotFound;
 use sqlx::{query, query_as, FromRow};
+use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::error;
+
+static COUNTER: OnceLock<DashMap<String, u64>> = OnceLock::new();
+fn counter() -> &'static DashMap<String, u64> {
+    COUNTER.get_or_init(DashMap::new)
+}
 
 fn generate_paste_id() -> String {
     let all_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
@@ -453,12 +460,20 @@ impl Paste {
         self.rcscore.to_f64().unwrap_or(0.0)
     }
 
-    pub fn get_views(&self, state: &runtime::AppState) -> u64 {
-        *state
-            .counter
-            .entry(self.paste_id.clone())
-            .and_modify(|counter| *counter += 1)
-            .or_insert_with(|| self.views as u64 + 1)
+    pub fn get_views(&self) -> u64 {
+        let counter = counter();
+        // Use get_mut() for a single atomic operation
+        match counter.get_mut(&self.paste_id) {
+            Some(mut count) => {
+                *count += 1;
+                *count
+            }
+            None => {
+                let initial = self.views as u64 + 1;
+                counter.insert(self.paste_id.clone(), initial);
+                initial
+            }
+        }
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
@@ -490,7 +505,7 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        for entry in state.counter.iter() {
+        for entry in counter().iter() {
             let paste_id = entry.key().clone();
             let views = *entry.value();
 
@@ -507,7 +522,7 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             }
         }
 
-        state.counter.clear();
+        counter().clear();
         if !do_sleep {
             break;
         }

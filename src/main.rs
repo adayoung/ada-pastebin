@@ -9,7 +9,7 @@ use axum::{
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use dashmap::{DashMap, DashSet};
+use dashmap::DashSet;
 use serde::Serialize;
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
@@ -62,7 +62,6 @@ async fn main() {
         cloudflare_q: DashSet::new(),
         config,
         cookie_key,
-        counter: DashMap::new(),
         db,
     });
 
@@ -239,14 +238,13 @@ async fn getpaste(
     if user_id.is_some() && user_id == paste.user_id {
         owned = true;
     }
-    let views = paste.get_views(&state);
+
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
         user_id,
         paste,
-        views,
         owned,
     };
 
