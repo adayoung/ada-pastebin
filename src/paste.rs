@@ -505,14 +505,16 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        for entry in counter().iter() {
-            let paste_id = entry.key().clone();
-            let views = *entry.value();
+        let items: Vec<(String, i64)> = counter()
+            .iter()
+            .map(|entry| (entry.key().clone(), *entry.value() as i64))
+            .collect();
 
-            let paste_result = Paste::get(&state.db, &paste_id).await;
+        for (paste_id, views) in items.iter() {
+            let paste_result = Paste::get(&state.db, paste_id).await;
             match paste_result {
                 Ok(paste) => {
-                    paste.save_views(&state.db, views as i64).await;
+                    paste.save_views(&state.db, *views).await;
                 }
                 Err(err) => {
                     if err.0 != StatusCode::NOT_FOUND {
