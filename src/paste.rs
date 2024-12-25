@@ -370,7 +370,7 @@ impl Paste {
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
-                    cloudflare::queue().insert(paste.s3_key);
+                    let _ = cloudflare::queue().insert(paste.s3_key);
                     cloudflare::purge_cache(state, false).await;
                     Ok(())
                 }

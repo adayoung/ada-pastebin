@@ -1,13 +1,13 @@
 use crate::runtime;
-use dashmap::DashSet;
+use scc::HashSet;
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::{error, info};
 
-static PURGE_QUEUE: OnceLock<DashSet<String>> = OnceLock::new();
-pub fn queue() -> &'static DashSet<String> {
-    PURGE_QUEUE.get_or_init(DashSet::new)
+static PURGE_QUEUE: OnceLock<HashSet<String>> = OnceLock::new();
+pub fn queue() -> &'static HashSet<String> {
+    PURGE_QUEUE.get_or_init(|| HashSet::with_capacity(20))
 }
 
 static CF_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
@@ -22,9 +22,7 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
             return;
         }
 
-        let items: Vec<String> = queue().iter().map(|x| x.clone()).collect();
-
-        info!("About to purge the following objects: {}", items.join(", "));
+        info!("About to purge {} object(s) from Cloudflare cache..", queue().len());
 
         if !state.config.cloudflare_enabled {
             queue().clear();
@@ -32,9 +30,9 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
         }
 
         let mut urls: Vec<String> = Vec::new();
-        for key in items {
+        queue().scan(|key| {
             urls.push(format!("{}{}", state.config.s3_bucket_url, key.clone()));
-        }
+        });
 
         let mut request_data = std::collections::HashMap::new();
         request_data.insert("files", urls);
