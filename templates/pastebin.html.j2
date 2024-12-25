@@ -13,7 +13,7 @@
 {% block title %}Ada's HTML Pastebin{% endblock %}
 
 {% block morehead %}
-<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css?t=20241108-a" />
+<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css?t=20241225" />
 {% block captcha %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=helloCaptcha" defer></script>
 {% endblock %}
@@ -190,6 +190,6 @@
 <script src="//{{ static_domain }}/static/js/common.js"></script>
 {% block moretail %}
 <input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
-<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241103-a"></script>
+<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241225"></script>
 {% endblock %}
 {% endblock %}

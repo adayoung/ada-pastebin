@@ -28,11 +28,11 @@ window.addEventListener("load", function () {
   window.cookieconsent.initialise({
     "palette": {
       "popup": {
-        "background": "#edeff5",
-        "text": "#838391"
+        "background": "#ffffff",
+        "text": "#212529"
       },
       "button": {
-        "background": "#4b81e8"
+        "background": "#0d6efd"
       }
     },
     "theme": "edgeless",
