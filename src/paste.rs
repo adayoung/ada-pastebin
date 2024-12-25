@@ -461,11 +461,10 @@ impl Paste {
     }
 
     pub fn get_views(&self) -> i64 {
-        counter()
+        *counter()
             .entry(self.paste_id.clone())
             .and_modify(|c| *c += 1)
             .or_insert_with(|| self.views + 1)
-            .clone()
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
