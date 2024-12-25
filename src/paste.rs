@@ -6,10 +6,10 @@ use crate::utils;
 use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
-use dashmap::DashMap;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
 use rand::Rng;
+use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
@@ -19,9 +19,9 @@ use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::error;
 
-static COUNTER: OnceLock<DashMap<String, u64>> = OnceLock::new();
-fn counter() -> &'static DashMap<String, u64> {
-    COUNTER.get_or_init(DashMap::new)
+static COUNTER: OnceLock<HashMap<String, i64>> = OnceLock::new();
+fn counter() -> &'static HashMap<String, i64> {
+    COUNTER.get_or_init(HashMap::new)
 }
 
 fn generate_paste_id() -> String {
@@ -375,7 +375,7 @@ impl Paste {
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
-                    cloudflare::queue().insert(paste.s3_key);
+                    let _ = cloudflare::queue().insert(paste.s3_key);
                     cloudflare::purge_cache(state, false).await;
                     Ok(())
                 }
@@ -466,20 +466,11 @@ impl Paste {
         self.rcscore.to_f64().unwrap_or(0.0)
     }
 
-    pub fn get_views(&self) -> u64 {
-        let counter = counter();
-        // Use get_mut() for a single atomic operation
-        match counter.get_mut(&self.paste_id) {
-            Some(mut count) => {
-                *count += 1;
-                *count
-            }
-            None => {
-                let initial = self.views as u64 + 1;
-                counter.insert(self.paste_id.clone(), initial);
-                initial
-            }
-        }
+    pub fn get_views(&self) -> i64 {
+        *counter()
+            .entry(self.paste_id.clone())
+            .and_modify(|c| *c += 1)
+            .or_insert_with(|| self.views + 1)
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
@@ -511,10 +502,10 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        let items: Vec<(String, i64)> = counter()
-            .iter()
-            .map(|entry| (entry.key().clone(), *entry.value() as i64))
-            .collect();
+        let mut items: Vec<(String, i64)> = Vec::new();
+        counter().scan(|key, value| {
+            items.push((key.clone(), *value));
+        });
 
         for (paste_id, views) in items.iter() {
             let paste_result = Paste::get(&state.db, paste_id).await;

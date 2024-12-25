@@ -6,16 +6,16 @@ use crate::utils;
 use axum::extract::{Host, Json as JsonForm, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
-use dashmap::DashSet;
+use scc::HashSet;
 use serde::Serialize;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
 
-static RECENT_API_USERS: OnceLock<DashSet<String>> = OnceLock::new();
-fn recent_users() -> &'static DashSet<String> {
-    RECENT_API_USERS.get_or_init(DashSet::new)
+static RECENT_API_USERS: OnceLock<HashSet<String>> = OnceLock::new();
+fn recent_users() -> &'static HashSet<String> {
+    RECENT_API_USERS.get_or_init(HashSet::new)
 }
 
 #[derive(Serialize)]
@@ -132,7 +132,7 @@ pub async fn create(
     };
 
     // Add the user to the recent users list
-    recent_users().insert(user_id);
+    let _= recent_users().insert(user_id);
 
     (
         StatusCode::CREATED,
@@ -206,7 +206,7 @@ pub async fn delete(
     }
 
     // Add the user to the recent users list
-    recent_users().insert(user_id);
+    let _ = recent_users().insert(user_id);
 
     (
         StatusCode::OK,
