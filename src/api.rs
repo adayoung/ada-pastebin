@@ -66,6 +66,14 @@ fn identify_user(
         _ => return Err((StatusCode::UNAUTHORIZED, "Invalid API token!".to_string())),
     };
 
+    // Check if the user is rate limited
+    if recent_users().contains(&user_id) {
+        return Err((
+            StatusCode::TOO_MANY_REQUESTS,
+            "Eep slow down!".to_string(),
+        ));
+    }
+
     Ok((user_id, session_id))
 }
 
@@ -87,17 +95,6 @@ pub async fn create(
             ).into_response()
         }
     };
-
-    // Check if the user is rate limited
-    if recent_users().contains(&user_id) {
-        return (
-            StatusCode::TOO_MANY_REQUESTS,
-            Json(APIError {
-                success: false,
-                error: "Eep slow down!".to_string(),
-            }),
-        ).into_response();
-    }
 
     let payload = forms::PasteForm {
         content: payload.content,
@@ -160,17 +157,6 @@ pub async fn delete(
                 }),
             ).into_response(),
     };
-
-    // Check if the user is rate limited
-    if recent_users().contains(&user_id) {
-        return (
-            StatusCode::TOO_MANY_REQUESTS,
-            Json(APIError {
-                success: false,
-                error: "Eep slow down!".to_string(),
-            }),
-        ).into_response();
-    }
 
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,

@@ -105,41 +105,71 @@
         </pre>
       </p>
       <p>
-        And here is how you can create a new paste from <a class="text-decoration-none"
-          href="https://www.mudlet.org/" target="_blank" rel="noopener">Mudlet</a> using
-          the <a class="text-decoration-none" href="https://wiki.mudlet.org/w/Manual:Lua_Functions#postHTTP"
-          target="_blank" rel="noopener">postHTTP</a> function:
-        <pre>
-          local url = "https://ada-young.com/pastebin/api/v1/create"
+        Here's a working example with <a class="text-decoration-none" href="https://www.mudlet.org/"
+          target="_blank" rel="noopener">Mudlet</a> using an alias and the
+          <a class="text-decoration-none"
+          href="https://wiki.mudlet.org/w/Manual:Lua_Functions#getClipboardText"
+          target="_blank" rel="noopener">getClipboardText</a> function:
+      </p>
+      <pre>
+        Alias pattern: ^apaste( .+)?$
+        Script:
 
-          local headers = {
-            {% if api_key.is_empty() -%}
-            ["Authorization"] = "Bearer YOUR-API-KEY",
-            {%- else -%}
-            ["Authorization"] = "Bearer {{ api_key }}",
-            {%- endif %}
-            ["Content-Type"] = "application/json",
-          }
+        cecho("\n<white>[<pink>Ada<white>]: Attempting to paste... please wait!")
+        toPastebin(matches[2] or '')
+        --------------------------------------------------------------------------------
 
+        Script name: Pastebin
+        Registered Event Handlers: sysPostHttpDone, sysPostHttpError
+        Script:
+
+        {% if api_key.is_empty() -%}
+        local api_key = "YOUR-API-KEY"
+        {%- else -%}
+        local api_key = "{{ api_key }}"
+        {%- endif %}
+
+        local url = "https://ada-young.com/pastebin/api/v1/create"
+
+        local headers = {
+          ["Authorization"] = "Bearer " ..api_key,
+          ["Content-Type"] = "application/json",
+        }
+
+        function toPastebin(title)
           local data = {
-            ["content"] = "Hello world from Mudlet!",
-            ["format"] = "plain",
-            ["title"] = "Hello, World!",
-            ["tags"] = "hello world",
+            ["content"] = getClipboardText(),
+            ["format"] = "html",
+            ["title"] = title,
+            ["tags"] = f("{gmcp.Char.Status.name} {gmcp.Char.Status.class}"),
           }
 
-          function onHttpPostDone(_, url, body)
-            display(body)
-          end
-
-          function onHttpPostError(_, body, url)
-            display(body)
-          end
-
-          registerAnonymousEventHandler("sysPostHttpDone", onHttpPostDone)
-          registerAnonymousEventHandler("sysPostHttpError", onHttpPostError)
           postHTTP(yajl.to_string(data), url, headers)
-        </pre>
+        end
+
+        function Pastebin(event, one, two)
+          if event == "sysPostHttpDone" then
+            local response = yajl.to_value(two)
+            cecho("\n<white>[<pink>Ada<white>]: Success! " ..response.url)
+          elseif event == "sysPostHttpError" then
+            cecho("\n<white>[<pink>Ada<white>]: Oop, error! " ..one)
+          end
+        end
+      </pre>
+      <p>
+        Once you have setup the alias and the script, you can:
+      </p>
+      <ul>
+        <li>Select text as usual in your Mudlet main window</li>
+        <li>Click on Copy HTML menu item to copy</li>
+        <li>Type <code>apaste</code> in the Mudlet command line!</li>
+        <li>Or type <code>apaste Some title!</code> to paste with a title!</li>
+      </ul>
+      <p>
+        Newer versions of Mudlet (v4.14+) have a feature called <a class="text-decoration-none"
+          href="https://wiki.mudlet.org/w/Manual:Lua_Functions#addCommandLineMenuEvent"
+          target="_blank" rel="noopener">addCommandLineMenuEvent</a> which may make it possible
+        to even add a menu item to right-click and paste in one go! See if you can make that work!
       </p>
     </article>
   </div>
