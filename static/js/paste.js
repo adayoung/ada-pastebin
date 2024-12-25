@@ -106,16 +106,17 @@ var term; // placed here for debugging
             lines = result.split(/\r\n|\n/g);
 
             let cols = 120; // this is a more sane default
-            let rows = lines.length;
+            let rows = 30;  // fixing this at 30 rows because I don't know how to size it correctly!
+
             let extraRows = 0;
             lines.forEach((line) => {
               extraRows += Math.ceil(line.length / cols) - 1;
             });
-            let totalRows = rows + extraRows;
+            let totalRows = lines.length + extraRows;
 
             term = new Terminal({
               cols: cols,
-              rows: totalRows,
+              rows: rows,
               convertEol: true,
               disableStdin: true,
               screenReaderMode: true,
