@@ -108,13 +108,13 @@ async fn main() {
         .allow_methods([Method::DELETE, Method::POST])
         .allow_headers([AUTHORIZATION, CONTENT_TYPE])
         .allow_origin([
-            // We play IRE games only!
-            "https://play.achaea.com".parse().unwrap(),
-            "https://play.aetolia.com".parse().unwrap(),
-            "https://play.imperian.com".parse().unwrap(),
-            "https://play.lusternia.com".parse().unwrap(),
-            "https://play.starmourn.com".parse().unwrap(),
-        ]);
+            // FIXME: this ought to be configurable
+            "https://play.achaea.com",
+            "https://play.aetolia.com",
+            "https://play.imperian.com",
+            "https://play.lusternia.com",
+            "https://play.starmourn.com",
+        ].map(|url| url.parse().expect("valid origin URL")));
 
     // build our application with routes
     let app = Router::new()
