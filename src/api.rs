@@ -6,7 +6,7 @@ use crate::utils;
 use axum::extract::{Host, Json as JsonForm, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
-use chrono::{Utc, DateTime};
+use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
 use std::sync::Arc;
@@ -14,11 +14,10 @@ use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
 
-const DAILY_LIMIT: u8 = 50;
+const DAILY_LIMIT: u8 = 50; // we allow 50 requests per user per day
 
 struct RateLimit {
     daily_count: u8,
-    last_request: DateTime<Utc>,
 }
 
 static API_LIMITS: OnceLock<HashMap<String, RateLimit>> = OnceLock::new();
@@ -27,23 +26,16 @@ fn api_limits() -> &'static HashMap<String, RateLimit> {
 }
 
 fn rate_limited(user_id: &str) -> bool {
-    let now = Utc::now();
     let limit = api_limits()
         .entry(user_id.to_string())
         .and_modify(|l| {
-            if l.last_request + Duration::from_secs(30) < now {
-                l.last_request = now;
-            }
             l.daily_count += 1;
         })
         .or_insert(RateLimit {
             daily_count: 1,
-            last_request: now,
         });
 
-    // Check both limits
-    limit.daily_count > DAILY_LIMIT ||
-        limit.last_request + Duration::from_secs(30) > now
+    limit.daily_count > DAILY_LIMIT
 }
 
 #[derive(Serialize)]
@@ -98,7 +90,7 @@ fn identify_user(
     if rate_limited(&user_id) {
         return Err((
             StatusCode::TOO_MANY_REQUESTS,
-            "Eep slow down!".to_string(),
+            "Eep slow down! Come back tomorrow!@".to_string(),
         ));
     }
 
@@ -247,6 +239,7 @@ pub async fn about(
     let (user_id, _) = utils::get_user_id(&state, &cookies);
     let api_key = cookies.get(utils::get_cookie_name(&state, "_app_session")
         .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
+
     templates::APIAboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id,

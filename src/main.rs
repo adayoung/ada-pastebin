@@ -1,8 +1,8 @@
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
-    http::header::{CACHE_CONTROL, LOCATION},
-    http::{HeaderMap, StatusCode},
+    http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, LOCATION},
+    http::{HeaderMap, Method, StatusCode},
     middleware,
     response::{IntoResponse, Json, Redirect, Response},
     routing::{delete, get, post},
@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tower_cookies::{CookieManagerLayer, Cookies, Key};
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
@@ -103,13 +104,26 @@ async fn main() {
         .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));
 
+    let cors = CorsLayer::new()
+        .allow_methods([Method::DELETE, Method::POST])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
+        .allow_origin([
+            // We play IRE games only!
+            "https://play.achaea.com".parse().unwrap(),
+            "https://play.aetolia.com".parse().unwrap(),
+            "https://play.imperian.com".parse().unwrap(),
+            "https://play.lusternia.com".parse().unwrap(),
+            "https://play.starmourn.com".parse().unwrap(),
+        ]);
+
     // build our application with routes
     let app = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
-        .route("/pastebin/", get(pastebin).post(newpaste))
-        .route("/pastebin/api/v1/about", get(api::about))
         .route("/pastebin/api/v1/create", post(api::create))
         .route("/pastebin/api/v1/:paste_id", delete(api::delete))
+        .layer(cors)
+        .route("/pastebin/api/v1/about", get(api::about))
+        .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
+        .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/:paste_id", get(getpaste).delete(delpaste))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
