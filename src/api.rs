@@ -6,16 +6,44 @@ use crate::utils;
 use axum::extract::{Host, Json as JsonForm, Path, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json};
-use scc::HashSet;
+use chrono::{Utc, DateTime};
+use scc::HashMap;
 use serde::Serialize;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
 
-static RECENT_API_USERS: OnceLock<HashSet<String>> = OnceLock::new();
-fn recent_users() -> &'static HashSet<String> {
-    RECENT_API_USERS.get_or_init(HashSet::new)
+const DAILY_LIMIT: u8 = 50;
+
+struct RateLimit {
+    daily_count: u8,
+    last_request: DateTime<Utc>,
+}
+
+static API_LIMITS: OnceLock<HashMap<String, RateLimit>> = OnceLock::new();
+fn api_limits() -> &'static HashMap<String, RateLimit> {
+    API_LIMITS.get_or_init(HashMap::new)
+}
+
+fn rate_limited(user_id: &str) -> bool {
+    let now = Utc::now();
+    let limit = api_limits()
+        .entry(user_id.to_string())
+        .and_modify(|l| {
+            if l.last_request + Duration::from_secs(30) < now {
+                l.last_request = now;
+            }
+            l.daily_count += 1;
+        })
+        .or_insert(RateLimit {
+            daily_count: 1,
+            last_request: now,
+        });
+
+    // Check both limits
+    limit.daily_count > DAILY_LIMIT ||
+        limit.last_request + Duration::from_secs(30) > now
 }
 
 #[derive(Serialize)]
@@ -67,7 +95,7 @@ fn identify_user(
     };
 
     // Check if the user is rate limited
-    if recent_users().contains(&user_id) {
+    if rate_limited(&user_id) {
         return Err((
             StatusCode::TOO_MANY_REQUESTS,
             "Eep slow down!".to_string(),
@@ -127,9 +155,6 @@ pub async fn create(
             ).into_response()
         }
     };
-
-    // Add the user to the recent users list
-    let _= recent_users().insert(user_id);
 
     (
         StatusCode::CREATED,
@@ -191,9 +216,6 @@ pub async fn delete(
         })).into_response();
     }
 
-    // Add the user to the recent users list
-    let _ = recent_users().insert(user_id);
-
     (
         StatusCode::OK,
         Json(APISuccess {
@@ -204,10 +226,17 @@ pub async fn delete(
     ).into_response()
 }
 
-pub async fn reset_api_limiter() {
+pub async fn reset_api() {
     loop {
-        sleep(Duration::from_secs(30)).await;
-        recent_users().clear();
+        let now = Utc::now();
+        if let Some(next_midnight) = now.date_naive().succ_opt()
+            .and_then(|d| d.and_hms_opt(0, 0, 0)) {
+            let duration = (next_midnight - now.naive_utc())
+                .to_std()
+                .unwrap_or(Duration::from_secs(3600));
+            sleep(duration).await;
+            api_limits().clear();
+        }
     }
 }
 

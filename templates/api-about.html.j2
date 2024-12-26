@@ -141,6 +141,7 @@
             ["content"] = getClipboardText(),
             ["format"] = "html",
             ["title"] = title,
+            -- Adjust default tags or parametrize them as needed
             ["tags"] = f("{gmcp.Char.Status.name} {gmcp.Char.Status.class}"),
           }
 
@@ -161,7 +162,7 @@
       </p>
       <ul>
         <li>Select text as usual in your Mudlet main window</li>
-        <li>Click on Copy HTML menu item to copy</li>
+        <li>Right click and then click on Copy HTML menu item to copy</li>
         <li>Type <code>apaste</code> in the Mudlet command line!</li>
         <li>Or type <code>apaste Some title!</code> to paste with a title!</li>
       </ul>
