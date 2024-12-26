@@ -163,6 +163,7 @@ impl Paste {
 
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
+        title = title.trim().to_string(); // Remove leading/trailing whitespace
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
 
         let tags = fix_tags(&form.tags);
