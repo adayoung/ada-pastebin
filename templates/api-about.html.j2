@@ -115,7 +115,7 @@
         Alias pattern: ^apaste( .+)?$
         Script:
 
-        cecho("\n<white>[<pink>Ada<white>]: Attempting to paste... please wait!")
+        cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Attempting to paste... please wait!")
         toPastebin(matches[2] or '')
         --------------------------------------------------------------------------------
 
@@ -151,9 +151,9 @@
         function Pastebin(event, one, two)
           if event == "sysPostHttpDone" then
             local response = yajl.to_value(two)
-            cecho("\n<white>[<pink>Ada<white>]: Success! " ..response.url)
+            cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Success! " ..response.url)
           elseif event == "sysPostHttpError" then
-            cecho("\n<white>[<pink>Ada<white>]: Oop, error! " ..one)
+            cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Oop, error! " ..one)
           end
         end
       </pre>
@@ -165,13 +165,8 @@
         <li>Right click and then click on Copy HTML menu item to copy</li>
         <li>Type <code>apaste</code> in the Mudlet command line!</li>
         <li>Or type <code>apaste Some title!</code> to paste with a title!</li>
+        <li>Enjoy! 🎉</li>
       </ul>
-      <p>
-        Newer versions of Mudlet (v4.14+) have a feature called <a class="text-decoration-none"
-          href="https://wiki.mudlet.org/w/Manual:Lua_Functions#addCommandLineMenuEvent"
-          target="_blank" rel="noopener">addCommandLineMenuEvent</a> which may make it possible
-        to even add a menu item to right-click and paste in one go! See if you can make that work!
-      </p>
     </article>
   </div>
 </div>
