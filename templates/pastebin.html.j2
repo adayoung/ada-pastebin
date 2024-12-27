@@ -39,7 +39,10 @@
           <li class="nav-item"><a class="nav-link" href="https://github.com/adayoung/ada-pastebin/" target="_blank"
               rel="noopener">GitHub!</a>
           </li>
-          <li class="nav-item"><a class="nav-link" href="/pastebin/api/v1/about">API</a></li>
+          <li id="api" class="nav-item" data-bs-toggle="popover" data-bs-placement="bottom"
+            data-bs-content="Paste straight from Mudlet!">
+            <a class="nav-link" href="/pastebin/api/v1/about">API</a>
+          </li>
 
           {% if user_id.is_some() %}
           <li class="nav-item">
@@ -190,6 +193,6 @@
 <script src="//{{ static_domain }}/static/js/common.js"></script>
 {% block moretail %}
 <input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
-<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241225"></script>
+<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241227"></script>
 {% endblock %}
 {% endblock %}
