@@ -32,6 +32,8 @@ fn rate_limited(user_id: &str) -> bool {
             l.daily_count += 1;
         })
         .or_insert(RateLimit {
+            // FIXME: initialize daily count from database instead with
+            // SELECT COUNT(id) FROM pastebin WHERE user_id=user_id AND date::date=CURRENT_DATE;
             daily_count: 1,
         });
 
@@ -126,11 +128,11 @@ pub async fn create(
         token: "".to_string(),
     };
 
-    // Create the paste, use the special score 0.9 for API pastes
+    // Create the paste, use the special score 0.5 for API pastes
     let paste_id = match paste::new_paste(
         &state,
         &payload,
-        0.9,
+        0.5,
         Some(user_id.clone()),
         Some(session_id),
     )

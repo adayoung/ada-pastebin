@@ -70,7 +70,7 @@ pub async fn new_paste(
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
     {
-        if score < 0.7 {
+        if score < 0.5 {
             return Err((
                 StatusCode::FORBIDDEN,
                 "Oop, bot check failed! This site is for humans!".to_string(),
