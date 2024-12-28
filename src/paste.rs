@@ -366,6 +366,7 @@ impl Paste {
         .fetch_one(&mut *transaction)
         .await
         .map_err(|err| {
+            error!("Failed to delete paste: {}", err);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to delete paste: {}", err),

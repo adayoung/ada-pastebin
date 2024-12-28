@@ -242,6 +242,8 @@ pub async fn about(
     let api_key = cookies.get(utils::get_cookie_name(&state, "_app_session")
         .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
 
+    // TODO: use a get_or_create method to fetch the user's API key instead
+
     templates::APIAboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id,

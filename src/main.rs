@@ -337,6 +337,7 @@ async fn getdrivecontent(
         let response = match reqwest::get(gdrivedl_url).await {
             Ok(response) => response,
             Err(err) => {
+                error!("Failed to fetch Google Drive content: {}", err);
                 return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response()
             }
         };
@@ -401,6 +402,7 @@ async fn search(
     let pastes = match paste::Paste::search(&state.db, &tags, page).await {
         Ok(pastes) => pastes,
         Err(err) => {
+            error!("Failed to search for pastes: {}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR, err).into_response();
         }
     };
