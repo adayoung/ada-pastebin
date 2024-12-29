@@ -298,14 +298,20 @@ pub async fn about(
                 ).execute(&state.db).await {
                     Ok(_) => token,
                     Err(err) => {
-                        error!("Failed to insert API token: {:?}", err);
-                        return (StatusCode::INTERNAL_SERVER_ERROR, "").into_response();
+                        error!("Failed to save API token: {:?}", err);
+                        return (
+                            StatusCode::INTERNAL_SERVER_ERROR,
+                            format!("Failed to save API token: {}", err)
+                        ).into_response();
                     }
                 }
             }
             _ => {
                 error!("Failed to fetch API token: {:?}", err);
-                return (StatusCode::INTERNAL_SERVER_ERROR, "").into_response();
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    format!("Failed to fetch API token: {}", err)
+                ).into_response();
             }
         },
     };
