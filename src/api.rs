@@ -15,7 +15,7 @@ use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
-use tracing::error;
+use tracing::{error, warn};
 
 const DAILY_LIMIT: u8 = 50; // we allow 50 requests per user per day
 
@@ -56,7 +56,7 @@ struct APIError {
     error: String,
 }
 
-fn identify_user(
+async fn identify_user(
     state: &Arc<runtime::AppState>,
     headers: HeaderMap,
 ) -> Result<(String, String), (StatusCode, String)> {
@@ -99,6 +99,30 @@ fn identify_user(
         ));
     }
 
+    // Check if user's token has not been revoked
+    let token_present: bool = match query_scalar!(
+        r#"SELECT EXISTS(SELECT 1 FROM api_tokens WHERE user_id=$1 AND token=$2)"#,
+        &user_id,
+        &token,
+    ).fetch_one(&state.db).await {
+        Ok(present) => present.unwrap_or(false),
+        Err(err) => match err {
+            RowNotFound => false,
+            _ => {
+                error!("Failed to check if token exists: {:?}", err);
+                return Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Failed to check if token exists!".to_string(),
+                ));
+            }
+        }
+    };
+
+    // FIXME: return 403 if token is not present instead of warning
+    if !token_present {
+        warn!("Token not found for user: {} | {}", user_id, token);
+    }
+
     Ok((user_id, session_id))
 }
 
@@ -108,7 +132,7 @@ pub async fn create(
     Host(hostname): Host,
     JsonForm(payload): JsonForm<forms::PasteAPIForm>,
 ) -> impl IntoResponse {
-    let (user_id, session_id) = match identify_user(&state, headers) {
+    let (user_id, session_id) = match identify_user(&state, headers).await {
         Ok(response) => response,
         Err(err) => {
             return (
@@ -169,7 +193,7 @@ pub async fn delete(
     Host(hostname): Host,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
-    let (user_id, _) = match identify_user(&state, headers) {
+    let (user_id, _) = match identify_user(&state, headers).await {
         Ok(response) => response,
         Err(err) => return (
                 err.0,
