@@ -121,6 +121,25 @@ async fn identify_user(
     // FIXME: return 403 if token is not present instead of warning
     if !token_present {
         warn!("Token not found for user: {} | {}", user_id, token);
+        query!(
+            r#"
+            INSERT INTO api_tokens (user_id, token)
+            VALUES ($1, $2)
+            ON CONFLICT (user_id) DO UPDATE
+            SET token=$2
+            "#,
+            &user_id,
+            &token,
+        )
+        .execute(&state.db)
+        .await
+        .map_err(|err| {
+            error!("Failed to save API token: {:?}", err);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Failed to save API token: {}", err)
+            )
+        })?;
     }
 
     Ok((user_id, session_id))
