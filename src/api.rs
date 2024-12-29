@@ -9,10 +9,13 @@ use axum::response::{IntoResponse, Json};
 use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
+use sqlx::Error::RowNotFound;
+use sqlx::{query, query_scalar};
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
+use tracing::error;
 
 const DAILY_LIMIT: u8 = 50; // we allow 50 requests per user per day
 
@@ -237,16 +240,55 @@ pub async fn reset_api() {
 pub async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
-) -> templates::APIAboutTemplate {
+) -> impl IntoResponse {
     let (user_id, _) = utils::get_user_id(&state, &cookies);
-    let api_key = cookies.get(utils::get_cookie_name(&state, "_app_session")
-        .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
 
-    // TODO: use a get_or_create method to fetch the user's API key instead
-
-    templates::APIAboutTemplate {
-        static_domain: state.config.static_domain.clone(),
-        user_id,
-        api_key,
+    if user_id.is_none() {
+        return (StatusCode::OK, templates::APIAboutTemplate {
+            static_domain: state.config.static_domain.clone(),
+            user_id,
+            api_key: "".to_string(),
+        }).into_response();
     }
+
+    let user_id = user_id.unwrap();
+
+    let api_key: String = match query_scalar(
+        r#"SELECT token FROM api_tokens WHERE user_id=$1 LIMIT 1"#,
+    ).bind(&user_id).fetch_one(&state.db).await {
+        Ok(token) => token,
+        Err(err) => match err {
+            RowNotFound => {
+                let token = cookies.get(utils::get_cookie_name(&state, "_app_session")
+                    .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
+
+                match query!(
+                    r#"
+                    INSERT INTO api_tokens (user_id, token)
+                    VALUES ($1, $2)
+                    ON CONFLICT (user_id) DO UPDATE
+                    SET token=$2
+                    "#,
+                    &user_id,
+                    &token,
+                ).execute(&state.db).await {
+                    Ok(_) => token,
+                    Err(err) => {
+                        error!("Failed to insert API token: {:?}", err);
+                        return (StatusCode::INTERNAL_SERVER_ERROR, "").into_response();
+                    }
+                }
+            }
+            _ => {
+                error!("Failed to fetch API token: {:?}", err);
+                return (StatusCode::INTERNAL_SERVER_ERROR, "").into_response();
+            }
+        },
+    };
+
+    (StatusCode::OK, templates::APIAboutTemplate {
+        static_domain: state.config.static_domain.clone(),
+        user_id: Some(user_id),
+        api_key,
+    }).into_response()
 }
