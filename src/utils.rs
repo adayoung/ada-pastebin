@@ -108,33 +108,26 @@ pub fn not_found_response() -> Response {
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &str) -> Result<(Vec<u8>, String), Error> {
+pub async fn compress(content: &str, s3_content: &mut Vec<u8>) -> Result<String, Error> {
+    s3_content.clear();
+
     if content.len() < 1024 {
-        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+        s3_content.extend_from_slice(content.as_bytes());
+        return Ok("identity".to_string());
     }
 
-    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 6, 22);
-    match encoder.write_all(content.as_bytes()) {
-        Ok(_) => {}
-        Err(err) => {
-            return {
-                error!("Failed to write compressed content: {}", err);
-                Err(err)
-            };
-        }
+    let mut encoder = CompressorWriter::new(s3_content, 4096, 6, 22);
+    if let Err(err) = encoder.write_all(content.as_bytes()) {
+        error!("Failed to write compressed content: {}", err);
+        return Err(err);
     };
 
-    match encoder.flush() {
-        Ok(_) => {}
-        Err(err) => {
-            return {
-                error!("Failed to flush compress content: {}", err);
-                Err(err)
-            };
-        }
+    if let Err(err) = encoder.flush() {
+        error!("Failed to flush compress content: {}", err);
+        return Err(err);
     };
 
-    Ok((encoder.into_inner(), "br".to_string()))
+    Ok("br".to_string())
 }
 
 pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {

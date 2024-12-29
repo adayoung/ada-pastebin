@@ -232,7 +232,8 @@ impl Paste {
         };
 
         // Crunch crunch!
-        let (s3_content, content_encoding) = match utils::compress(content).await {
+        let mut s3_content: Vec<u8> = Vec::new();
+        let content_encoding = match utils::compress(content, &mut s3_content).await {
             Ok(response) => response,
             Err(err) => return Err(format!("Failed to compress content: {}", err)),
         };
