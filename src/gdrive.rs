@@ -9,10 +9,12 @@ use axum::{
 };
 use oauth2::basic::BasicClient;
 use oauth2::TokenResponse;
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::Cookies;
+use tracing::info;
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
@@ -24,10 +26,10 @@ fn get_oauth_client() -> &'static BasicClient {
     OAUTH_CLIENT.get().expect("Discord client not initialized")
 }
 
-// static DRIVE_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
-// fn get_drive_client() -> &'static reqwest::Client {
-//     DRIVE_CLIENT.get_or_init(reqwest::Client::new)
-// }
+static DRIVE_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();
+fn get_drive_client() -> &'static reqwest::Client {
+    DRIVE_CLIENT.get_or_init(reqwest::Client::new)
+}
 
 pub async fn auth_start(
     State(state): State<Arc<runtime::AppState>>,
@@ -115,7 +117,7 @@ pub fn get_drive_token(state: &Arc<runtime::AppState>, cookies: &Cookies) -> Str
 }
 
 pub async fn upload(
-    _token: &str,
+    token: &str,
     _content: &[u8],
     _content_type: &str,
     _title: &Option<String>,
@@ -123,5 +125,85 @@ pub async fn upload(
     _filename: &str,
 ) -> Result<(String, String), String> {
     // FIXME: Remove this once we support GDrive uploads
+    info!("Token received: {}", token);
+
+    let folder_id = get_pastebin_folder(token).await?;
+    info!("Folder ID: {}", folder_id);
+
     Err("Oop, we don't support Google Drive uploads yet!".to_string())
+}
+
+async fn get_pastebin_folder(token: &str) -> Result<String, String> {
+    let url = "https://www.googleapis.com/drive/v3/files";
+    let params = [
+        ("q", "properties has { key='name' and value='Pastebin!!' }"),
+        ("fields", "files(id,name)"),
+        ("pageSize", "1"),
+    ];
+
+    let response = get_drive_client()
+        .get(url)
+        .bearer_auth(token)
+        .query(&params)
+        .send()
+        .await
+        .map_err(|err| format!("Failed to get Pastebin folder: {}", err))?;
+
+    if response.status().is_success() {
+        let json_response: Value = response
+            .json()
+            .await
+            .map_err(|err| format!("Failed to parse JSON: {}", err))?;
+
+        // Extract the id from the response
+        if let Some(files) = json_response.get("files") {
+            if let Some(first_file) = files.get(0) {
+                if let Some(id) = first_file.get("id") {
+                    return Ok(id.to_string());
+                }
+            }
+        }
+    }
+
+    make_pastebin_folder(token).await
+}
+
+async fn make_pastebin_folder(token: &str) -> Result<String, String> {
+    let url = "https://www.googleapis.com/drive/v3/files";
+    let body = json!({
+        "name": "Pastebin!!",
+        "description": "This folder was made by Ada's HTML Pastebin!",
+        "properties": {
+            "name": "Pastebin!!",
+            "created-by": "https://ada-young.com/pastebin/",
+        },
+        "mimeType": "application/vnd.google-apps.folder"
+    });
+
+    let response = get_drive_client()
+        .post(url)
+        .bearer_auth(token)
+        .json(&body) // Send the JSON body
+        .send()
+        .await
+        .map_err(|err| format!("Failed to make Pastebin folder: {}", err))?;
+
+    if response.status().is_success() {
+        let json_response: Value = response
+            .json()
+            .await
+            .map_err(|err| format!("Failed to parse JSON: {}", err))?;
+
+        // Extract the id from the response
+        if let Some(id) = json_response.get("id") {
+            return Ok(id.to_string());
+        } else {
+            return Err("No ID found in the response.".to_string());
+        }
+    }
+
+    Err(response
+        .text()
+        .await
+        .unwrap_or_else(|_| "Unknown error".to_string()))
 }
