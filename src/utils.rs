@@ -1,7 +1,7 @@
 use crate::{forms::ValidDestination, runtime};
 use axum::{
     extract::{Request, State},
-    http::HeaderValue,
+    http::{HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -86,10 +86,10 @@ pub async fn csp(
         ),
         format!("img-src data: {}", static_domain),
         format!(
-            "script-src {} https://challenges.cloudflare.com 'sha256-Kh7z5uN5f6WzJriXlPY/hfklAtevSrublssQEZyvSck='",
+            "script-src {} https://challenges.cloudflare.com https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.js 'sha256-Kh7z5uN5f6WzJriXlPY/hfklAtevSrublssQEZyvSck='",
             static_domain
         ),
-        format!("style-src 'unsafe-inline' {}", static_domain),
+        format!("style-src 'unsafe-inline' {} https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.css", static_domain),
         format!("upgrade-insecure-requests"),
     ];
 
@@ -102,40 +102,38 @@ pub async fn csp(
     Ok(response)
 }
 
+pub fn not_found_response() -> Response {
+    let template = crate::templates::NotFoundTemplate {};
+    (StatusCode::NOT_FOUND, template).into_response()
+}
+
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &str, destination: &ValidDestination) -> Result<(Vec<u8>, String), Error> {
+pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, Error> {
     // Avoid compression if the destination is GDrive
     if destination == &ValidDestination::GDrive {
-        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+        return Ok("identity".to_string());
     }
+
+    s3_content.clear();
 
     // Avoid compression if the content is too small
     if content.len() < 1024 {
-        return Ok((content.as_bytes().to_vec(), "identity".to_string()));
+        s3_content.extend_from_slice(content.as_bytes());
+        return Ok("identity".to_string());
     }
 
-    let mut encoder = CompressorWriter::new(Vec::new(), 4096, 6, 22);
-    match encoder.write_all(content.as_bytes()) {
-        Ok(_) => {}
-        Err(err) => {
-            return {
-                error!("Failed to write compressed content: {}", err);
-                Err(err)
-            };
-        }
+    let mut encoder = CompressorWriter::new(s3_content, 4096, 6, 22);
+    if let Err(err) = encoder.write_all(content.as_bytes()) {
+        error!("Failed to write compressed content: {}", err);
+        return Err(err);
     };
 
-    match encoder.flush() {
-        Ok(_) => {}
-        Err(err) => {
-            return {
-                error!("Failed to flush compressed content: {}", err);
-                Err(err)
-            };
-        }
+    if let Err(err) = encoder.flush() {
+        error!("Failed to flush compress content: {}", err);
+        return Err(err);
     };
 
-    Ok((encoder.into_inner(), "br".to_string()))
+    Ok("br".to_string())
 }
 
 pub fn get_cookie_name(state: &Arc<runtime::AppState>, name: &str) -> String {
@@ -168,7 +166,10 @@ pub fn build_app_cookie<'a>(state: &Arc<runtime::AppState>, name: String, value:
         .into()
 }
 
-pub fn get_user_id(state: &Arc<runtime::AppState>, cookies: &Cookies) -> (Option<String>, Option<String>) {
+pub fn get_user_id(
+    state: &Arc<runtime::AppState>,
+    cookies: &Cookies,
+) -> (Option<String>, Option<String>) {
     let cookies = cookies.private(&state.cookie_key);
     let session_id = cookies.get(get_cookie_name(state, "_app_session").as_str());
     if let Some(session_id) = session_id {

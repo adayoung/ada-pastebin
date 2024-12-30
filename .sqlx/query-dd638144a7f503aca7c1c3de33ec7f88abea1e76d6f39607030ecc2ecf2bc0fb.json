@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO api_tokens (user_id, token)\n                    VALUES ($1, $2)\n                    ON CONFLICT (user_id) DO UPDATE\n                    SET token=$2\n                    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "dd638144a7f503aca7c1c3de33ec7f88abea1e76d6f39607030ecc2ecf2bc0fb"
+}

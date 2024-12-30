@@ -9,17 +9,28 @@
 
 {% block captcha %}{% endblock %}
 
+{% block evenmorehead %}
+{% if paste.get_format() == "log" %}
+<link rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.css"
+    integrity="sha512-AbNrj/oSHJaILgcdnkYm+DQ08SqVbZ8jlkJbFyyS1WDcAaXAcAfxJnCH69el7oVgTwVwyA5u5T+RdFyUykrV3Q=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+/>
+{% endif %}
+{% endblock %}
+
 {% block content %}
 <div class="row mb-3">
     <div class="col">
-        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="post">
+        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="delete">
             <span>
                 {% for tag in paste.get_tags() %}
                 <em><a class="text-decoration-none" href="/pastebin/search/?tags={{ tag }}">{{ tag }}</a></em>
                 {% endfor %}
             </span>
             <span class="d-none d-md-block text-muted ms-auto">
-                <small class="me-2">VIEWS - {{ views }}</small>
+                <small class="me-2">VIEWS - {{ paste.get_views() }}</small>
 
                 <button class="d-none btn btn-outline-secondary btn-sm c-paste-btn" id="share-btn" title="Share">
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
@@ -42,9 +53,21 @@
                 </button>
                 {% endif %}
 
+                {% if paste.get_format() == "log" %}
+                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="terminal-btn" title="This is an ANSI log!">
+                    <img src="//{{ static_domain }}/static/img/terminal.svg" height="16" width="16" alt="ANSI log!" loading="lazy" />
+                </a>
+                {% endif %}
+
                 {% if paste.gdrivedl.is_some() %}
                 <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!">
                     <img src="//{{ static_domain }}/static/img/drive.webp" height="16" width="16" alt="Google Drive!" loading="lazy">
+                </a>
+                {% endif %}
+
+                {% if paste.get_rcscore() == 0.5 %}
+                <a href="/pastebin/api/v1/about" class="btn btn-outline-secondary btn-sm c-paste-btn" title="This paste was made from the API!">
+                    <img src="//{{ static_domain }}/static/img/code.svg" height="16" width="16" alt="API Paste!" loading="lazy">
                 </a>
                 {% endif %}
             </span>
@@ -62,6 +85,7 @@
             </noscript>
             <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
             <pre class="d-none text-light" id="content-text" title="content-text"></pre>
+            <div class="d-none text-light" id="content-terminal" title="content-log"></div>
         </article>
         <div class="d-none text-light" id="loader">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -75,5 +99,13 @@
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ content_url }}">
-<script src="//{{ static_domain }}/static/js/paste.js"></script>
+{% if paste.get_format() == "log" %}
+<script
+    src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.js"
+    integrity="sha512-Gujw5GajF5is3nMoGv9X+tCMqePLL/60qvAv1LofUZTV9jK8ENbM9L+maGmOsNzuZaiuyc/fpph1KT9uR5w3CQ=="
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer">
+</script>
+{% endif %}
+<script src="//{{ static_domain }}/static/js/paste.js?t=20241225"></script>
 {% endblock %}

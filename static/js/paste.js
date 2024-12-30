@@ -1,5 +1,9 @@
 "use strict";
 
+var lines; // placed here for debugging
+var term; // placed here for debugging
+// term.resize(cols, lineCount + extraRows);
+
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Share button
@@ -94,7 +98,36 @@
           }
         })
         .then((result) => {
-          if (document.getElementById("format").value == "html") {
+          if (document.getElementById("format").value == "log") {
+            document
+              .getElementById("content-terminal")
+              .classList.remove("d-none");
+
+            lines = result.split(/\r\n|\n/g);
+
+            let cols = 120; // this is a more sane default
+            let rows = 30;  // fixing this at 30 rows because I don't know how to size it correctly!
+
+            let extraRows = 0;
+            lines.forEach((line) => {
+              extraRows += Math.ceil(line.length / cols) - 1;
+            });
+            let totalRows = lines.length + extraRows;
+
+            term = new Terminal({
+              cols: cols,
+              rows: rows,
+              convertEol: true,
+              disableStdin: true,
+              screenReaderMode: true,
+              scrollback: totalRows,
+            });
+            term.open(document.getElementById("content-terminal"));
+            term.onWriteParsed(() => term.scrollToTop());
+            term.write(result);
+
+            document.getElementById("loader").classList.add("d-none");
+          } else if (document.getElementById("format").value == "html") {
             document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
             document.getElementById("content-frame").classList.remove("d-none");
             document.getElementById("loader").classList.add("d-none");
@@ -115,6 +148,7 @@
         })
         .catch((error) => {
           if (error != "-flails-") {
+            console.log(error);
             document.getElementById("loader-result").textContent =
               "Meep! I couldn't get your content :( Maybe the network pipes aren't up?";
           }

@@ -90,6 +90,15 @@ article iframe {
     background: #fff;
 }
 
+article div#content-terminal {
+    border: 0;
+    border-radius: 0.25rem;
+
+    width: 100%;
+    min-height: 60vh;
+    overflow: hidden; /* Prevent overflow */
+}
+
 .c-paste-btn:hover {
     background-color: inherit !important;
     filter: invert(92%) sepia(93%) saturate(0%) hue-rotate(202deg)

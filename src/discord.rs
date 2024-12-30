@@ -15,6 +15,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::Cookies;
+use tracing::error;
 
 static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
 
@@ -80,6 +81,7 @@ pub async fn finish(
     let user_id = match identify(token.access_token().secret()).await {
         Ok(user_id) => user_id,
         Err(err) => {
+            error!("Failed to identify user: {}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response();
         }
     };

@@ -13,7 +13,7 @@
 {% block title %}Ada's HTML Pastebin{% endblock %}
 
 {% block morehead %}
-<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css" />
+<link rel="stylesheet" href="//{{ static_domain }}/static/css/pastebin.css?t=20241225" />
 {% block captcha %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=helloCaptcha" defer></script>
 {% endblock %}
@@ -38,6 +38,10 @@
           <li class="nav-item"><a class="nav-link" href="/pastebin/about">About</a></li>
           <li class="nav-item"><a class="nav-link" href="https://github.com/adayoung/ada-pastebin/" target="_blank"
               rel="noopener">GitHub!</a>
+          </li>
+          <li id="api" class="nav-item" data-bs-toggle="popover" data-bs-placement="bottom"
+            data-bs-content="Paste straight from Mudlet!">
+            <a class="nav-link" href="/pastebin/api/v1/about">API</a>
           </li>
 
           {% if user_id.is_some() %}
@@ -123,6 +127,9 @@
 
               <input class="btn-check" id="html" name="format" type="radio" value="html">
               <label class="btn btn-outline-primary" for="html">Colourful HTML</label>
+
+              <input class="btn-check" id="log" name="format" type="radio" value="log">
+              <label class="btn btn-outline-primary" for="log">ANSI Log</label>
             </div>
           </div>
           <div class="me-3 pb-3">
@@ -186,6 +193,6 @@
 <script src="//{{ static_domain }}/static/js/common.js"></script>
 {% block moretail %}
 <input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
-<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241220"></script>
+<script src="//{{ static_domain }}/static/js/pastebin.js?t=20241227"></script>
 {% endblock %}
 {% endblock %}

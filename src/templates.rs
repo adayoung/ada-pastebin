@@ -35,7 +35,6 @@ pub struct PasteTemplate {
     pub csrf_token: String,
     pub user_id: Option<String>,
     pub paste: Paste,
-    pub views: u64,
     pub owned: bool,
 }
 
@@ -44,6 +43,14 @@ pub struct PasteTemplate {
 pub struct SearchTemplate {
     pub static_domain: String,
     pub user_id: Option<String>,
+}
+
+#[derive(Template)]
+#[template(path = "api-about.html.j2")]
+pub struct APIAboutTemplate {
+    pub static_domain: String,
+    pub user_id: Option<String>,
+    pub api_key: String,
 }
 
 #[derive(Template)]

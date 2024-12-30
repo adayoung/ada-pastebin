@@ -21,6 +21,10 @@ Building and running the thing has a few requirements:
  * Clone the repository with `git clone https://github.com/adayoung/ada-pastebin`
  * Copy config.toml.sample to a file called config.toml and edit for correct values
  * Export the DATABASE_URL in the form `DATABASE_URL=postgres://<username>:<password>@<host>/<db>`
- * Setup database with `cargo install sqlx-cli` and then `sqlx db create` followed with `sqlx migration run`
+ * Setup database with `cargo install sqlx-cli` and then `sqlx db create` followed with `sqlx migrate run`
  * Run it with `cargo run` (or build it with `cargo build --release`)
  * Point your browser to http://localhost:2024/
+
+## Icons
+
+We have pretty icons from [Feather!](https://feathericons.com/)

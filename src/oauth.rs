@@ -12,6 +12,7 @@ use oauth2::{
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
+use tracing::error;
 
 pub fn init_oauth_client(config: &config::OauthConfig, oauth_client: &OnceLock<BasicClient>) {
     let auth_url = AuthUrl::new(config.auth_url.clone()).expect("Invalid auth URL");
@@ -121,7 +122,10 @@ pub async fn finish(
         .await
     {
         Ok(token) => Ok(token),
-        Err(err) => Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err))),
+        Err(err) => {
+            error!("Failed to exchange code for token: {}", err);
+            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)))
+        },
     }
 }
 

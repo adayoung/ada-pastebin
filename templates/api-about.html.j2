@@ -1,0 +1,176 @@
+{% extends "pastebin.html.j2" %}
+
+{% block meta %}
+<meta name="author" content="Ada Young">
+<meta name="description" content="About Ada's HTML Pastebin's API!">
+<meta name="application-name" content="Ada's HTML Pastebin!">
+{% endblock %}
+
+{% block title %}API - Ada's HTML Pastebin{% endblock %}
+
+{% block captcha %}{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col">
+    <article class="text-light mb-3" id="content" role="main">
+      <h1 class="text-decoration-underline mb-5">API Access</h1>
+
+      <p>
+        Hi! We have an API for pasting too! You just need a client that's capable of making POST requests.
+      </p>
+
+      <p>
+        You will need an API key to use the API.
+        {% if api_key.is_empty() %}
+        You can get one by <a class="text-decoration-none" href="/pastebin/auth/discord/start">Signing in</a>!
+        {% else %}
+        Yay you already have one!<br>
+        Your API key is: <code>{{ api_key }}</code>
+        {% endif %}
+      </p>
+
+      <p>
+        The POST request should be made to this URL: <code>https://ada-young.com/pastebin/api/v1/create</code>
+      </p>
+
+      <p>The following parameters are available:</p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th class="text-nowrap">POST Parameter</th>
+            <th class="text-nowrap">Required/Optional</th>
+            <th>Description</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>content</td>
+            <td>Required</td>
+            <td>
+              This is the content of your paste. It's the same thing you'd paste in big white box on the site.
+            </td>
+          </tr>
+          <tr>
+            <td>format</td>
+            <td>Required</td>
+            <td>
+              This is the format of your paste. Supported values are <code>plain</code>, <code>html</code>, and
+              <code>log</code>.
+            </td>
+          </tr>
+          <tr>
+            <td>title</td>
+            <td>Optional</td>
+            <td>
+              This is the title of your paste. A title above 50 characters is silently truncated.
+            </td>
+          </tr>
+          <tr>
+            <td>tags</td>
+            <td>Optional</td>
+            <td>
+              Tags help classify your paste and allow people to search for them. You can supply multiple tags separated
+              by space here. Tags longer than 15 characters are silently truncated. Non-alphanumeric characters are
+              silently stripped. Duplicate tags are dropped. A maximum of 15 tags are accepted.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Here is how you create a new paste using <a class="text-decoration-none"
+          href="https://www.python.org/" target="_blank" rel="noopener">Python</a>:
+        <pre>
+          import requests
+
+          url = 'https://ada-young.com/pastebin/api/v1/create'
+          headers = {
+            {% if api_key.is_empty() -%}
+            "Authorization": "Bearer YOUR-API-KEY",
+            {%- else -%}
+            "Authorization": "Bearer {{ api_key }}",
+            {%- endif %}
+            "Content-Type": "application/json",
+          }
+
+          data = {
+            "content": "Hello, World!",
+            "format": "plain",
+            "title": "Hello, World!",
+            "tags": "hello world",
+          }
+
+          response = requests.post(url, headers=headers, json=data)
+          print(response.json())
+        </pre>
+      </p>
+      <p>
+        Here's a working example with <a class="text-decoration-none" href="https://www.mudlet.org/"
+          target="_blank" rel="noopener">Mudlet</a> using an alias and the
+          <a class="text-decoration-none"
+          href="https://wiki.mudlet.org/w/Manual:Lua_Functions#getClipboardText"
+          target="_blank" rel="noopener">getClipboardText</a> function:
+      </p>
+      <pre>
+        Alias pattern: ^apaste( .+)?$
+        Script:
+
+        cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Attempting to paste... please wait!")
+        toPastebin(matches[2] or '')
+        --------------------------------------------------------------------------------
+
+        Script name: Pastebin
+        Registered Event Handlers: sysPostHttpDone, sysPostHttpError
+        Script:
+
+        {% if api_key.is_empty() -%}
+        local api_key = "YOUR-API-KEY"
+        {%- else -%}
+        local api_key = "{{ api_key }}"
+        {%- endif %}
+
+        local url = "https://ada-young.com/pastebin/api/v1/create"
+
+        local headers = {
+          ["Authorization"] = "Bearer " ..api_key,
+          ["Content-Type"] = "application/json",
+        }
+
+        function toPastebin(title)
+          local data = {
+            ["content"] = getClipboardText(),
+            ["format"] = "html",
+            ["title"] = title,
+            -- Adjust default tags or parametrize them as needed
+            ["tags"] = f("{gmcp.Char.Status.name} {gmcp.Char.Status.class}"),
+          }
+
+          postHTTP(yajl.to_string(data), url, headers)
+        end
+
+        function Pastebin(event, one, two)
+          if event == "sysPostHttpDone" then
+            local response = yajl.to_value(two)
+            cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Success! " ..response.url)
+          elseif event == "sysPostHttpError" then
+            cecho("\n&lt;white&gt;[&lt;pink&gt;Ada&lt;white&gt;]: Oop, error! " ..one)
+          end
+        end
+      </pre>
+      <p>
+        Once you have setup the alias and the script, you can:
+      </p>
+      <ul>
+        <li>Select text as usual in your Mudlet main window</li>
+        <li>Right click and then click on Copy HTML menu item to copy</li>
+        <li>Type <code>apaste</code> in the Mudlet command line!</li>
+        <li>Or type <code>apaste Some title!</code> to paste with a title!</li>
+        <li>Enjoy! 🎉</li>
+      </ul>
+    </article>
+  </div>
+</div>
+{% endblock %}
+
+{% block moretail %}
+{% endblock %}

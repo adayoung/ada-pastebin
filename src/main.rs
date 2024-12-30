@@ -1,21 +1,21 @@
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
-    http::header::{CACHE_CONTROL, LOCATION},
-    http::{HeaderMap, StatusCode},
+    http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, LOCATION},
+    http::{HeaderMap, Method, StatusCode},
     middleware,
     response::{IntoResponse, Json, Redirect, Response},
     routing::{delete, get, post},
     Router,
 };
 use axum_csrf::{CsrfConfig, CsrfLayer, CsrfToken};
-use dashmap::{DashMap, DashSet};
 use serde::Serialize;
 use sqlx::postgres::PgPool;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tower_cookies::{CookieManagerLayer, Cookies, Key};
+use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing::{error, info};
 
@@ -60,10 +60,8 @@ async fn main() {
     let cookie_key = Key::from(config.cookie_key.as_bytes());
 
     let shared_state = Arc::new(runtime::AppState {
-        cloudflare_q: DashSet::new(),
         config,
         cookie_key,
-        counter: DashMap::new(),
         db,
     });
 
@@ -79,7 +77,7 @@ async fn main() {
         );
     });
 
-    tokio::spawn(api::reset_api_limiter());
+    tokio::spawn(api::reset_api());
 
     let shutdown_state = shared_state.clone();
     tokio::spawn(async move {
@@ -108,20 +106,33 @@ async fn main() {
         .with_salt(shared_state.config.cookie_salt.clone())
         .with_lifetime(time::Duration::seconds(0));
 
+    let cors = CorsLayer::new()
+        .allow_methods([Method::DELETE, Method::POST])
+        .allow_headers([AUTHORIZATION, CONTENT_TYPE])
+        .allow_origin([
+            // FIXME: this ought to be configurable
+            "https://play.achaea.com",
+            "https://play.aetolia.com",
+            "https://play.imperian.com",
+            "https://play.lusternia.com",
+            "https://play.starmourn.com",
+        ].map(|url| url.parse().expect("valid origin URL")));
+
     // build our application with routes
     let app = Router::new()
-        .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
-        .route("/pastebin/", get(pastebin).post(newpaste))
         .route("/pastebin/api/v1/create", post(api::create))
-        .route("/pastebin/api/v1/delete", delete(api::delete))
-        .route("/pastebin/:paste_id", get(getpaste).post(delpaste))
+        .route("/pastebin/api/v1/:paste_id", delete(api::delete))
+        .layer(cors)
+        .route("/pastebin/api/v1/about", get(api::about))
+        .route("/pastebin/", get(pastebin).post(newpaste))
+        .route("/pastebin/:paste_id", get(getpaste).delete(delpaste))
+        .route("/pastebin/auth/logout", post(logout))
+        .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
+        .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/auth/discord/start", get(discord::start))
         .route("/pastebin/auth/discord/finish", get(discord::finish))
         .route("/pastebin/auth/gdrive/start", get(gdrive::auth_start))
         .route("/pastebin/auth/gdrive/finish", get(gdrive::auth_finish))
-        .route("/pastebin/auth/logout", post(logout))
-        .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
-        .layer(CsrfLayer::new(csrf_config))
         .route("/pastebin/about", get(about))
         .route("/pastebin/search/", get(search))
         .route("/pastebinc/:paste_id/content", get(getdrivecontent))
@@ -132,6 +143,7 @@ async fn main() {
             utils::csp,
         ))
         .layer(TraceLayer::new_for_http())
+        .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/static/*path", get(static_files::handler))
         .route("/robots.txt", get(robots))
         .fallback(notfound)
@@ -239,7 +251,11 @@ async fn getpaste(
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
-            return err.into_response();
+            if err.0 == StatusCode::NOT_FOUND {
+                return utils::not_found_response();
+            } else {
+                return err.into_response();
+            }
         }
     };
 
@@ -247,14 +263,13 @@ async fn getpaste(
     if user_id.is_some() && user_id == paste.user_id {
         owned = true;
     }
-    let views = paste.get_views(&state);
+
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
         user_id,
         paste,
-        views,
         owned,
     };
 
@@ -331,6 +346,7 @@ async fn getdrivecontent(
         let response = match reqwest::get(gdrivedl_url).await {
             Ok(response) => response,
             Err(err) => {
+                error!("Failed to fetch Google Drive content: {}", err);
                 return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response()
             }
         };
@@ -395,6 +411,7 @@ async fn search(
     let pastes = match paste::Paste::search(&state.db, &tags, page).await {
         Ok(pastes) => pastes,
         Err(err) => {
+            error!("Failed to search for pastes: {}", err);
             return (StatusCode::INTERNAL_SERVER_ERROR, err).into_response();
         }
     };
@@ -433,7 +450,6 @@ async fn robots() -> impl IntoResponse {
 }
 
 // Fallback handler for 404 errors
-async fn notfound() -> impl IntoResponse {
-    let template = templates::NotFoundTemplate {};
-    (StatusCode::NOT_FOUND, template)
+async fn notfound() -> Response {
+    utils::not_found_response()
 }

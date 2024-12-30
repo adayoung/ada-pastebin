@@ -78,6 +78,9 @@ function fancyFormSubmit(token) {
     // Character counter
     document.getElementById("content").addEventListener("input", function () {
       document.getElementById("noc").textContent = this.value.length;
+      try {
+        api_popover.hide();
+      } catch (e) {};
     });
 
     // Fancy form submit
@@ -150,6 +153,12 @@ function fancyFormSubmit(token) {
     document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach((e) => {
       return new bootstrap.Tooltip(e);
     });
+
+    const api_popover = new bootstrap.Popover(document.getElementById('api'), {
+      trigger: 'manual',
+    });
+    api_popover.show();
+
     document.getElementById("content").focus();
   });
 })();

@@ -9,32 +9,45 @@ use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
+use num_traits::ToPrimitive;
 use rand::Rng;
+use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use sqlx::types::chrono::DateTime;
 use sqlx::Error::RowNotFound;
 use sqlx::{query, query_as, FromRow};
+use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::error;
 
+static COUNTER: OnceLock<HashMap<String, i64>> = OnceLock::new();
+fn counter() -> &'static HashMap<String, i64> {
+    COUNTER.get_or_init(HashMap::new)
+}
+
+/// This function can generate approximately 318 quadrillion unique paste IDs!
 fn generate_paste_id() -> String {
-    let all_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
+    let url_safe_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
     let alphanumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let mut rng = rand::thread_rng();
-    let mut id = String::new();
+    let mut paste_id = String::new();
     let mut index: usize;
 
-    for _ in 0..7 {
-        index = rng.gen_range(0..all_characters.len());
-        id.push(all_characters.chars().nth(index).unwrap());
+    // Ensure we don't end up with a weird character in the beginning
+    index = rng.gen_range(0..alphanumeric.len());
+    paste_id.push(alphanumeric.chars().nth(index).unwrap());
+
+    for _ in 0..6 {
+        index = rng.gen_range(0..url_safe_characters.len());
+        paste_id.push(url_safe_characters.chars().nth(index).unwrap());
     }
 
     // Ensure we don't end up with a weird character in the end
     index = rng.gen_range(0..alphanumeric.len());
-    id.push(all_characters.chars().nth(index).unwrap());
+    paste_id.push(alphanumeric.chars().nth(index).unwrap());
 
-    id
+    paste_id
 }
 
 pub fn fix_tags(tags: &Option<String>) -> Vec<String> {
@@ -65,7 +78,7 @@ pub async fn new_paste(
 ) -> Result<String, (StatusCode, String)> {
     #[cfg(not(debug_assertions))]
     {
-        if score < 0.7 {
+        if score < 0.5 {
             return Err((
                 StatusCode::FORBIDDEN,
                 "Oop, bot check failed! This site is for humans!".to_string(),
@@ -97,13 +110,15 @@ pub async fn new_paste(
 #[serde(from = "String")]
 #[serde(untagged)]
 pub enum PasteFormat {
-    Text(String),
+    Ansi(String),
     Html(String),
+    Text(String),
 }
 
 impl From<String> for PasteFormat {
     fn from(format: String) -> Self {
         match format.as_str() {
+            "log" => PasteFormat::Ansi(format),
             "html" => PasteFormat::Html(format),
             _ => PasteFormat::Text(format),
         }
@@ -156,6 +171,7 @@ impl Paste {
 
         // Limit title to 50 characters only
         let mut title = form.title.clone().unwrap_or_default();
+        title = title.trim().to_string(); // Remove leading/trailing whitespace
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
 
         let tags = fix_tags(&form.tags);
@@ -210,24 +226,28 @@ impl Paste {
         let tags: Option<&[String]> = self.tags.as_deref();
 
         let format = match self.format {
-            PasteFormat::Text(ref text) => text,
+            PasteFormat::Ansi(ref ansi) => ansi,
             PasteFormat::Html(ref html) => html,
+            PasteFormat::Text(ref text) => text,
         };
 
         // Determine file extension for S3
         let ext = match self.format {
+            PasteFormat::Ansi(_) => "log",
             PasteFormat::Text(_) => "txt",
             PasteFormat::Html(_) => "html",
         };
 
         // Determine content type for S3
         let content_type = match self.format {
+            PasteFormat::Ansi(_) => "text/plain".to_string(),
             PasteFormat::Text(_) => "text/plain".to_string(),
             PasteFormat::Html(_) => "text/html".to_string(),
         };
 
         // Crunch crunch!
-        let (s3_content, content_encoding) = match utils::compress(content, destination).await {
+        let mut s3_content: Vec<u8> = Vec::new();
+        let content_encoding = match utils::compress(content, &mut s3_content, destination).await {
             Ok(response) => response,
             Err(err) => return Err(format!("Failed to compress content: {}", err)),
         };
@@ -384,6 +404,7 @@ impl Paste {
         .fetch_one(&mut *transaction)
         .await
         .map_err(|err| {
+            error!("Failed to delete paste: {}", err);
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 format!("Failed to delete paste: {}", err),
@@ -394,7 +415,7 @@ impl Paste {
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
-                    state.cloudflare_q.insert(paste.s3_key);
+                    let _ = cloudflare::queue().insert(paste.s3_key);
                     cloudflare::purge_cache(state, false).await;
                     Ok(())
                 }
@@ -471,6 +492,7 @@ impl Paste {
 
     pub fn get_format(&self) -> String {
         match self.format {
+            PasteFormat::Ansi(_) => "log".to_string(),
             PasteFormat::Text(_) => "plain".to_string(),
             PasteFormat::Html(_) => "html".to_string(),
         }
@@ -480,12 +502,15 @@ impl Paste {
         self.tags.clone().unwrap_or_default()
     }
 
-    pub fn get_views(&self, state: &runtime::AppState) -> u64 {
-        *state
-            .counter
+    pub fn get_rcscore(&self) -> f64 {
+        self.rcscore.to_f64().unwrap_or(0.0)
+    }
+
+    pub fn get_views(&self) -> i64 {
+        *counter()
             .entry(self.paste_id.clone())
-            .and_modify(|counter| *counter += 1)
-            .or_insert_with(|| self.views as u64 + 1)
+            .and_modify(|c| *c += 1)
+            .or_insert_with(|| self.views + 1)
     }
 
     pub async fn save_views(&self, db: &PgPool, views: i64) {
@@ -517,14 +542,16 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        for entry in state.counter.iter() {
-            let paste_id = entry.key().clone();
-            let views = *entry.value();
+        let mut items: Vec<(String, i64)> = Vec::new();
+        counter().scan(|key, value| {
+            items.push((key.clone(), *value));
+        });
 
-            let paste_result = Paste::get(&state.db, &paste_id).await;
+        for (paste_id, views) in items.iter() {
+            let paste_result = Paste::get(&state.db, paste_id).await;
             match paste_result {
                 Ok(paste) => {
-                    paste.save_views(&state.db, views as i64).await;
+                    paste.save_views(&state.db, *views).await;
                 }
                 Err(err) => {
                     if err.0 != StatusCode::NOT_FOUND {
@@ -534,7 +561,7 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             }
         }
 
-        state.counter.clear();
+        counter().clear();
         if !do_sleep {
             break;
         }
