@@ -24,23 +24,28 @@ fn counter() -> &'static HashMap<String, i64> {
     COUNTER.get_or_init(HashMap::new)
 }
 
+/// This function can generate approximately 318 quadrillion unique paste IDs!
 fn generate_paste_id() -> String {
-    let all_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
+    let url_safe_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
     let alphanumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     let mut rng = rand::thread_rng();
-    let mut id = String::new();
+    let mut paste_id = String::new();
     let mut index: usize;
 
-    for _ in 0..7 {
-        index = rng.gen_range(0..all_characters.len());
-        id.push(all_characters.chars().nth(index).unwrap());
+    // Ensure we don't end up with a weird character in the beginning
+    index = rng.gen_range(0..alphanumeric.len());
+    paste_id.push(alphanumeric.chars().nth(index).unwrap());
+
+    for _ in 0..6 {
+        index = rng.gen_range(0..url_safe_characters.len());
+        paste_id.push(url_safe_characters.chars().nth(index).unwrap());
     }
 
     // Ensure we don't end up with a weird character in the end
     index = rng.gen_range(0..alphanumeric.len());
-    id.push(all_characters.chars().nth(index).unwrap());
+    paste_id.push(alphanumeric.chars().nth(index).unwrap());
 
-    id
+    paste_id
 }
 
 pub fn fix_tags(tags: &Option<String>) -> Vec<String> {
