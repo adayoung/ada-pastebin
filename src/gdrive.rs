@@ -167,7 +167,7 @@ async fn get_pastebin_folder(token: &str) -> Result<String, String> {
         if let Some(files) = json_response.get("files") {
             if let Some(first_file) = files.get(0) {
                 if let Some(id) = first_file.get("id") {
-                    return Ok(id.to_string());
+                    return Ok(id.to_string().replace("\"", ""));
                 }
             }
         }
@@ -227,9 +227,6 @@ async fn upload_to_gdrive(
     mime_type: &str,
 ) -> Result<(String, String), String> {
     let folder_id = get_pastebin_folder(token).await?;
-
-    // Remove quotes from folder ID because Google Drive API is stupid
-    let folder_id = folder_id.replace("\"", "");
 
     let url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
 
