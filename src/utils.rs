@@ -109,16 +109,16 @@ pub fn not_found_response() -> Response {
 
 // Compress content using brotli, returning the compressed content and the content encoding
 pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, Error> {
-    // Avoid compression if the destination is GDrive
-    if destination == &ValidDestination::GDrive {
-        return Ok("identity".to_string());
-    }
-
     s3_content.clear();
 
     // Avoid compression if the content is too small
     if content.len() < 1024 {
         s3_content.extend_from_slice(content.as_bytes());
+        return Ok("identity".to_string());
+    }
+
+    // Avoid compression if the destination is GDrive
+    if destination == &ValidDestination::GDrive {
         return Ok("identity".to_string());
     }
 

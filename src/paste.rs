@@ -324,7 +324,7 @@ impl Paste {
             &self.title,
             &self.tags,
             &format!("{}.{}", self.paste_id, ext),
-            destination != &ValidDestination::GDrive,
+            destination == &ValidDestination::GDrive,
         )
         .await
         {
