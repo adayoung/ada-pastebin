@@ -119,6 +119,7 @@ pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &Val
 
     // Avoid compression if the destination is GDrive
     if destination == &ValidDestination::GDrive {
+        s3_content.extend_from_slice(content.as_bytes());
         return Ok("identity".to_string());
     }
 
