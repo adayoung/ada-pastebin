@@ -279,7 +279,6 @@ impl Paste {
                     self.gdrivedl = Some(gdrivedl);
                 }
                 Err(err) => {
-                    error!("Failed to upload to Google Drive: {}", err); // FIXME: log error at source
                     return Err(format!("Failed to upload to Google Drive: {}", err));
                 }
             };

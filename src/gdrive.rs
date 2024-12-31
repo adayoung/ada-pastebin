@@ -125,7 +125,9 @@ pub async fn upload(
     tags: &Option<Vec<String>>,
     filename: &str,
 ) -> Result<(String, String), String> {
-    let (gdriveid, gdrivedl) = match upload_to_gdrive(token, filename, title, tags, content, content_type).await {
+    let (gdriveid, gdrivedl) = match upload_to_gdrive(
+        token, filename, title, tags, content, content_type
+    ).await {
         Ok(response) => response,
         Err(err) => {
             error!("Failed to upload to Google Drive: {}", err);
@@ -191,7 +193,7 @@ async fn make_pastebin_folder(token: &str) -> Result<String, String> {
     let response = get_drive_client()
         .post(url)
         .bearer_auth(token)
-        .json(&body) // Send the JSON body
+        .json(&body)
         .send()
         .await
         .map_err(|err| format!("Failed to make Pastebin folder: {}", err))?;
