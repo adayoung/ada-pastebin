@@ -204,8 +204,8 @@ impl Paste {
             tags: Some(unique_tags),
             format,
             date: now,
-            gdriveid: None, // TODO: Get Google Drive ID if available
-            gdrivedl: None, // TODO: Get Google Drive download URL if available
+            gdriveid: None,
+            gdrivedl: None,
             s3_key: "".to_string(),
             rcscore,
             views: 0,
