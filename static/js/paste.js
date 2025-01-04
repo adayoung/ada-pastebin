@@ -106,7 +106,7 @@ var term; // placed here for debugging
             lines = result.split(/\r\n|\n/g);
 
             let cols = 120; // this is a more sane default
-            let rows = 30;  // fixing this at 30 rows because I don't know how to size it correctly!
+            // let rows = 30;  // fixing this at 30 rows because I don't know how to size it correctly!
 
             let extraRows = 0;
             lines.forEach((line) => {
@@ -116,7 +116,7 @@ var term; // placed here for debugging
 
             term = new Terminal({
               cols: cols,
-              rows: rows,
+              rows: totalRows, // this leads to a bigger than needed terminal
               convertEol: true,
               disableStdin: true,
               screenReaderMode: true,
@@ -126,7 +126,7 @@ var term; // placed here for debugging
             term.onWriteParsed(() => term.scrollToTop());
             term.write(result);
 
-            term.resize(cols, Math.ceil(lines.length * 1.018)); // magic?
+            // term.resize(cols, totalRows);
 
             document.getElementById("loader").classList.add("d-none");
           } else if (document.getElementById("format").value == "html") {
