@@ -126,6 +126,8 @@ var term; // placed here for debugging
             term.onWriteParsed(() => term.scrollToTop());
             term.write(result);
 
+            term.resize(cols, Math.ceil(lines.length * 1.018)); // magic?
+
             document.getElementById("loader").classList.add("d-none");
           } else if (document.getElementById("format").value == "html") {
             document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
