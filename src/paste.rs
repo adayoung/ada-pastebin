@@ -259,7 +259,7 @@ impl Paste {
         }
 
         let content_length = s3_content.len() as i32;
-        if content_length > 2 * 1024 * 1024 {
+        if content_length > 2 * 1024 * 1024 && destination != &ValidDestination::GDrive {
             return Err(format!("Content length is too large: {}", content_length));
         }
 
