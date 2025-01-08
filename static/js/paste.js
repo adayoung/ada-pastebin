@@ -1,8 +1,6 @@
 "use strict";
 
-var lines; // placed here for debugging
-var term; // placed here for debugging
-// term.resize(cols, lineCount + extraRows);
+import { AnsiUp } from "/static/vendor/js/ansi_up.js.br";
 
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
@@ -99,34 +97,15 @@ var term; // placed here for debugging
         })
         .then((result) => {
           if (document.getElementById("format").value == "log") {
-            document
-              .getElementById("content-terminal")
-              .classList.remove("d-none");
+            let output = document.getElementById("content-terminal");
+            output.classList.remove("d-none");
 
-            lines = result.split(/\r\n|\n/g);
+            let lines = result.split(/\r\n|\n/g);
+            let txt = lines.join("<br>");
 
-            let cols = 120; // this is a more sane default
-            // let rows = 30;  // fixing this at 30 rows because I don't know how to size it correctly!
-
-            let extraRows = 0;
-            lines.forEach((line) => {
-              extraRows += Math.ceil(line.length / cols) - 1;
-            });
-            let totalRows = lines.length + extraRows;
-
-            term = new Terminal({
-              cols: cols,
-              rows: totalRows, // this leads to a bigger than needed terminal
-              convertEol: true,
-              disableStdin: true,
-              screenReaderMode: true,
-              scrollback: totalRows,
-            });
-            term.open(document.getElementById("content-terminal"));
-            term.onWriteParsed(() => term.scrollToTop());
-            term.write(result);
-
-            // term.resize(cols, totalRows);
+            let ansi_up = new AnsiUp();
+            ansi_up.escape_html = false;
+            output.innerHTML = ansi_up.ansi_to_html(txt);
 
             document.getElementById("loader").classList.add("d-none");
           } else if (document.getElementById("format").value == "html") {

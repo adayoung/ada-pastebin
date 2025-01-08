@@ -9,17 +9,6 @@
 
 {% block captcha %}{% endblock %}
 
-{% block evenmorehead %}
-{% if paste.get_format() == "log" %}
-<link rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.css"
-    integrity="sha512-AbNrj/oSHJaILgcdnkYm+DQ08SqVbZ8jlkJbFyyS1WDcAaXAcAfxJnCH69el7oVgTwVwyA5u5T+RdFyUykrV3Q=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-/>
-{% endif %}
-{% endblock %}
-
 {% block content %}
 <div class="row mb-3">
     <div class="col">
@@ -85,7 +74,7 @@
             </noscript>
             <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
             <pre class="d-none text-light" id="content-text" title="content-text"></pre>
-            <div class="d-none text-light" id="content-terminal" title="content-log"></div>
+            <pre class="d-none text-light" id="content-terminal" title="content-log"></pre>
         </article>
         <div class="d-none text-light" id="loader">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -99,13 +88,5 @@
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ content_url }}">
-{% if paste.get_format() == "log" %}
-<script
-    src="https://cdnjs.cloudflare.com/ajax/libs/xterm/5.5.0/xterm.js"
-    integrity="sha512-Gujw5GajF5is3nMoGv9X+tCMqePLL/60qvAv1LofUZTV9jK8ENbM9L+maGmOsNzuZaiuyc/fpph1KT9uR5w3CQ=="
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer">
-</script>
-{% endif %}
-<script src="//{{ static_domain }}/static/js/paste.js?t=20250104-a"></script>
+<script src="//{{ static_domain }}/static/js/paste.js?t=20250108" type="module"></script>
 {% endblock %}
