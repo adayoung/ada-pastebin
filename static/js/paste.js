@@ -1,7 +1,5 @@
 "use strict";
 
-import { AnsiUp } from "/static/vendor/js/ansi_up.js.br";
-
 (function () {
   window.addEventListener("DOMContentLoaded", () => {
     // Share button
@@ -95,7 +93,7 @@ import { AnsiUp } from "/static/vendor/js/ansi_up.js.br";
             throw "-flails-";
           }
         })
-        .then((result) => {
+        .then(async (result) => {
           if (document.getElementById("format").value == "log") {
             let output = document.getElementById("content-terminal");
             output.classList.remove("d-none");
@@ -103,6 +101,7 @@ import { AnsiUp } from "/static/vendor/js/ansi_up.js.br";
             let lines = result.split(/\r\n|\n/g);
             let txt = lines.join("<br>");
 
+            const { AnsiUp } = await import("/static/vendor/js/ansi_up.js.br");
             let ansi_up = new AnsiUp();
             ansi_up.escape_html = false;
             output.innerHTML = ansi_up.ansi_to_html(txt);
