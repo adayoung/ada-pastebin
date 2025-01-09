@@ -72,6 +72,15 @@
         } catch {}
       });
 
+    let escape_html = function (input) {
+      // I have no idea how this works -hides-
+      let theGreateEscaper = document.createElement("p");
+      theGreateEscaper.appendChild(document.createTextNode(input));
+      let output = theGreateEscaper.innerHTML;
+      output = output.replace(/\r\n/g, "\n");
+      return output;
+    };
+
     // Fancy content fetch
     let fetchContent = function (contentURL) {
       fetch(contentURL, {
@@ -94,10 +103,13 @@
           }
         })
         .then(async (result) => {
-          if (document.getElementById("format").value == "log") {
+          let format = document.getElementById("format").value;
+
+          if (format == "log") {
             let output = document.getElementById("content-terminal");
             output.classList.remove("d-none");
 
+            result = escape_html(result);
             let lines = result.split(/\r\n|\n/g);
             let txt = lines.join("<br>");
 
@@ -107,17 +119,14 @@
             output.innerHTML = ansi_up.ansi_to_html(txt);
 
             document.getElementById("loader").classList.add("d-none");
-          } else if (document.getElementById("format").value == "html") {
+          } else if (format == "html") {
             document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
             document.getElementById("content-frame").classList.remove("d-none");
             document.getElementById("loader").classList.add("d-none");
           } else {
             document.getElementById("content-text").classList.remove("d-none");
-            // I have no idea how this works -hides-
-            let theGreateEscaper = document.createElement("p");
-            theGreateEscaper.appendChild(document.createTextNode(result));
-            result = theGreateEscaper.innerHTML;
-            result = result.replace(/\r\n/g, "\n");
+
+            result = escape_html(result);
             document.getElementById("content-text").innerHTML = result.replace(
               /^(.*)$/gm,
               '<span class="line">$1</span>',
