@@ -32,7 +32,8 @@
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
 		2024, // Pastebin
-		9001 // Minio
+		9000, // MinIO API
+		9001 // MinIO Console
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
