@@ -16,7 +16,22 @@ Building and running the thing has a few requirements:
  * An account with [Cloudflare](https://www.cloudflare.com/) with an API Token scoped for `Zone.Cache Purge`, credentials in config.toml
  * An application registered with [Discord](https://discord.dev/), credentials in config.toml
 
-## How to use
+## How to use (with Codespaces)
+* Be signed into GitHub and click on the green `Code` button in the top right corner of the repository
+* Select Codespaces tab and click on the `Create codespace`
+* Let the thing wriggle and build for a bit! It takes a while for the first time
+* Click on forwarded ports and open the address for port 9001 in your browser
+* Input `minioadmin` for username and password in it!
+* Make a new bucket called `pastebin` in there and copy `confs/s3/bucket-policy.json` into its custom access policy
+* Make a new key in there and copy `confs/s3/key-policy.json` into its user policy, make sure to note down the access key and secret key!
+* Copy config.toml.sample to a file called config.toml and edit for correct values
+* The codespace domain for port 2024 goes in `static_domain` in config.toml
+* The codespace address+`pastebin/` for port 9000 goes in `s3_bucket_url` in config.toml
+* Open the terminal and type `make migrate`, `make check`, and then `make run`
+* Open the address for the forwarded port 2024 in your browser!
+* Tada!
+
+## How to use (Old school way)
 
  * Clone the repository with `git clone https://github.com/adayoung/ada-pastebin`
  * Copy config.toml.sample to a file called config.toml and edit for correct values
