@@ -18,6 +18,7 @@ aws_endpoint="<s3 endpoint!>"
 
 recaptcha_key = "<turnstile site key goes here!>"
 recaptcha_secret = "<turnstile secret key goes here!>"
+recaptcha_enabled = false # make this true if you're on the internet!
 
 cloudflare_api_key = "<cloudflare API key goes here!>"
 cloudflare_purge_url = "https://api.cloudflare.com/client/v4/zones/<put your zoneID here!>/purge_cache"

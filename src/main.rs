@@ -179,9 +179,16 @@ async fn pastebin(
     token: CsrfToken,
 ) -> impl IntoResponse {
     let (user_id, _) = utils::get_user_id(&state, &cookies);
+
+    let recaptcha_key = if state.config.recaptcha_enabled {
+        state.config.recaptcha_key.clone()
+    } else {
+        String::new()
+    };
+
     let template = templates::PastebinTemplate {
         static_domain: state.config.static_domain.clone(),
-        recaptcha_key: state.config.recaptcha_key.clone(),
+        recaptcha_key,
         csrf_token: token.authenticity_token().unwrap(),
         user_id,
     };

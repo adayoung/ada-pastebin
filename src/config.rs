@@ -21,6 +21,7 @@ pub struct AppConfig {
 
     pub recaptcha_key: String,
     pub recaptcha_secret: String,
+    pub recaptcha_enabled: bool,
 
     pub cloudflare_api_key: String,
     pub cloudflare_purge_url: String,
@@ -57,6 +58,7 @@ impl AppConfig {
 
         // config = config.set_default("recaptcha_key", "").unwrap();
         // config = config.set_default("recaptcha_secret", "").unwrap();
+        config = config.set_default("recaptcha_enabled", false).unwrap();
 
         // config = config.set_default("cloudflare_api_key", "").unwrap();
         // config = config.set_default("cloudflare_purge_url", "").unwrap();

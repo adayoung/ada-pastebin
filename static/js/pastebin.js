@@ -122,12 +122,16 @@ function fancyFormSubmit(token) {
 
       postInProgress = true;
       let rkey = document.getElementById("recaptcha-key").value;
-      turnstileWidgetId = turnstile.render("#cf-turnstile", {
-        sitekey: rkey,
-        action: "paste",
-        theme: "dark",
-        callback: fancyFormSubmit,
-      });
+      if (rkey.length > 0) {
+        turnstileWidgetId = turnstile.render("#cf-turnstile", {
+          sitekey: rkey,
+          action: "paste",
+          theme: "dark",
+          callback: fancyFormSubmit,
+        });
+      } else {
+        fancyFormSubmit("");
+      };
     });
 
     // Keyboard accelerators
