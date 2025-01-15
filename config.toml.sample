@@ -2,19 +2,19 @@ static_domain = "localhost:2024"
 bind_addr = "0.0.0.0"
 port = 2024
 
-cookie_key="<stick a 64 character long random gibberish here!>"
-cookie_salt="<stick a 16 character long random gibberish here!>"
+cookie_key="~*~*~*~<stick a 64 character long random gibberish here!>~*~*~*~"
+cookie_salt="RRygt3Z*vZ6a*KPQ" # change this to some other 16 characters!
 update_views_interval=300
 cookie_secure=false # this should be true if you're on the internet!
 
 s3_bucket_url="<put your s3 bucket URL here!>"
-s3_bucket="<go team bucket!>"
-s3_prefix="<here be prefix!>"
+s3_bucket="pastebin"
+s3_prefix="content/"
 
-aws_region="<region goes here!>"
+aws_region="global"
 aws_access_key_id="<s3 access key!>"
 aws_secret_access_key="<s3 secret key!>"
-aws_endpoint="<s3 endpoint!>"
+aws_endpoint="http://127.0.0.1:9000"
 
 recaptcha_key = "<turnstile site key goes here!>"
 recaptcha_secret = "<turnstile secret key goes here!>"
