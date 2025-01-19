@@ -45,3 +45,19 @@ prepare:
 .PHONY: migrate
 migrate:
 	cargo sqlx migrate run
+
+# Generate config.toml
+.PHONY: bucket
+bucket:
+	@echo "Configuring minio client..."
+	mc alias set --quiet mc "http://127.0.0.1:9000" "minioadmin" "minioadmin"
+	@echo "Creating bucket..."
+	mc mb --region global --ignore-existing --quiet mc/pastebin
+	@echo "Setting up access key..."
+	mc admin accesskey create \
+		--access-key '<s3 access key!>' \
+		--secret-key '<s3 secret key!>' \
+		--policy confs/s3/key-policy.json mc/
+	@echo "Configuring anonymous access..."
+	mc anonymous set download mc/pastebin
+	@echo "Configuration complete"

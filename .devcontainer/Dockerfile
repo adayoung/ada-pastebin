@@ -6,3 +6,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
    && apt-get -y install clang lld \
    && apt-get autoremove -y && apt-get clean -y \
    && cargo install --no-default-features -F postgres,rustls sqlx-cli
+
+RUN mkdir -p /root/.local/bin/ && curl -s -o /root/.local/bin/mc \
+   https://dl.min.io/client/mc/release/linux-amd64/mc \
+   && chmod 755 /root/.local/bin/mc

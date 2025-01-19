@@ -20,16 +20,12 @@ Building and running the thing has a few requirements:
 * Be signed into GitHub and click on the green `Code` button in the top right corner of the repository
 * Select Codespaces tab and click on the `Create codespace`
 * Let the thing wriggle and build for a bit! It takes a while for the first time
-* Click on forwarded ports and open the address for port 9001 in your browser
-* Input `minioadmin` for username and password in it!
-* Make a new bucket called `pastebin` in there and copy `confs/s3/bucket-policy.json` into its custom access policy
-* Make a new key in there and copy `confs/s3/key-policy.json` into its user policy, make sure to note down the access key and secret key!
-* Copy config.toml.sample to a file called config.toml and edit for correct values
+* Copy config.toml.sample to a file called config.toml
 * The codespace domain for port 2024 goes in `static_domain` in config.toml
 * The codespace address+`pastebin/` for port 9000 goes in `s3_bucket_url` in config.toml
-* Fill in the `aws_access_key_id` and `aws_secret_access_key` generated above
+* Open the terminal and type `make bucket` -- run this only once!
 * Open the terminal and type `make migrate`, `make check`, and then `make run`
-* Make the forward address for port 9000 public in the codespace!
+* Make the forward address for port 9000 public in the codespace
 * Open the address for the forwarded port 2024 in your browser!
 * Tada! You have a working pastebin!
 
