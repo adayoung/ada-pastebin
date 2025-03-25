@@ -7,7 +7,7 @@ use tracing::error;
 static S3_CLIENT: OnceLock<s3::Client> = OnceLock::new();
 
 pub async fn init_s3_client(state: &runtime::AppState) {
-    let _config = aws_config::defaults(aws_config::BehaviorVersion::v2024_03_28())
+    let _config = aws_config::defaults(aws_config::BehaviorVersion::v2025_01_17())
         .region(aws_config::Region::new(state.config.aws_region.clone()))
         .endpoint_url(&state.config.aws_endpoint)
         .credentials_provider(Credentials::new(
