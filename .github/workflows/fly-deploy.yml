@@ -1,6 +1,9 @@
 # See https://fly.io/docs/app-guides/continuous-deployment-with-github-actions/
 
 name: Fly Deploy
+permissions:
+  contents: read
+
 on:
   push:
     branches:
