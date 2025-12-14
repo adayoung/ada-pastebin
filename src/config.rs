@@ -62,7 +62,7 @@ impl AppConfig {
 
         // config = config.set_default("cloudflare_api_key", "").unwrap();
         // config = config.set_default("cloudflare_purge_url", "").unwrap();
-        config = config.set_default("cloudflare_enabled", true).unwrap();
+        config = config.set_default("cloudflare_enabled", false).unwrap();
 
         // config = config.set_default("cookie_key", "-meow-meow-").unwrap();
         // config = config.set_default("cookie_salt", "-bork-bork-").unwrap();
