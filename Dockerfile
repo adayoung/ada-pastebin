@@ -14,8 +14,11 @@ COPY . .
 RUN cargo build --release --bin ada-pastebin
 
 # We do not need the Rust toolchain to run the binary!
-FROM debian:bookworm-slim AS runtime
-RUN apt update && apt install -y ca-certificates
+FROM gcr.io/distroless/cc-debian13 AS runtime
+
 WORKDIR /app
-COPY --from=builder /app/target/release/ada-pastebin /usr/local/bin
-ENTRYPOINT ["/usr/local/bin/ada-pastebin"]
+COPY --from=builder /app/target/release/ada-pastebin ./
+
+EXPOSE 2024
+ENV APP_BIND_ADDR="0.0.0.0"
+ENTRYPOINT ["/app/ada-pastebin"]
