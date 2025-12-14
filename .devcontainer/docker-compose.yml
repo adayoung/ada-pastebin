@@ -18,7 +18,7 @@ services:
     image: docker.io/postgres:latest
     restart: unless-stopped
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql
     env_file:
       - .env
 

@@ -26,7 +26,10 @@
 			"extensions": [
 				"streetsidesoftware.code-spell-checker",
 				"GitHub.copilot",
-				"GitHub.copilot-chat"
+				"GitHub.copilot-chat",
+				"samuelcolvin.jinjahtml",
+				"rust-lang.rust-analyzer",
+				"vadimcn.vscode-lldb"
 			]
 		}
 	},
