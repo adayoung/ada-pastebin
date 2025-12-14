@@ -6,7 +6,7 @@ all: build
 .PHONY: build
 build:
 	@echo "Building the project"
-	cargo build --release
+	cargo build --release --target x86_64-unknown-linux-musl
 
 # Run the Rust project
 .PHONY: run
