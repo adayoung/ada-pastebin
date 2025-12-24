@@ -66,7 +66,7 @@ impl AppConfig {
 
         // config = config.set_default("cookie_key", "-meow-meow-").unwrap();
         // config = config.set_default("cookie_salt", "-bork-bork-").unwrap();
-        config = config.set_default("csrf_secure_cookie", true).unwrap();
+        config = config.set_default("cookie_secure", true).unwrap();
         config = config.set_default("update_views_interval", 300).unwrap();
 
         config = config
