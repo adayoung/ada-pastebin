@@ -25,15 +25,12 @@
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
                 </button>
 
-                <a href="
-                    {% if paste.gdrivedl.is_some() %}
-                    {{ paste.gdrivedl.as_ref().unwrap() }}
-                    {% else %}
-                    {{ content_url }}
-                    {% endif %}
-                " class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
+                {% if paste.gdrivedl.is_none() %}
+                <a href="{{ content_url }}"
+                    class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
+                {% endif %}
 
                 {% if owned %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
@@ -68,9 +65,12 @@
         <h1 class="visually-hidden">{{ paste.get_title() }}</h1>
         <article id="content" role="main">
             <noscript>
-                <p>Oop, you need Javascript to view this content. Alternatively, you can
-                <a class="text-decorations-none" href="{{ content_url }}">download this file</a>
+                <p>Oop, you need Javascript to view this content.
+                {% if paste.gdrivedl.is_none() %}
+                Alternatively, you can
+                <a class="text-decorations-none" href="{{ content_url }}" download>download this file</a>
                 and open it on your own computer.
+                {% endif %}
             </noscript>
             <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
             <pre class="d-none text-light" id="content-text" title="content-text"></pre>

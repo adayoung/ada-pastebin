@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
-    http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, LOCATION},
+    http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_TYPE, LOCATION},
     http::{HeaderMap, Method, StatusCode},
     middleware,
     response::{IntoResponse, Json, Redirect, Response},
@@ -377,6 +377,11 @@ async fn getdrivecontent(
 
         let mut headers = HeaderMap::new();
         headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
+
+        // Use upstream content_disposition header if present
+        if let Some(content_disposition) = response.headers().get(CONTENT_DISPOSITION) {
+            headers.insert(CONTENT_DISPOSITION, content_disposition.clone());
+        }
 
         let mut our_response = Response::new(Body::from_stream(response.bytes_stream()));
         *our_response.headers_mut() = headers;
