@@ -101,9 +101,8 @@
         You can delete a paste you made yourself too if you're seeing the delete button on it! The
         application remembers the last ten pastes made from your computer in the form of
         <a href="#PrivacyPolicy">cookies</a>.
-        <!-- We don't have this feature yet!
+
         <a href="#PasteToGoogleDrive">Google Drive hosted content</a> is kept for as long as possible.
-        -->
       </p>
 
       <h3>What happens if I sign in?</h3>
@@ -126,11 +125,12 @@
 
       <h3>How do I contact you?</h3>
       <p class="mb-3">
-        Umm.. I'm <a href="https://forums.achaea.com/profile/Ada" target="_blank" rel="noopener">Ada</a> on <a
-          href="http://www.achaea.com/" target="_blank" rel="noopener">Achaea</a>. I'm on <a
-          href="https://github.com/adayoung" target="_blank" rel="noopener">GitHub</a> and
-          <a href="https://discord.com/users/298724775449067521" target="_blank" rel="noopener">Discord</a>
-          too! I don't want to give out my email here, sorry!
+        You can reach out on the
+        <a href="https://github.com/adayoung/ada-pastebin/discussions" title="GitHub Discussions" target="_blank"
+          rel="noopener">
+          discussion forum on GitHub
+        </a>
+        or send an email to ada@ada-young.com
       </p>
       <hr>
       </div>
@@ -238,64 +238,144 @@
       </div>
 
       <div class="section">
-      <h1 id="PrivacyPolicy" class="text-decoration-underline mb-5">Cookie and Privacy Policy!</h1>
-      <p>This application uses cookies for the following purposes:</p>
-      <ol>
-        <li>Protection against Cross Site Request Forgery (Required).</li>
-        <li>Remembering your last ten pastes and giving you the delete button for them.</li>
-        <li>
-          If you elect to sign in, cookies are used to maintain sessions that grant a notion of 'ownership' to all
-          pastes made while signed in, further giving you the option to delete them regardless of the last-ten
-          facility. Signing in does not reveal your email to the application.
-        </li>
-        <li>
-          Temporary storage of Google Drive credentials, they're removed after one use. Pasting to Google Drive does
-          not require signing in and it does not reveal your email or uniquely identify you to the application.
-        </li>
-      </ol>
-      <p>We have the following third party cookies as well:</p>
-      <ol>
-        <li>
-          We use Cloudflare for security and performance and they may occasionally place a cookie to enable the various
-          anti-spam and protection measures they implement. They have a <a
-          href="https://developers.cloudflare.com/fundamentals/get-started/cloudflare-cookies/"
-          title="Cloudflare Cookie Policy" target="_blank" rel="noopener">Cookies Document</a> describing the cookies in
-          use and their purpose.
-        </li>
-      </ol>
-      <p><strong>Data Collection and Privacy</strong>:</p>
-      <ol>
-        <li>
-          The application does not collect any data other than the content you supply, including text or HTML content and
-          any metadata (such as title, tags, etc.) that you choose to share.
-        </li>
-        <li>
-          If you choose to sign in via Discord, the application saves a cryptographic hash of your Discord identity alongside
-          your content to establish ownership. This hash is irreversible and cannot be used to trace your original identity
-          on Discord.
-        </li>
-        <li>
-          When you save content to your Google Drive, the application requests the minimum OAuth scope necessary for this
-          operation. This process does not disclose your identity on Google or your email address to the application. The
-          OAuth scope requested allows access only to content created by this application and does not permit access to any
-          other files or data in your Google Drive.
-        </li>
-        <li>
-          The OAuth token used for saving data to Google Drive is transient: it is discarded after a single use and is
-          not stored by the application.
-        </li>
-        <li>
-          Content saved to your Google Drive is set to be
-          <a href="https://support.google.com/drive/answer/2494822#share_publicly" title="Share files from Google Drive"
-            target="_blank" rel="noopener">viewable by anyone with the link</a>.
-          The application retains this link solely for the purpose of rendering the content on request.
-        </li>
-        <li>
-          When you delete a paste that has been saved to Google Drive, the application removes only the metadata and reference
-          to the content. It does not have the ability to delete the actual content from your Google Drive, as it does not store
-          any information about your identity on Google.
-        </li>
-      </ol>
+        <h1 id="PrivacyPolicy" class="text-decoration-underline mb-5">Privacy & Cookie Policy!</h1>
+        <p>Last updated: 2025-12-26</p>
+        <p>
+          Thank you for using this application! I try to keep things simple, transparent, and respectful of your privacy.
+          This part explains what data is collected, how it's used, and how cookies and third-party services fit into
+          the picture.
+        </p>
+        <p>
+          If you have any questions about privacy, you can reach out on the
+          <a href="https://github.com/adayoung/ada-pastebin/discussions" title="GitHub Discussions" target="_blank"
+            rel="noopener">
+            discussion forum on GitHub
+          </a>
+          or send an email to ada@ada-young.com
+        </p>
+
+        <h2>What Data This Application Collects</h2>
+        <p>
+          This application only collects the information you choose to provide, such as:
+        </p>
+        <ul>
+          <li>The text, HTML, or other content you paste</li>
+          <li>Optional metadata you add (titles, tags, etc.)</li>
+          <li>A cryptographic hash of your Discord identity if you sign in</li>
+          <li>Temporary OAuth credentials when saving to Google Drive (explained below)</li>
+        </ul>
+        <p>
+          No other personal information is collected. No email addresses, profile details, or unique identifiers from
+          Google or Discord are stored.
+        </p>
+
+        <h2>How Sign-In Works</h2>
+
+        <h3>Discord Sign-In</h3>
+        <p>
+          If you choose to sign in with Discord:
+        </p>
+        <ul>
+          <li>A <strong>cryptographic hash</strong> of your Discord user ID is stored.</li>
+          <li>This hash is <strong>irreversible</strong> and cannot be used to recover your Discord identity.</li>
+          <li>The hash is used only to establish ownership of your pastes so you can delete them later.</li>
+        </ul>
+
+        <h3>Google Drive Integration</h3>
+        <p>
+          When you save content to Google Drive:
+        </p>
+        <ul>
+          <li>The application requests the <strong>minimum OAuth scope</strong> needed to create a file.</li>
+          <li>The application <strong>does not receive your email address</strong> or any personal profile information.</li>
+          <li>The OAuth token is <strong>single-use</strong> and discarded immediately after the upload.</li>
+          <li>The application cannot access or view any other files in your Google Drive.</li>
+        </ul>
+        <p>
+          Files created through the application are set to <strong>“anyone with the link can view.”</strong>
+          The application stores only the link so it can display your content when requested. The share link is never revealed
+          to users.
+        </p>
+        <p>
+          The application <strong>cannot delete</strong> files from your Google Drive because it does not store any information
+          that identifies your Google account.
+        </p>
+
+        <h2>Cookies</h2>
+        <p>
+          This application uses a few cookies to make things work smoothly:
+        </p>
+
+        <h3>Strictly Necessary Cookies</h3>
+        <ul>
+          <li><strong>CSRF protection</strong> (required for security)</li>
+          <li><strong>Session cookies</strong> for signed-in users</li>
+        </ul>
+
+        <h3>Functional Cookies</h3>
+        <ul>
+          <li>Remembering your last ten pastes</li>
+          <li>Allowing you to delete your own pastes</li>
+        </ul>
+
+        <h3>Third-Party Cookies</h3>
+        <ul>
+          <li>
+            <strong>Cloudflare</strong> may set cookies for security, performance, and anti-spam protection.
+            You can read about their cookies in <a
+              href="https://developers.cloudflare.com/fundamentals/get-started/cloudflare-cookies/"
+              title="Cloudflare Cookie Policy" target="_blank" rel="noopener">Cloudflare's documentation</a>.
+          </li>
+        </ul>
+        <p>
+          No advertising or tracking cookies are used.
+        </p>
+
+        <h2>How Your Data Is Used</h2>
+        <p>
+          Your data is used only to:
+        </p>
+        <ul>
+          <li>Display your pastes</li>
+          <li>Allow you to delete your pastes</li>
+          <li>Upload content to your Google Drive (if you choose)</li>
+          <li>Maintain your session when signed in</li>
+        </ul>
+        <p>
+          Your data is <strong>never sold</strong>, shared, or used for analytics or advertising.
+        </p>
+
+        <h2>Data Retention</h2>
+        <ul>
+          <li>
+            Pastes remain available<a href="#WhenDoesStuffExpire" class="text-decoration-none">*</a> until you delete them.
+            </li>
+          <li>Google Drive OAuth tokens are deleted immediately after use.</li>
+          <li>Discord identity hashes remain only as long as your associated content exists.</li>
+          <li>
+            No server logs containing personal data are retained beyond what is necessary for basic operation and security.
+            </li>
+        </ul>
+
+        <h2>How to Delete Your Data</h2>
+        <p>
+          You can delete your pastes at any time:
+        </p>
+        <ul>
+          <li>If you're signed in, you can delete any paste you created.</li>
+          <li>If you're not signed in, you can delete any of your last ten pastes using the delete button.</li>
+        </ul>
+        <p>
+          For Google Drive uploads, you can delete the file directly from your Google Drive.
+        </p>
+        <p>
+          If you need help removing anything else, contact me at ada@ada-young.com
+        </p>
+
+        <h2>Changes to This Policy</h2>
+        <p>
+          If anything changes, I'll update this page so you always know what's happening with your data.
+        </p>
       </div>
     </article>
   </div>
