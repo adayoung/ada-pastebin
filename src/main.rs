@@ -146,6 +146,7 @@ async fn main() {
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/static/*path", get(static_files::handler))
         .route("/robots.txt", get(robots))
+        .route("/health", get(health))
         .fallback(notfound)
         .with_state(shared_state);
 
@@ -459,6 +460,15 @@ async fn robots() -> impl IntoResponse {
         "User-agent: *\nDisallow: /*/content\nAllow: /",
     )
         .into_response()
+}
+
+async fn health() -> impl IntoResponse {
+    #[derive(Serialize)]
+    struct Health {
+        status: &'static str,
+    }
+
+    (StatusCode::OK, Json(Health { status: "UP" }))
 }
 
 // Fallback handler for 404 errors

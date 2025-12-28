@@ -20,8 +20,16 @@ primary_region = 'iad'
   auto_start_machines = true
   min_machines_running = 0
   processes = ['app']
-  [http_service.http_options.response]
-    pristine = true
+
+[http_service.http_options.response]
+  pristine = true
+
+[[http_service.checks]]
+  grace_period = "2s"
+  interval = "30s"
+  method = "GET"
+  timeout = "1s"
+  path = "/health"
 
 [[vm]]
   size = 'shared-cpu-1x'
