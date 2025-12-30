@@ -21,6 +21,14 @@ pub struct PasteForm {
 }
 
 #[derive(Deserialize)]
+pub struct PasteEditForm {
+    pub csrf_token: String,
+
+    pub title: Option<String>,
+    pub tags: Option<String>,
+}
+
+#[derive(Deserialize)]
 pub struct PasteDeleteForm {
     pub csrf_token: String,
 }

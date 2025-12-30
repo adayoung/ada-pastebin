@@ -125,7 +125,7 @@ async fn main() {
         .layer(cors)
         .route("/pastebin/api/v1/about", get(api::about))
         .route("/pastebin/", get(pastebin).post(newpaste))
-        .route("/pastebin/:paste_id", get(getpaste).delete(delpaste))
+        .route("/pastebin/:paste_id", get(getpaste).patch(editpaste).delete(delpaste))
         .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
@@ -254,8 +254,6 @@ async fn getpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
-    let (user_id, _) = utils::get_user_id(&state, &cookies);
-
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
@@ -267,6 +265,8 @@ async fn getpaste(
         }
     };
 
+    // Verify ownership
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
     let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
     if user_id.is_some() && user_id == paste.user_id {
         owned = true;
@@ -284,16 +284,13 @@ async fn getpaste(
     (StatusCode::OK, template).into_response()
 }
 
-async fn delpaste(
+async fn editpaste(
     State(state): State<Arc<runtime::AppState>>,
-    headers: HeaderMap,
     cookies: Cookies,
     token: CsrfToken,
     Path(paste_id): Path<String>,
-    Form(payload): Form<forms::PasteDeleteForm>,
+    Form(payload): Form<forms::PasteEditForm>,
 ) -> impl IntoResponse {
-    let (user_id, _) = utils::get_user_id(&state, &cookies);
-
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
         return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
@@ -306,6 +303,48 @@ async fn delpaste(
         }
     };
 
+    // Verify ownership
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
+    let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
+    if user_id.is_some() && user_id == paste.user_id {
+        owned = true;
+    }
+    if !owned {
+        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+    }
+
+    match paste.edit(&state, &payload.title, &payload.tags).await {
+        Ok(_) => {}
+        Err(err) => {
+            return err.into_response();
+        }
+    }
+
+    (StatusCode::OK, format!("OK: {}", paste_id)).into_response()
+}
+
+async fn delpaste(
+    State(state): State<Arc<runtime::AppState>>,
+    headers: HeaderMap,
+    cookies: Cookies,
+    token: CsrfToken,
+    Path(paste_id): Path<String>,
+    Form(payload): Form<forms::PasteDeleteForm>,
+) -> impl IntoResponse {
+    // Verify the CSRF token
+    if token.verify(&payload.csrf_token).is_err() {
+        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
+    }
+
+    let paste = match paste::Paste::get(&state.db, &paste_id).await {
+        Ok(paste) => paste,
+        Err(err) => {
+            return err.into_response();
+        }
+    };
+
+    // Verify ownership
+    let (user_id, _) = utils::get_user_id(&state, &cookies);
     let mut owned = session::is_paste_in_session(&state, &cookies, &paste_id);
     if user_id.is_some() && user_id == paste.user_id {
         owned = true;

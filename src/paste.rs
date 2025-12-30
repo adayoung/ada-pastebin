@@ -159,24 +159,16 @@ pub struct SearchPaste {
 }
 
 impl Paste {
-    fn new(
-        form: &forms::PasteForm,
-        score: f64,
-        user_id: Option<String>,
-        session_id: Option<String>,
-    ) -> Result<Self, (StatusCode, String)> {
-        if form.content.is_empty() {
-            return Err((StatusCode::BAD_REQUEST, "Content is empty!".to_string()));
-        }
-
+    fn clean_title_tags(title: &Option<String>, tags: &Option<String>) -> (String, Vec<String>) {
         // Limit title to 50 characters only
-        let mut title = form.title.clone().unwrap_or_default();
-        title = title.trim().to_string(); // Remove leading/trailing whitespace
+        let mut title = title.clone().unwrap_or_default();
+        title = title.trim().to_string();
+
+        // Remove leading/trailing whitespace
         title = title.chars().filter(|c| !c.is_control()).take(50).collect();
 
-        let tags = fix_tags(&form.tags);
-
         // We want unique tags with their order preserved so no HashSet
+        let tags = fix_tags(tags);
         let mut unique_tags: Vec<String> = vec![];
         for tag in tags.iter() {
             if !unique_tags.contains(tag) {
@@ -187,6 +179,20 @@ impl Paste {
                 break;
             }
         }
+        (title, unique_tags)
+    }
+
+    fn new(
+        form: &forms::PasteForm,
+        score: f64,
+        user_id: Option<String>,
+        session_id: Option<String>,
+    ) -> Result<Self, (StatusCode, String)> {
+        if form.content.is_empty() {
+            return Err((StatusCode::BAD_REQUEST, "Content is empty!".to_string()));
+        }
+
+        let (title, unique_tags) = Paste::clean_title_tags(&form.title, &form.tags);
 
         let format = form.format.clone();
         let rcscore = match BigDecimal::from_f64(score) {
@@ -374,6 +380,39 @@ impl Paste {
         };
 
         Ok(paste)
+    }
+
+    pub async fn edit(
+        &self,
+        state: &runtime::AppState,
+        title: &Option<String>,
+        tags: &Option<String>,
+    ) -> Result<(), (StatusCode, String)> {
+        let (title, unique_tags) = Paste::clean_title_tags(title, tags);
+
+        // Convert rust types to SQLx types
+        let tags: Option<&[String]> = Some(unique_tags.as_slice());
+
+        match query!(
+            r#"
+            UPDATE pastebin
+            SET title = $1, tags = $2
+            WHERE paste_id = $3
+            "#,
+            Some(title),
+            tags,
+            self.paste_id
+        )
+        .execute(&state.db)
+        .await
+        {
+            Ok(_) => {}
+            Err(err) => {
+                error!("Failed to update paste: {}", err);
+            }
+        }
+
+        Ok(())
     }
 
     pub async fn delete(&self, state: &runtime::AppState) -> Result<(), (StatusCode, String)> {
