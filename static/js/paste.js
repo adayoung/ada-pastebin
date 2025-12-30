@@ -19,7 +19,9 @@
     }
 
     // Edit form modal
-    const editFormModal = new bootstrap.Modal("#edit-paste-modal");
+    if (document.getElementById("edit-paste-modal") !== null) {
+      const editFormModal = new bootstrap.Modal("#edit-paste-modal");
+    }
 
     // Edit button
     let editBtn = document.getElementById("edit-btn");
