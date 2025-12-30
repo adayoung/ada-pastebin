@@ -320,7 +320,7 @@ async fn editpaste(
         }
     }
 
-    (StatusCode::OK, format!("OK: {}", paste_id)).into_response()
+    (StatusCode::OK, paste_id).into_response()
 }
 
 async fn delpaste(

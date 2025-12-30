@@ -51,13 +51,15 @@
         body: encodedData.toString(),
       }).then((response) => {
         if (response.ok) {
-          location.reload();
+          return response.text();
         } else {
           alert(
             `Oops, we couldn't edit this paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`,
           );
           throw "-flails-";
         }
+      }).then((result) => {
+        location.href = "/pastebin/" + result;
       }).catch((error) => {
         if (error != "-flails-") {
           alert(
