@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE pastebin\n            SET title = $1, tags = $2\n            WHERE paste_id = $3\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "VarcharArray",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "757e57fd416cc01007e7240e58aacf416c41d7323d382fd541bd7ce1bd17eb2a"
+}

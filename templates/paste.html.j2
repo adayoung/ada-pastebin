@@ -10,6 +10,40 @@
 {% block captcha %}{% endblock %}
 
 {% block content %}
+{% if owned %}
+<div class="modal fade" id="edit-paste-modal" tabindex="-1" aria-labelledby="edit-paste-modal-title" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="edit-paste-form" action="/pastebin/{{ paste.paste_id }}" method="patch">
+                <fieldset id="edit-paste-fields">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <div class="modal-header">
+                        <h1 class="modal-title fs-5" id="edit-paste-modal-title">Edit</h1>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Name / Title</label>
+                            <input type="text" class="form-control" id="title" name="title" maxlength="50"
+                                value="{{ paste.get_title() }}">
+                        </div>
+                        <div class="mb-3">
+                            <label for="tags" class="form-label">Tags</label>
+                            <input type="text" class="form-control tagbox" id="tags" name="tags" maxlength="250"
+                                value="{% for tag in paste.get_tags() %}{{ tag }} {% endfor %}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <input type="submit" class="btn btn-primary bg-primary" value="Save" />
+                    </div>
+                </fieldset>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <div class="row mb-3">
     <div class="col">
         <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="delete">
@@ -34,6 +68,9 @@
 
                 {% if owned %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button class="btn btn-outline-secondary btn-sm d-none c-paste-btn" id="edit-btn" title="Edit" type="submit">
+                    <img src="//{{ static_domain }}/static/img/edit.svg" height="16" width="16" alt="Edit" loading="lazy" />
+                </button>
                 <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit">
                     <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
                 </button>
@@ -88,5 +125,5 @@
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ content_url }}">
-<script src="//{{ static_domain }}/static/js/paste.js?t=20250109" type="module"></script>
+<script src="//{{ static_domain }}/static/js/paste.js?t=20251230" type="module"></script>
 {% endblock %}

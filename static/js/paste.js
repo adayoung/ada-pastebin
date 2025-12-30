@@ -18,6 +18,59 @@
       }
     }
 
+    // Edit form modal
+    const editFormModal = new bootstrap.Modal("#edit-paste-modal");
+
+    // Edit button
+    let editBtn = document.getElementById("edit-btn");
+    editBtn.classList.remove("d-none");
+    editBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+
+      editFormModal.show();
+    });
+
+    // Edit form
+    let editForm = document.getElementById("edit-paste-form");
+    let editFieldSet = document.getElementById("edit-paste-fields");
+    editForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      let data = new FormData(e.target);
+      editFieldSet.setAttribute("disabled", true);
+
+      // Encode the form data using URLSearchParams
+      const encodedData = new URLSearchParams(data);
+
+      fetch(e.target.action, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: encodedData.toString(),
+      }).then((response) => {
+        if (response.ok) {
+          return response.text();
+        } else {
+          alert(
+            `Oops, we couldn't edit this paste :( The following was encountered:\n\n${response.status}: ${response.statusText}`,
+          );
+          throw "-flails-";
+        }
+      }).then((result) => {
+        location.href = "/pastebin/" + result;
+      }).catch((error) => {
+        if (error != "-flails-") {
+          alert(
+            "Oops, we couldn't edit your paste :( Maybe the network pipes aren't up?",
+          );
+        }
+
+        editFieldSet.removeAttribute("disabled");
+      });
+    });
+
     // Fancy delete button
     document
       .getElementById("delete-form")
