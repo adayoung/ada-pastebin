@@ -18,6 +18,7 @@ FROM gcr.io/distroless/cc-debian13 AS runtime
 
 WORKDIR /app
 COPY --from=builder /app/target/release/ada-pastebin ./
+COPY config.toml ./
 
 EXPOSE 2024
 ENV APP_BIND_ADDR="0.0.0.0"
