@@ -28,19 +28,32 @@ fn api_limits() -> &'static HashMap<String, RateLimit> {
     API_LIMITS.get_or_init(HashMap::new)
 }
 
-fn rate_limited(user_id: &str) -> bool {
+async fn get_count(state: &Arc<runtime::AppState>, user_id: &str) -> u8 {
+    let count: i64 = match query_scalar!(
+        r#"SELECT COUNT(id) FROM pastebin WHERE user_id=$1 AND date::date = CURRENT_DATE"#,
+        user_id
+    ).fetch_one(&state.db).await {
+        Ok(cnt) => cnt.unwrap_or(0),
+        Err(err) => {
+            error!("Failed to fetch daily count for {}: {:?}", user_id, err);
+            0
+        },
+    };
+
+    count.clamp(0, u8::MAX as i64) as u8
+}
+
+async fn rate_limited(state: &Arc<runtime::AppState>, user_id: &str) -> bool {
     let limit = api_limits()
         .entry(user_id.to_string())
         .and_modify(|l| {
             l.daily_count += 1;
         })
         .or_insert(RateLimit {
-            // FIXME: initialize daily count from database instead with
-            // SELECT COUNT(id) FROM pastebin WHERE user_id=user_id AND date::date=CURRENT_DATE;
-            daily_count: 1,
+            daily_count: get_count(state, user_id).await,
         });
 
-    limit.daily_count > DAILY_LIMIT
+    limit.daily_count >= DAILY_LIMIT
 }
 
 #[derive(Serialize)]
@@ -92,7 +105,7 @@ async fn identify_user(
     };
 
     // Check if the user is rate limited
-    if rate_limited(&user_id) {
+    if rate_limited(state, &user_id).await {
         return Err((
             StatusCode::TOO_MANY_REQUESTS,
             "Eep slow down! Come back tomorrow!@".to_string(),
@@ -278,9 +291,10 @@ pub async fn about(
 
     let user_id = user_id.unwrap();
 
-    let api_key: String = match query_scalar(
+    let api_key: String = match query_scalar!(
         r#"SELECT token FROM api_tokens WHERE user_id=$1 LIMIT 1"#,
-    ).bind(&user_id).fetch_one(&state.db).await {
+        &user_id
+    ).fetch_one(&state.db).await {
         Ok(token) => token,
         Err(err) => match err {
             RowNotFound => {
