@@ -6,6 +6,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use brotli::CompressorWriter;
+use sha2::{Sha256, Digest};
 use std::io::{Error, Write};
 use std::sync::Arc;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
@@ -176,7 +177,14 @@ pub fn get_user_id(
     if let Some(session_id) = session_id {
         let session_id = session_id.value().to_string();
         let parts = session_id.split("-ADA-").collect::<Vec<&str>>();
-        let user_id = parts.first().map(|s| s.to_string());
+        let user_id = parts.first().map(|s| {
+            if !s.starts_with("sha256-") {
+                // Hash user_id from legacy API key
+                format!("sha256-{}", hex::encode(Sha256::digest(s)))
+            } else {
+                s.to_string()
+            }
+        });
         let timestamp = parts.last().map(|s| s.to_string());
         return (user_id, timestamp);
     }

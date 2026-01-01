@@ -11,6 +11,7 @@ use chrono::Utc;
 use oauth2::basic::BasicClient;
 use oauth2::TokenResponse;
 use serde::Deserialize;
+use sha2::{Sha256, Digest};
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
@@ -85,6 +86,9 @@ pub async fn finish(
             return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response();
         }
     };
+
+    // We want fixed length user_id so we'll use checksum instead
+    let user_id = format!("sha256-{}", hex::encode(Sha256::digest(user_id)));
 
     let now = Utc::now();
     let session_id = format!("{}-ADA-{}", user_id, now.timestamp());
