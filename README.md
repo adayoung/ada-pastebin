@@ -1,4 +1,6 @@
 [![Rust](https://github.com/adayoung/ada-pastebin/actions/workflows/rust.yml/badge.svg)](https://github.com/adayoung/ada-pastebin/actions/workflows/rust.yml)
+[![CodeQL](https://github.com/adayoung/ada-pastebin/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/adayoung/ada-pastebin/actions/workflows/github-code-scanning/codeql)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/adayoung/ada-pastebin)
 
 # ada-pastebin
 Hi! This is a little pastebin application with colourful HTML support!
