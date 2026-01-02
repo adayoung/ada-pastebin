@@ -1,0 +1,19 @@
+name: Backup
+permissions: {}
+
+on:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Recreate and run script
+        env:
+          SCRIPT_B64: ${{ secrets.BACKUP_SCRIPT }}
+        run: |
+          echo "$SCRIPT_B64" | base64 --decode > script.sh
+          chmod +x script.sh
+          ./script.sh
