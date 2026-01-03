@@ -39,11 +39,11 @@
 		2024, // Pastebin
 		9000, // MinIO API
 		9001 // MinIO Console
-	],
+	]
 
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "sqlx migrate run",
 
 	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
-	"remoteUser": "root"
+	// "remoteUser": "root"
 }
