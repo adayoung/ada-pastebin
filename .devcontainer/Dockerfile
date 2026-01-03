@@ -4,11 +4,8 @@ FROM mcr.microsoft.com/devcontainers/rust:1
 # RUSTFLAGS="-C link-arg=-fuse-ld=lld" or with Cargo's configuration file (i.e see .cargo/config.toml).
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
    && apt-get -y install clang lld musl-tools \
-   && apt-get autoremove -y && apt-get clean -y \
-   && cargo install --no-default-features -F postgres,rustls sqlx-cli
+   && apt-get autoremove -y && apt-get clean -y
 
-RUN mkdir -p /root/.local/bin/ && curl -s -o /root/.local/bin/mc \
+RUN curl -s -o /usr/local/bin/mc \
    https://dl.min.io/client/mc/release/linux-amd64/mc \
-   && chmod 755 /root/.local/bin/mc
-
-RUN rustup target add x86_64-unknown-linux-musl
+   && chmod 755 /usr/local/bin/mc

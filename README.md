@@ -25,8 +25,7 @@ Building and running the thing has a few requirements:
 * Copy config.toml.sample to a file called config.toml
 * The codespace domain for port 2024 goes in `static_domain` in config.toml
 * The codespace address+`pastebin/` for port 9000 goes in `s3_bucket_url` in config.toml
-* Open the terminal and type `make bucket` -- run this only once!
-* Open the terminal and type `make migrate`, `make check`, and then `make run`
+* Open the terminal and type `make check`, and then `make run`
 * Make the forward address for port 9000 public in the codespace
 * Open the address for the forwarded port 2024 in your browser!
 * Tada! You have a working pastebin!
