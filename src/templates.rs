@@ -4,6 +4,7 @@ use axum::{
     http::StatusCode,
     response::{Html, IntoResponse, Response}
 };
+use tracing::error;
 
 pub struct HtmlTemplate<T>(pub T);
 
@@ -14,11 +15,14 @@ where
     fn into_response(self) -> Response {
         match self.0.render() {
             Ok(html) => Html(html).into_response(),
-            Err(err) => (
+            Err(err) => {
+                error!("Failed to render template. Error: {err}");
+                (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to render template. Error: {err}"),
+                "We failed to render a template D:",
             )
-                .into_response(),
+                .into_response()
+            },
         }
     }
 }
