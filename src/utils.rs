@@ -2,7 +2,7 @@ use crate::{forms::ValidDestination, runtime};
 use crate::templates;
 use axum::{
     extract::{Request, State},
-    http::HeaderValue,
+    http::{HeaderValue, StatusCode},
     middleware::Next,
     response::{IntoResponse, Response},
 };
@@ -106,7 +106,7 @@ pub async fn csp(
 
 pub fn not_found_response() -> Response {
     let template = templates::NotFoundTemplate {};
-    templates::HtmlTemplate(template).into_response()
+    (StatusCode::NOT_FOUND, templates::HtmlTemplate(template)).into_response()
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
