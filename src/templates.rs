@@ -1,5 +1,31 @@
 use crate::paste::Paste;
-use askama_axum::Template;
+use askama::Template;
+use axum::{
+    http::StatusCode,
+    response::{Html, IntoResponse, Response}
+};
+use tracing::error;
+
+pub struct HtmlTemplate<T>(pub T);
+
+impl<T> IntoResponse for HtmlTemplate<T>
+where
+    T: Template,
+{
+    fn into_response(self) -> Response {
+        match self.0.render() {
+            Ok(html) => Html(html).into_response(),
+            Err(err) => {
+                error!("Failed to render template. Error: {err}");
+                (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "We failed to render a template D:",
+            )
+                .into_response()
+            },
+        }
+    }
+}
 
 #[derive(Template)]
 #[template(path = "404.html")]

@@ -57,7 +57,7 @@ pub async fn auth_finish(
         let template = templates::GDriveTemplate {
             result: format!("{} ☹ Try again!", error),
         };
-        return (StatusCode::FORBIDDEN, template).into_response();
+        return (StatusCode::FORBIDDEN, templates::HtmlTemplate(template)).into_response();
     }
 
     if !params.contains_key("code") || !params.contains_key("state") {
@@ -96,7 +96,7 @@ pub async fn auth_finish(
     let template = templates::GDriveTemplate {
         result: "success".to_string(),
     };
-    (StatusCode::OK, template).into_response()
+    templates::HtmlTemplate(template).into_response()
 }
 
 pub fn get_drive_token(state: &Arc<runtime::AppState>, cookies: &Cookies) -> String {
