@@ -1,10 +1,10 @@
 use crate::{forms::ValidDestination, runtime};
-use askama::Template;
+use crate::templates;
 use axum::{
     extract::{Request, State},
-    http::{HeaderValue, StatusCode},
+    http::HeaderValue,
     middleware::Next,
-    response::{IntoResponse, Html, Response},
+    response::{IntoResponse, Response},
 };
 use brotli::CompressorWriter;
 use sha2::{Sha256, Digest};
@@ -105,12 +105,8 @@ pub async fn csp(
 }
 
 pub fn not_found_response() -> Response {
-    let template = crate::templates::NotFoundTemplate {};
-    if let Ok(body) = template.render() {
-        (StatusCode::NOT_FOUND, Html(body)).into_response()
-    } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
-    }
+    let template = templates::NotFoundTemplate {};
+    templates::HtmlTemplate(template).into_response()
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
