@@ -196,7 +196,7 @@ async fn pastebin(
         user_id,
     };
 
-    templates::HtmlTemplate(template)
+    (token, templates::HtmlTemplate(template))
 
 }
 
