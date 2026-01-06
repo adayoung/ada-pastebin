@@ -1,11 +1,10 @@
-use askama::Template;
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
     http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_TYPE, LOCATION},
     http::{HeaderMap, Method, StatusCode},
     middleware,
-    response::{IntoResponse, Html, Json, Redirect, Response},
+    response::{IntoResponse, Json, Redirect, Response},
     routing::{delete, get, post},
     Router,
 };
@@ -173,11 +172,8 @@ async fn about(
         static_domain: state.config.static_domain.clone(),
         user_id,
     };
-    if let Ok(body) = template.render() {
-        (StatusCode::OK, Html(body)).into_response()
-    } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
-    }
+
+    templates::HtmlTemplate(template).into_response()
 }
 
 async fn pastebin(
@@ -200,11 +196,7 @@ async fn pastebin(
         user_id,
     };
 
-    if let Ok(body) = template.render() {
-        (token, Html(body)).into_response()
-    } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
-    }
+    templates::HtmlTemplate(template)
 
 }
 
@@ -292,11 +284,7 @@ async fn getpaste(
         owned,
     };
 
-    if let Ok(body) = template.render() {
-        (StatusCode::OK, Html(body)).into_response()
-    } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
-    }
+    templates::HtmlTemplate(template).into_response()
 }
 
 async fn editpaste(
@@ -472,11 +460,7 @@ async fn search(
             static_domain: state.config.static_domain.clone(),
             user_id,
         };
-        if let Ok(body) = template.render() {
-            return (StatusCode::OK, Html(body)).into_response();
-        } else {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response();
-        }
+        return templates::HtmlTemplate(template).into_response();
     }
 
     let pastes = match paste::Paste::search(&state.db, &tags, page).await {

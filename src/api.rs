@@ -3,11 +3,10 @@ use crate::paste;
 use crate::runtime;
 use crate::templates;
 use crate::utils;
-use askama::Template;
 use axum::extract::{Json as JsonForm, Path, State};
 use axum_extra::{TypedHeader, headers::Host};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Html, Json};
+use axum::response::{IntoResponse, Json};
 use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
@@ -289,11 +288,7 @@ pub async fn about(
             user_id,
             api_key: "".to_string(),
         };
-        if let Ok(body) = template.render() {
-            return (StatusCode::OK, Html(body)).into_response();
-        } else {
-            return (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response();
-        }
+        return templates::HtmlTemplate(template).into_response();
     }
 
     let user_id = user_id.unwrap();
@@ -343,9 +338,5 @@ pub async fn about(
         user_id: Some(user_id),
         api_key,
     };
-    if let Ok(body) = template.render() {
-        (StatusCode::OK, Html(body)).into_response()
-    } else {
-        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
-    }
+    templates::HtmlTemplate(template).into_response()
 }
