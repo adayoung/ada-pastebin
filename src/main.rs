@@ -122,11 +122,11 @@ async fn main() {
     // build our application with routes
     let app = Router::new()
         .route("/pastebin/api/v1/create", post(api::create))
-        .route("/pastebin/api/v1/:paste_id", delete(api::delete))
+        .route("/pastebin/api/v1/{paste_id}", delete(api::delete))
         .layer(cors)
         .route("/pastebin/api/v1/about", get(api::about))
         .route("/pastebin/", get(pastebin).post(newpaste))
-        .route("/pastebin/:paste_id", get(getpaste).patch(editpaste).delete(delpaste))
+        .route("/pastebin/{paste_id}", get(getpaste).patch(editpaste).delete(delpaste))
         .route("/pastebin/auth/logout", post(logout))
         .layer(DefaultBodyLimit::max(32 * 1024 * 1024)) // 32MB is a lot of log!
         .layer(CsrfLayer::new(csrf_config))
@@ -136,7 +136,7 @@ async fn main() {
         .route("/pastebin/auth/gdrive/finish", get(gdrive::auth_finish))
         .route("/pastebin/about", get(about))
         .route("/pastebin/search/", get(search))
-        .route("/pastebinc/:paste_id/content", get(getdrivecontent))
+        .route("/pastebinc/{paste_id}/content", get(getdrivecontent))
         .layer(CookieManagerLayer::new())
         .layer(middleware::from_fn(utils::extra_sugar))
         .layer(middleware::from_fn_with_state(
@@ -145,7 +145,7 @@ async fn main() {
         ))
         .layer(TraceLayer::new_for_http())
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
-        .route("/static/*path", get(static_files::handler))
+        .route("/static/{*path}", get(static_files::handler))
         .route("/robots.txt", get(robots))
         .route("/health", get(health))
         .fallback(notfound)
