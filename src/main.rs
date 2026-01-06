@@ -173,7 +173,7 @@ async fn about(
         user_id,
     };
 
-    templates::HtmlTemplate(template).into_response()
+    templates::HtmlTemplate(template)
 }
 
 async fn pastebin(

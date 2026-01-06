@@ -57,7 +57,7 @@ pub async fn auth_finish(
         let template = templates::GDriveTemplate {
             result: format!("{} ☹ Try again!", error),
         };
-        return templates::HtmlTemplate(template).into_response();
+        return (StatusCode::FORBIDDEN, templates::HtmlTemplate(template)).into_response();
     }
 
     if !params.contains_key("code") || !params.contains_key("state") {
