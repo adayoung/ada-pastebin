@@ -2,10 +2,11 @@ use crate::oauth;
 use crate::runtime;
 use crate::templates;
 use crate::utils;
+use askama::Template;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Html},
 };
 use oauth2::basic::BasicClient;
 use oauth2::TokenResponse;
@@ -57,7 +58,11 @@ pub async fn auth_finish(
         let template = templates::GDriveTemplate {
             result: format!("{} ☹ Try again!", error),
         };
-        return (StatusCode::FORBIDDEN, template).into_response();
+        if let Ok(body) = template.render() {
+            return (StatusCode::FORBIDDEN, Html(body)).into_response();
+        } else {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response();
+        }
     }
 
     if !params.contains_key("code") || !params.contains_key("state") {
@@ -96,7 +101,11 @@ pub async fn auth_finish(
     let template = templates::GDriveTemplate {
         result: "success".to_string(),
     };
-    (StatusCode::OK, template).into_response()
+    if let Ok(body) = template.render() {
+        (StatusCode::OK, Html(body)).into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
+    }
 }
 
 pub fn get_drive_token(state: &Arc<runtime::AppState>, cookies: &Cookies) -> String {

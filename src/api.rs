@@ -3,9 +3,11 @@ use crate::paste;
 use crate::runtime;
 use crate::templates;
 use crate::utils;
-use axum::extract::{Host, Json as JsonForm, Path, State};
+use askama::Template;
+use axum::extract::{Json as JsonForm, Path, State};
+use axum_extra::{TypedHeader, headers::Host};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Json};
+use axum::response::{IntoResponse, Html, Json};
 use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
@@ -142,7 +144,7 @@ async fn identify_user(
 pub async fn create(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    Host(hostname): Host,
+    TypedHeader(hostname): TypedHeader<Host>,
     JsonForm(payload): JsonForm<forms::PasteAPIForm>,
 ) -> impl IntoResponse {
     let (user_id, session_id) = match identify_user(&state, headers).await {
@@ -204,7 +206,7 @@ pub async fn create(
 pub async fn delete(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
-    Host(hostname): Host,
+    TypedHeader(hostname): TypedHeader<Host>,
     Path(paste_id): Path<String>,
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers).await {
@@ -282,11 +284,16 @@ pub async fn about(
     let (user_id, _) = utils::get_user_id(&state, &cookies);
 
     if user_id.is_none() {
-        return (StatusCode::OK, templates::APIAboutTemplate {
+        let template = templates::APIAboutTemplate {
             static_domain: state.config.static_domain.clone(),
             user_id,
             api_key: "".to_string(),
-        }).into_response();
+        };
+        if let Ok(body) = template.render() {
+            return (StatusCode::OK, Html(body)).into_response();
+        } else {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response();
+        }
     }
 
     let user_id = user_id.unwrap();
@@ -331,9 +338,14 @@ pub async fn about(
         },
     };
 
-    (StatusCode::OK, templates::APIAboutTemplate {
+    let template = templates::APIAboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id: Some(user_id),
         api_key,
-    }).into_response()
+    };
+    if let Ok(body) = template.render() {
+        (StatusCode::OK, Html(body)).into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
+    }
 }

@@ -1,10 +1,11 @@
+use askama::Template;
 use axum::{
     body::Body,
     extract::{DefaultBodyLimit, Form, Path, Query, State},
     http::header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_DISPOSITION, CONTENT_TYPE, LOCATION},
     http::{HeaderMap, Method, StatusCode},
     middleware,
-    response::{IntoResponse, Json, Redirect, Response},
+    response::{IntoResponse, Html, Json, Redirect, Response},
     routing::{delete, get, post},
     Router,
 };
@@ -166,11 +167,16 @@ async fn index(State(state): State<Arc<runtime::AppState>>) -> templates::BaseTe
 async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
-) -> templates::AboutTemplate {
+) -> impl IntoResponse {
     let (user_id, _) = utils::get_user_id(&state, &cookies);
-    templates::AboutTemplate {
+    let template = templates::AboutTemplate {
         static_domain: state.config.static_domain.clone(),
         user_id,
+    };
+    if let Ok(body) = template.render() {
+        (StatusCode::OK, Html(body)).into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
     }
 }
 
@@ -194,7 +200,12 @@ async fn pastebin(
         user_id,
     };
 
-    (token, template)
+    if let Ok(body) = template.render() {
+        (token, Html(body)).into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
+    }
+
 }
 
 async fn newpaste(
@@ -281,7 +292,11 @@ async fn getpaste(
         owned,
     };
 
-    (StatusCode::OK, template).into_response()
+    if let Ok(body) = template.render() {
+        (StatusCode::OK, Html(body)).into_response()
+    } else {
+        (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response()
+    }
 }
 
 async fn editpaste(
@@ -457,7 +472,11 @@ async fn search(
             static_domain: state.config.static_domain.clone(),
             user_id,
         };
-        return (StatusCode::OK, template).into_response();
+        if let Ok(body) = template.render() {
+            return (StatusCode::OK, Html(body)).into_response();
+        } else {
+            return (StatusCode::INTERNAL_SERVER_ERROR, "We couldn't render a template :(").into_response();
+        }
     }
 
     let pastes = match paste::Paste::search(&state.db, &tags, page).await {

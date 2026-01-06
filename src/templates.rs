@@ -1,5 +1,5 @@
 use crate::paste::Paste;
-use askama_axum::Template;
+use askama::Template;
 
 #[derive(Template)]
 #[template(path = "404.html")]

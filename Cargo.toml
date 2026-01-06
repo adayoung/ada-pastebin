@@ -10,13 +10,13 @@ strip = "symbols"  # Strip debug symbols
 codegen-units = 1
 
 [dependencies]
-askama = { version = "0.12.1", features = ["with-axum"] }
-askama_axum = "0.4.0"
+askama = { version = "0.15.1" }
 aws-config = { version = "1.8.12", features = ["behavior-version-latest"] }
 aws-credential-types = "1.2.11"
 aws-sdk-s3 = "1.119.0"
-axum = "0.7.9"
-axum_csrf = { version = "0.10.2", features = ["layer"] }
+axum = "0.8.8"
+axum-extra = { version = "0.12.5", features = ["typed-header"] }
+axum_csrf = { version = "0.11.0", features = ["layer"] }
 bigdecimal = "0.4.10"
 brotli = "7.0.0"
 chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
@@ -35,7 +35,7 @@ sha2 = "0.10.9"
 sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-rustls", "postgres", "bigdecimal", "chrono"] }
 time = "0.3.44"
 tokio = { version = "1.49.0", features = ["full"] }
-tower-cookies = { version = "0.10.0", features = ["private"] }
+tower-cookies = { version = "0.11.0", features = ["private"] }
 tower-http = { version = "0.6.8", features = ["cors", "trace"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
