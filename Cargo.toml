@@ -12,30 +12,30 @@ codegen-units = 1
 [dependencies]
 askama = { version = "0.12.1", features = ["with-axum"] }
 askama_axum = "0.4.0"
-aws-config = { version = "1.6.0", features = ["behavior-version-latest"] }
-aws-credential-types = "1.2.2"
-aws-sdk-s3 = "1.79.0"
+aws-config = { version = "1.8.12", features = ["behavior-version-latest"] }
+aws-credential-types = "1.2.11"
+aws-sdk-s3 = "1.119.0"
 axum = "0.7.9"
 axum_csrf = { version = "0.10.2", features = ["layer"] }
-bigdecimal = "0.4.7"
+bigdecimal = "0.4.10"
 brotli = "7.0.0"
-chrono = { version = "0.4.40", default-features = false, features = ["now", "serde"] }
+chrono = { version = "0.4.42", default-features = false, features = ["now", "serde"] }
 config = "0.14.1"
 hex = "0.4.3"
 mime_guess = "2.0.5"
 num-traits = "0.2.19"
 oauth2 = "4.4.2"
 rand = "0.8.5"
-reqwest = { version = "0.12.15", features = ["charset", "http2", "json", "rustls-tls", "stream"], default-features = false }
-rust-embed = "8.6.0"
-scc = "2.3.3"
-serde = { version = "1.0.219", features = ["derive"] }
-serde_json = "1.0.140"
+reqwest = { version = "0.12.28", features = ["charset", "http2", "json", "rustls-tls", "stream"], default-features = false }
+rust-embed = "8.9.0"
+scc = "2.4.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.148"
 sha2 = "0.10.9"
-sqlx = { version = "0.8.3", features = ["runtime-tokio", "tls-rustls", "postgres", "bigdecimal", "chrono"] }
-time = "0.3.41"
-tokio = { version = "1.44.2", features = ["full"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-rustls", "postgres", "bigdecimal", "chrono"] }
+time = "0.3.44"
+tokio = { version = "1.49.0", features = ["full"] }
 tower-cookies = { version = "0.10.0", features = ["private"] }
-tower-http = { version = "0.6.2", features = ["cors", "trace"] }
-tracing = "0.1.41"
-tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
+tower-http = { version = "0.6.8", features = ["cors", "trace"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter"] }
