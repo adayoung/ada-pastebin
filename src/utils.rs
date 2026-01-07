@@ -21,16 +21,14 @@ pub async fn extra_sugar(
     let headers = request.headers().clone();
 
     if let Some(hostname) = headers.get("Host") {
-        let hostname = hostname.to_str().unwrap_or_default().to_owned();
-        if !state.config.allowed_domains.contains(&hostname) {
-            return Err(
-                (StatusCode::FORBIDDEN, "Eep go awai!").into_response()
-            );
+        let hostname = hostname.to_str().map_err(|_| {
+            (StatusCode::FORBIDDEN, "Invalid Host header").into_response()
+        })?;
+        if !state.config.allowed_domains.iter().any(|d| d == hostname) {
+            return Err((StatusCode::FORBIDDEN, "Forbidden").into_response());
         }
     } else {
-        return Err(
-            (StatusCode::FORBIDDEN, "Nuuu!!").into_response()
-        );
+        return Err((StatusCode::FORBIDDEN, "Missing Host header").into_response());
     }
 
     let mut response = next.run(request).await;
