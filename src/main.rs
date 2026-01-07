@@ -289,7 +289,7 @@ async fn getpaste(
         owned,
     };
 
-    templates::HtmlTemplate(template).into_response()
+    (token, templates::HtmlTemplate(template)).into_response()
 }
 
 async fn editpaste(
