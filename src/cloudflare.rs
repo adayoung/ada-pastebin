@@ -22,17 +22,18 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
             return;
         }
 
-        info!("About to purge {} object(s) from Cloudflare cache..", queue().len());
-
         if !state.config.cloudflare_enabled {
-            queue().clear();
+            queue().clear_async().await;
             return;
         }
 
+        info!("About to purge {} object(s) from Cloudflare cache..", queue().len());
+
         let mut urls: Vec<String> = Vec::new();
-        queue().scan(|key| {
+        queue().iter_async(|key| {
             urls.push(format!("{}{}", state.config.s3_bucket_url, key.clone()));
-        });
+            true
+        }).await;
 
         let mut request_data = std::collections::HashMap::new();
         request_data.insert("files", urls);
@@ -63,7 +64,7 @@ pub async fn purge_cache(state: &runtime::AppState, now: bool) {
             Err(err) => error!("Failed to purge cloudflare cache: {}", err),
         };
 
-        queue().clear();
+        queue().clear_async().await;
     }
 }
 

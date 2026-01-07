@@ -453,7 +453,7 @@ impl Paste {
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
             Ok(()) => match transaction.commit().await {
                 Ok(_) => {
-                    let _ = cloudflare::queue().insert(paste.s3_key);
+                    let _ = cloudflare::queue().insert_async(paste.s3_key).await;
                     cloudflare::purge_cache(state, false).await;
                     Ok(())
                 }
@@ -544,9 +544,9 @@ impl Paste {
         self.rcscore.to_f64().unwrap_or(0.0)
     }
 
-    pub fn get_views(&self) -> i64 {
+    pub async fn get_views(&self) -> i64 {
         *counter()
-            .entry(self.paste_id.clone())
+            .entry_async(self.paste_id.clone()).await
             .and_modify(|c| *c += 1)
             .or_insert_with(|| self.views + 1)
     }
@@ -581,9 +581,10 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
         }
 
         let mut items: Vec<(String, i64)> = Vec::new();
-        counter().scan(|key, value| {
+        counter().iter_async(|key, value| {
             items.push((key.clone(), *value));
-        });
+            true
+        }).await;
 
         for (paste_id, views) in items.iter() {
             let paste_result = Paste::get(&state.db, paste_id).await;
@@ -599,7 +600,7 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             }
         }
 
-        counter().clear();
+        counter().clear_async().await;
         if !do_sleep {
             break;
         }

@@ -275,12 +275,14 @@ async fn getpaste(
         owned = true;
     }
 
+    let views = paste.get_views().await;
     let template = templates::PasteTemplate {
         static_domain: state.config.static_domain.clone(),
         content_url: paste.get_content_url(&state.config.s3_bucket_url),
         csrf_token: token.authenticity_token().unwrap(),
         user_id,
         paste,
+        views,
         owned,
     };
 

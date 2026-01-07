@@ -46,7 +46,7 @@ async fn get_count(state: &Arc<runtime::AppState>, user_id: &str) -> u8 {
 
 async fn rate_limited(state: &Arc<runtime::AppState>, user_id: &str) -> bool {
     let limit = api_limits()
-        .entry(user_id.to_string())
+        .entry_async(user_id.to_string()).await
         .and_modify(|l| {
             l.daily_count += 1;
         })
@@ -271,7 +271,7 @@ pub async fn reset_api() {
                 .to_std()
                 .unwrap_or(Duration::from_secs(3600));
             sleep(duration).await;
-            api_limits().clear();
+            api_limits().clear_async().await;
         }
     }
 }
