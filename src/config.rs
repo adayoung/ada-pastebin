@@ -15,6 +15,7 @@ pub struct OauthConfig {
 
 #[derive(Deserialize)]
 pub struct AppConfig {
+    pub allowed_domains: Vec<String>,
     pub static_domain: String,
     pub bind_addr: String,
     pub port: u16,
@@ -50,6 +51,9 @@ impl AppConfig {
         let mut config = Config::builder();
 
         // Set application defaults
+        config = config
+            .set_default("allowed_domains", vec!["localhost:2024"])
+            .unwrap();
         config = config
             .set_default("static_domain", "localhost:2024")
             .unwrap();

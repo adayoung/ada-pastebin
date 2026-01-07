@@ -137,7 +137,10 @@ async fn main() {
         .route("/pastebin/search/", get(search))
         .route("/pastebinc/{paste_id}/content", get(getdrivecontent))
         .layer(CookieManagerLayer::new())
-        .layer(middleware::from_fn(utils::extra_sugar))
+        .layer(middleware::from_fn_with_state(
+            shared_state.clone(),
+            utils::extra_sugar),
+        )
         .layer(middleware::from_fn_with_state(
             shared_state.clone(),
             utils::csp,

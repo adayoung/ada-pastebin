@@ -23,7 +23,7 @@ Building and running the thing has a few requirements:
 * Select Codespaces tab and click on the `Create codespace`
 * Let the thing wriggle and build for a bit! It takes a while for the first time
 * Copy config.toml.sample to a file called config.toml
-* The codespace domain for port 2024 goes in `static_domain` in config.toml
+* The codespace domain for port 2024 goes in `allowed_domains` and `static_domain` in config.toml
 * The codespace address+`pastebin/` for port 9000 goes in `s3_bucket_url` in config.toml
 * Open the terminal and type `make check`, and then `make run`
 * Make the forward address for port 9000 public in the codespace

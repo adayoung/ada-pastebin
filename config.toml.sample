@@ -1,3 +1,4 @@
+allowed_domains = ["localhost:2024"]
 static_domain = "localhost:2024"
 bind_addr = "0.0.0.0"
 port = 2024

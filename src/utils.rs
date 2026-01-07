@@ -13,8 +13,26 @@ use std::sync::Arc;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use tracing::error;
 
-pub async fn extra_sugar(request: Request, next: Next) -> Result<impl IntoResponse, Response> {
+pub async fn extra_sugar(
+    State(state): State<Arc<runtime::AppState>>,
+    request: Request,
+    next: Next
+) -> Result<impl IntoResponse, Response> {
     let headers = request.headers().clone();
+
+    if let Some(hostname) = headers.get("Host") {
+        let hostname = hostname.to_str().unwrap_or_default().to_owned();
+        if !state.config.allowed_domains.contains(&hostname) {
+            return Err(
+                (StatusCode::FORBIDDEN, "Eep go awai!").into_response()
+            );
+        }
+    } else {
+        return Err(
+            (StatusCode::FORBIDDEN, "Nuuu!!").into_response()
+        );
+    }
+
     let mut response = next.run(request).await;
 
     let mut sugar = vec![
