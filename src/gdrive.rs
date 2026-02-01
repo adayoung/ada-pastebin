@@ -7,8 +7,12 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use oauth2::basic::BasicClient;
-use oauth2::TokenResponse;
+use oauth2::{
+    basic::BasicClient,
+    EndpointSet,
+    EndpointNotSet,
+    TokenResponse
+};
 use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -17,14 +21,14 @@ use std::sync::OnceLock;
 use tower_cookies::Cookies;
 use tracing::error;
 
-static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
+static OAUTH_CLIENT: OnceLock<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>> = OnceLock::new();
 
 pub fn init_drive_client(state: &Arc<runtime::AppState>) {
     oauth::init_oauth_client(&state.config.drive_oauth, &OAUTH_CLIENT);
 }
 
-fn get_oauth_client() -> &'static BasicClient {
-    OAUTH_CLIENT.get().expect("Discord client not initialized")
+fn get_oauth_client() -> &'static BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet> {
+    OAUTH_CLIENT.get().expect("Google OAuth client not initialized")
 }
 
 static DRIVE_CLIENT: OnceLock<reqwest::Client> = OnceLock::new();

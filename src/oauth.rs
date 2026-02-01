@@ -3,29 +3,32 @@ use crate::runtime;
 use crate::utils;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
-use oauth2::reqwest::async_http_client;
 use oauth2::{
     basic::{BasicClient, BasicTokenType},
     AuthUrl, AuthorizationCode, ClientId, ClientSecret, CsrfToken, EmptyExtraTokenFields,
-    PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope, StandardTokenResponse, TokenUrl,
+    EndpointNotSet, EndpointSet, PkceCodeChallenge, PkceCodeVerifier, RedirectUrl, Scope,
+    StandardTokenResponse, TokenUrl,
 };
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
 use tracing::error;
 
-pub fn init_oauth_client(config: &config::OauthConfig, oauth_client: &OnceLock<BasicClient>) {
+pub fn init_oauth_client(
+    config: &config::OauthConfig,
+    oauth_client: &OnceLock<
+        BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
+    >,
+) {
     let auth_url = AuthUrl::new(config.auth_url.clone()).expect("Invalid auth URL");
     let token_url = TokenUrl::new(config.token_url.clone()).expect("Invalid token URL");
     let redirect_url = RedirectUrl::new(config.redirect_url.clone()).expect("Invalid redirect URL");
 
-    let client = BasicClient::new(
-        ClientId::new(config.client_id.clone()),
-        Some(ClientSecret::new(config.client_secret.clone())),
-        auth_url,
-        Some(token_url),
-    )
-    .set_redirect_uri(redirect_url);
+    let client = BasicClient::new(ClientId::new(config.client_id.clone()))
+        .set_client_secret(ClientSecret::new(config.client_secret.clone()))
+        .set_auth_uri(auth_url)
+        .set_token_uri(token_url)
+        .set_redirect_uri(redirect_url);
 
     oauth_client.set(client).unwrap();
 }
@@ -46,7 +49,7 @@ fn build_cookie<'a>(
 
 pub fn init(
     state: &Arc<runtime::AppState>,
-    client: &BasicClient,
+    client: &BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
     cookies: &Cookies,
     name: &str,
     scopes: &str,
@@ -82,7 +85,7 @@ pub fn init(
 
 pub async fn finish(
     state: &Arc<runtime::AppState>,
-    client: &BasicClient,
+    client: &BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>,
     cookies: &Cookies,
     name: &str,
     code: &str,
@@ -114,18 +117,24 @@ pub async fn finish(
     // Nom nom nom!
     clear_cookies(state, name, cookie_path, cookies);
 
+    let http_client = reqwest::ClientBuilder::new()
+        // Following redirects opens the client up to SSRF vulnerabilities.
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .expect("Client should build");
+
     // Let's exchange code for token!
     match client
         .exchange_code(AuthorizationCode::new(code.to_string()))
         .set_pkce_verifier(pkce_verifier)
-        .request_async(async_http_client)
+        .request_async(&http_client)
         .await
     {
         Ok(token) => Ok(token),
         Err(err) => {
             error!("Failed to exchange code for token: {}", err);
             Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)))
-        },
+        }
     }
 }
 

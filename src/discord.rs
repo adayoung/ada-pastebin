@@ -8,8 +8,12 @@ use axum::{
     response::IntoResponse,
 };
 use chrono::Utc;
-use oauth2::basic::BasicClient;
-use oauth2::TokenResponse;
+use oauth2::{
+    basic::BasicClient,
+    EndpointSet,
+    EndpointNotSet,
+    TokenResponse
+};
 use serde::Deserialize;
 use sha2::{Sha256, Digest};
 use std::collections::HashMap;
@@ -18,13 +22,13 @@ use std::sync::OnceLock;
 use tower_cookies::Cookies;
 use tracing::error;
 
-static OAUTH_CLIENT: OnceLock<BasicClient> = OnceLock::new();
+static OAUTH_CLIENT: OnceLock<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>> = OnceLock::new();
 
 pub fn init_discord_client(state: &Arc<runtime::AppState>) {
     oauth::init_oauth_client(&state.config.discord_oauth, &OAUTH_CLIENT);
 }
 
-fn get_oauth_client() -> &'static BasicClient {
+fn get_oauth_client() -> &'static BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet> {
     OAUTH_CLIENT.get().expect("Discord client not initialized")
 }
 
