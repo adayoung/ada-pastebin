@@ -11,13 +11,15 @@ COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 # Build application
 COPY . .
-RUN cargo build --release --bin ada-pastebin
+RUN apt-get update && apt-get install -y musl-tools \
+    && rustup target add x86_64-unknown-linux-musl \
+    && cargo build --release --target=x86_64-unknown-linux-musl --bin ada-pastebin
 
 # We do not need the Rust toolchain to run the binary!
-FROM gcr.io/distroless/cc-debian13 AS runtime
+FROM gcr.io/distroless/static-debian13 AS runtime
 
 WORKDIR /app
-COPY --from=builder /app/target/release/ada-pastebin ./
+COPY --from=builder /app/target/x86_64-unknown-linux-musl/release/ada-pastebin ./
 COPY config.toml ./
 
 EXPOSE 2024
