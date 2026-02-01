@@ -36,7 +36,7 @@ mod templates;
 mod utils;
 
 #[tokio::main]
-async fn main() {
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Set up the tracing subscriber
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -154,9 +154,11 @@ async fn main() {
         .with_state(shared_state);
 
     // run it
-    let listener = tokio::net::TcpListener::bind(bind_addr).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(bind_addr).await?;
     info!("listening on {}", listener.local_addr().unwrap());
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app).await?;
+
+    Ok(())
 }
 
 #[allow(dead_code)]
