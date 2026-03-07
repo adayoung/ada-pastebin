@@ -287,18 +287,13 @@ async fn editpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteEditForm>,
-) -> impl IntoResponse {
+) -> Result<Response, errors::PastebinError> {
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
-        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
+        return Err(errors::PastebinError::Auth("CSRF token is not valid!".to_string()));
     }
 
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     // Verify ownership
     let (user_id, _) = utils::get_user_id(&state, &cookies);
@@ -307,17 +302,12 @@ async fn editpaste(
         owned = true;
     }
     if !owned {
-        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+        return Err(errors::PastebinError::Auth("You don't own this paste!".to_string()));
     }
 
-    match paste.edit(&state, &payload.title, &payload.tags).await {
-        Ok(_) => {}
-        Err(err) => {
-            return err.into_response();
-        }
-    }
+    paste.edit(&state, &payload.title, &payload.tags).await?;
 
-    (StatusCode::OK, paste_id).into_response()
+    Ok((StatusCode::OK, paste_id).into_response())
 }
 
 async fn delpaste(
@@ -327,18 +317,13 @@ async fn delpaste(
     token: CsrfToken,
     Path(paste_id): Path<String>,
     Form(payload): Form<forms::PasteDeleteForm>,
-) -> impl IntoResponse {
+) -> Result<Response, errors::PastebinError> {
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
-        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
+        return Err(errors::PastebinError::Auth("CSRF token is not valid!".to_string()));
     }
 
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     // Verify ownership
     let (user_id, _) = utils::get_user_id(&state, &cookies);
@@ -347,21 +332,16 @@ async fn delpaste(
         owned = true;
     }
     if !owned {
-        return (StatusCode::FORBIDDEN, "You don't own this paste!").into_response();
+        return Err(errors::PastebinError::Auth("You don't own this paste!".to_string()));
     }
 
-    match paste.delete(&state).await {
-        Ok(_) => {}
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    paste.delete(&state).await?;
 
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
-        (StatusCode::OK, "/pastebin/").into_response()
+        Ok((StatusCode::OK, "/pastebin/").into_response())
     } else {
-        (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
+        Ok((StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response())
     }
 }
 
@@ -369,46 +349,34 @@ async fn getdrivecontent(
     State(state): State<Arc<runtime::AppState>>,
     headers: HeaderMap,
     Path(paste_id): Path<String>,
-) -> impl IntoResponse {
+) -> Result<Response, errors::PastebinError> {
     if !headers.contains_key("X-Requested-With") {
-        return (
+        return Ok((
             StatusCode::TEMPORARY_REDIRECT,
             [(LOCATION, format!("/pastebin/{}", paste_id))],
             "",
         )
-            .into_response();
+            .into_response());
     }
 
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     if let Some(gdrivedl_url) = &paste.gdrivedl {
         let response = match reqwest::get(gdrivedl_url).await {
             Ok(response) => response,
             Err(err) => {
-                error!("Failed to fetch Google Drive content: {}", err);
-                return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response()
+                return Err(errors::PastebinError::ExternalService(err.to_string()));
             }
         };
 
         if !response.status().is_success() {
             // Remove metadata if Google Drive returns a 404
             if response.status() == StatusCode::NOT_FOUND {
-                match paste.delete(&state).await {
-                    Ok(_) => {}
-                    Err(err) => {
-                        return err.into_response();
-                    }
-                };
+                paste.delete(&state).await?;
 
-                return (StatusCode::NOT_FOUND, "Paste not found").into_response();
+                return Err(errors::PastebinError::NotFound("Paste not found".to_string()));
             } else {
-                return (StatusCode::BAD_GATEWAY, "Google Drive wouldn't talk to us!")
-                    .into_response();
+                return Err(errors::PastebinError::ExternalService("Google Drive wouldn't talk to us!".to_string()));
             }
         }
 
@@ -422,9 +390,9 @@ async fn getdrivecontent(
 
         let mut our_response = Response::new(Body::from_stream(response.bytes_stream()));
         *our_response.headers_mut() = headers;
-        our_response
+        Ok(our_response)
     } else {
-        (StatusCode::NOT_FOUND, "Paste not found").into_response()
+        Err(errors::PastebinError::NotFound("Paste not found".to_string()))
     }
 }
 
