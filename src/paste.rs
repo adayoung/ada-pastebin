@@ -257,7 +257,7 @@ impl Paste {
         }
 
         if destination == &ValidDestination::GDrive {
-            match gdrive::upload(
+            let (gdriveid, gdrivedl) = gdrive::upload(
                 gdrive_token,
                 &s3_content,
                 &content_type,
@@ -265,16 +265,10 @@ impl Paste {
                 &self.tags,
                 &format!("{}.{}", self.paste_id, ext),
             )
-            .await
-            {
-                Ok((gdriveid, gdrivedl)) => {
-                    self.gdriveid = Some(gdriveid);
-                    self.gdrivedl = Some(gdrivedl);
-                }
-                Err(err) => {
-                    return Err(PastebinError::ExternalService(format!("Failed to upload to Google Drive: {}", err)));
-                }
-            };
+            .await?;
+
+            self.gdriveid = Some(gdriveid);
+            self.gdrivedl = Some(gdrivedl);
         }
 
         // Start a DB transaction

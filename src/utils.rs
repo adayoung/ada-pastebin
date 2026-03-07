@@ -1,5 +1,6 @@
 use crate::{forms::ValidDestination, runtime};
 use crate::templates;
+use crate::errors::PastebinError;
 use axum::{
     extract::{Request, State},
     http::{HeaderValue, StatusCode},
@@ -22,13 +23,13 @@ pub async fn extra_sugar(
 
     if let Some(hostname) = headers.get("Host") {
         let hostname = hostname.to_str().map_err(|_| {
-            (StatusCode::FORBIDDEN, "Invalid Host header").into_response()
+            PastebinError::Auth("Invalid Host header".to_string()).into_response()
         })?;
         if !state.config.allowed_domains.iter().any(|d| d == hostname) {
-            return Err((StatusCode::FORBIDDEN, "Forbidden").into_response());
+            return Err(PastebinError::Auth("Forbidden".to_string()).into_response());
         }
     } else {
-        return Err((StatusCode::FORBIDDEN, "Missing Host header").into_response());
+        return Err(PastebinError::Auth("Missing Host header".to_string()).into_response());
     }
 
     let mut response = next.run(request).await;

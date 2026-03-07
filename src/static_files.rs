@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     response::{IntoResponse, Response},
 };
+use crate::errors::PastebinError;
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
 use tracing::warn;
@@ -11,7 +12,7 @@ use tracing::warn;
 #[folder = "static/"]
 struct Asset;
 
-pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> Response {
+pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> Result<Response, PastebinError> {
     // Attempt to get the embedded file
     if let Some(file) = Asset::get(&path) {
         let mut is_brotli = false;
@@ -43,9 +44,9 @@ pub async fn handler(axum::extract::Path(path): axum::extract::Path<String>) -> 
         }
 
         // Return a response with the content type, content encoding, and the file contents
-        return (StatusCode::OK, headers, file.data).into_response();
+        return Ok((StatusCode::OK, headers, file.data).into_response());
     }
 
     // Return a 404 response if the file is not found
-    (StatusCode::NOT_FOUND, "").into_response()
+    Err(PastebinError::NotFound("static file not found".to_string()))
 }

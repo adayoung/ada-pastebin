@@ -1,11 +1,12 @@
 use crate::oauth;
 use crate::runtime;
 use crate::utils;
+use crate::errors::PastebinError;
 use axum::{
     extract::{Query, State},
     http::header::LOCATION,
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 use chrono::Utc;
 use oauth2::{
@@ -56,16 +57,16 @@ pub async fn finish(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
+) -> Result<Response, PastebinError> {
     if !params.contains_key("code") || !params.contains_key("state") {
-        return (StatusCode::BAD_REQUEST, "No code or state parameter found!").into_response();
+        return Err(PastebinError::Validation("No code or state parameter found!".to_string()));
     }
 
     let code = params.get("code").unwrap().to_string();
     let state_param = params.get("state").unwrap().to_string();
 
     let client = get_oauth_client();
-    let token = match oauth::finish(
+    let token = oauth::finish(
         &state,
         client,
         &cookies,
@@ -74,22 +75,13 @@ pub async fn finish(
         state_param.as_str(),
         "/pastebin/auth/discord/finish",
     )
-    .await
-    {
-        Ok(token) => token,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    .await?;
 
     // Identify who is logged in!
-    let user_id = match identify(token.access_token().secret()).await {
-        Ok(user_id) => user_id,
-        Err(err) => {
-            error!("Failed to identify user: {}", err);
-            return (StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)).into_response();
-        }
-    };
+    let user_id = identify(token.access_token().secret()).await.map_err(|err| {
+        error!("Failed to identify user: {}", err);
+        PastebinError::ExternalService(err.to_string())
+    })?;
 
     // We want fixed length user_id so we'll use checksum instead
     let user_id = format!("sha256-{}", hex::encode(Sha256::digest(user_id)));
@@ -100,22 +92,25 @@ pub async fn finish(
     let cookies = cookies.private(&state.cookie_key);
     cookies.add(utils::build_auth_cookie(&state, session_id));
 
-    (StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response()
+    Ok((StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response())
 }
+
 
 #[derive(Deserialize)]
 struct User {
     id: String,
 }
 
-pub async fn identify(token: &str) -> Result<String, reqwest::Error> {
+pub async fn identify(token: &str) -> Result<String, PastebinError> {
     let user = get_identity_client()
         .get("https://discord.com/api/users/@me")
         .header("Authorization", format!("Bearer {}", token))
         .send()
-        .await?
+        .await
+        .map_err(|e| PastebinError::ExternalService(e.to_string()))?
         .json::<User>()
-        .await?;
+        .await
+        .map_err(|e| PastebinError::ExternalService(e.to_string()))?;
 
     Ok(user.id)
 }

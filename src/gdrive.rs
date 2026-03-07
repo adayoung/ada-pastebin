@@ -2,10 +2,11 @@ use crate::oauth;
 use crate::runtime;
 use crate::templates;
 use crate::utils;
+use crate::errors::PastebinError;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
-    response::IntoResponse,
+    response::{IntoResponse, Response},
 };
 use oauth2::{
     basic::BasicClient,
@@ -19,7 +20,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::Cookies;
-use tracing::error;
 
 static OAUTH_CLIENT: OnceLock<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>> = OnceLock::new();
 
@@ -55,24 +55,24 @@ pub async fn auth_finish(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
+) -> Result<Response, PastebinError> {
     if params.contains_key("error") {
         let error = params.get("error").unwrap().to_string();
         let template = templates::GDriveTemplate {
             result: format!("{} ☹ Try again!", error),
         };
-        return (StatusCode::FORBIDDEN, templates::HtmlTemplate(template)).into_response();
+        return Ok((StatusCode::FORBIDDEN, templates::HtmlTemplate(template)).into_response());
     }
 
     if !params.contains_key("code") || !params.contains_key("state") {
-        return (StatusCode::BAD_REQUEST, "No code or state parameter found!").into_response();
+        return Err(PastebinError::Validation("No code or state parameter found!".to_string()));
     }
 
     let code = params.get("code").unwrap().to_string();
     let state_param = params.get("state").unwrap().to_string();
 
     let client = get_oauth_client();
-    let token = match oauth::finish(
+    let token = oauth::finish(
         &state,
         client,
         &cookies,
@@ -81,13 +81,7 @@ pub async fn auth_finish(
         state_param.as_str(),
         "/pastebin/auth/gdrive/finish",
     )
-    .await
-    {
-        Ok(token) => token,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    .await?;
 
     let cookies = cookies.private(&state.cookie_key);
     cookies.add(utils::build_app_cookie(
@@ -100,7 +94,7 @@ pub async fn auth_finish(
     let template = templates::GDriveTemplate {
         result: "success".to_string(),
     };
-    templates::HtmlTemplate(template).into_response()
+    Ok(templates::HtmlTemplate(template).into_response())
 }
 
 pub fn get_drive_token(state: &Arc<runtime::AppState>, cookies: &Cookies) -> String {
@@ -128,26 +122,19 @@ pub async fn upload(
     title: &Option<String>,
     tags: &Option<Vec<String>>,
     filename: &str,
-) -> Result<(String, String), String> {
-    let (gdriveid, gdrivedl) = match upload_to_gdrive(
+) -> Result<(String, String), PastebinError> {
+    // let upload helper log its own errors; propagate directly
+    let (gdriveid, gdrivedl) = upload_to_gdrive(
         token, filename, title, tags, content, content_type
-    ).await {
-        Ok(response) => response,
-        Err(err) => {
-            error!("Failed to upload to Google Drive: {}", err);
-            return Err(err)
-        },
-    };
+    ).await?;
 
-    if let Err(err) = update_permissions(token, &gdriveid).await {
-        error!("Failed to update permissions: {}", err);
-        return Err(err)
-    };
+    // permissions helper returns PastebinError already
+    update_permissions(token, &gdriveid).await?;
 
     Ok((gdriveid, gdrivedl))
 }
 
-async fn get_pastebin_folder(token: &str) -> Result<String, String> {
+async fn get_pastebin_folder(token: &str) -> Result<String, PastebinError> {
     let url = "https://www.googleapis.com/drive/v3/files";
     let params = [
         ("q", "properties has { key='name' and value='Pastebin!!' }"),
@@ -161,13 +148,13 @@ async fn get_pastebin_folder(token: &str) -> Result<String, String> {
         .query(&params)
         .send()
         .await
-        .map_err(|err| format!("Failed to get Pastebin folder: {}", err))?;
+        .map_err(|err| PastebinError::ExternalService(format!("Failed to get Pastebin folder: {}", err)))?;
 
     if response.status().is_success() {
         let json_response: Value = response
             .json()
             .await
-            .map_err(|err| format!("Failed to parse JSON: {}", err))?;
+            .map_err(|err| PastebinError::ExternalService(format!("Failed to parse JSON: {}", err)))?;
 
         // Extract the id from the response
         if let Some(files) = json_response.get("files") {
@@ -182,7 +169,7 @@ async fn get_pastebin_folder(token: &str) -> Result<String, String> {
     make_pastebin_folder(token).await
 }
 
-async fn make_pastebin_folder(token: &str) -> Result<String, String> {
+async fn make_pastebin_folder(token: &str) -> Result<String, PastebinError> {
     let url = "https://www.googleapis.com/drive/v3/files";
     let body = json!({
         "name": "Pastebin!!",
@@ -200,28 +187,30 @@ async fn make_pastebin_folder(token: &str) -> Result<String, String> {
         .json(&body)
         .send()
         .await
-        .map_err(|err| format!("Failed to make Pastebin folder: {}", err))?;
+        .map_err(|err| PastebinError::ExternalService(format!("Failed to make Pastebin folder: {}", err)))?;
 
     if response.status().is_success() {
         let json_response: Value = response
             .json()
             .await
-            .map_err(|err| format!("Failed to parse JSON: {}", err))?;
+            .map_err(|err| PastebinError::ExternalService(format!("Failed to parse JSON: {}", err)))?;
 
         // Extract the id from the response
         let id = json_response.get("id")
-            .ok_or("No ID found in the response.")?
+            .ok_or_else(|| PastebinError::ExternalService("No ID found in the response.".to_string()))?
             .as_str()
-            .ok_or("ID is not a string")?
+            .ok_or_else(|| PastebinError::ExternalService("ID is not a string".to_string()))?
             .replace("\"", "");
 
         return Ok(id.to_string());
     }
 
-    Err(response
-        .text()
-        .await
-        .unwrap_or_else(|_| "Unknown error".to_string()))
+    Err(PastebinError::ExternalService(
+        response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string()),
+    ))
 }
 
 async fn upload_to_gdrive(
@@ -231,7 +220,7 @@ async fn upload_to_gdrive(
     tags: &Option<Vec<String>>,
     content: &[u8],
     mime_type: &str,
-) -> Result<(String, String), String> {
+) -> Result<(String, String), PastebinError> {
     let folder_id = get_pastebin_folder(token).await?;
 
     let url = "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart";
@@ -283,37 +272,39 @@ async fn upload_to_gdrive(
         .body(body)
         .send()
         .await
-        .map_err(|err| format!("Failed to upload to Google Drive: {}", err))?;
+        .map_err(|err| PastebinError::ExternalService(format!("Failed to upload to Google Drive: {}", err)))?;
 
     if response.status().is_success() {
         let json_response: Value = response
             .json()
             .await
-            .map_err(|err| format!("Failed to parse JSON: {}", err))?;
+            .map_err(|err| PastebinError::ExternalService(format!("Failed to parse JSON: {}", err)))?;
 
         // Extract both id and webContentLink from the response
         let id = json_response.get("id")
-            .ok_or("No ID found in the response.")?
+            .ok_or_else(|| PastebinError::ExternalService("No ID found in the response.".to_string()))?
             .as_str()
-            .ok_or("ID is not a string")?
+            .ok_or_else(|| PastebinError::ExternalService("ID is not a string".to_string()))?
             .replace("\"", "");
 
         let web_content_link = json_response.get("webContentLink")
-            .ok_or("No webContentLink found in the response.")?
+            .ok_or_else(|| PastebinError::ExternalService("No webContentLink found in the response.".to_string()))?
             .as_str()
-            .ok_or("webContentLink is not a string")?
+            .ok_or_else(|| PastebinError::ExternalService("webContentLink is not a string".to_string()))?
             .replace("\"", "");
 
         return Ok((id.to_string(), web_content_link.to_string()));
     }
 
-    Err(response
-        .text()
-        .await
-        .unwrap_or_else(|_| "Unknown error".to_string()))
+    Err(PastebinError::ExternalService(
+        response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string()),
+    ))
 }
 
-async fn update_permissions(token: &str, file_id: &str) -> Result<(), String> {
+async fn update_permissions(token: &str, file_id: &str) -> Result<(), PastebinError> {
     let url = format!("https://www.googleapis.com/drive/v3/files/{}/permissions", file_id);
 
     let permissions = json!({
@@ -327,14 +318,16 @@ async fn update_permissions(token: &str, file_id: &str) -> Result<(), String> {
         .json(&permissions)
         .send()
         .await
-        .map_err(|err| format!("Failed to update permissions: {}", err))?;
+        .map_err(|err| PastebinError::ExternalService(format!("Failed to update permissions: {}", err)))?;
 
     if response.status().is_success() {
         return Ok(());
     }
 
-    Err(response
-        .text()
-        .await
-        .unwrap_or_else(|_| "Unknown error".to_string()))
+    Err(PastebinError::ExternalService(
+        response
+            .text()
+            .await
+            .unwrap_or_else(|_| "Unknown error".to_string()),
+    ))
 }
