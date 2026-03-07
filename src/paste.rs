@@ -1,11 +1,11 @@
 use crate::cloudflare;
+use crate::errors::PastebinError;
 use crate::forms;
 use crate::forms::ValidDestination;
 use crate::gdrive;
 use crate::runtime;
 use crate::s3;
 use crate::utils;
-use axum::http::StatusCode;
 use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
@@ -75,12 +75,11 @@ pub async fn new_paste(
     user_id: Option<String>,
     session_id: Option<String>,
     gdrive_token: &str,
-) -> Result<String, (StatusCode, String)> {
+) -> Result<String, PastebinError> {
     #[cfg(not(debug_assertions))]
     {
         if score < 0.5 {
-            return Err((
-                StatusCode::FORBIDDEN,
+            return Err(PastebinError::Authorization(
                 "Oop, bot check failed! This site is for humans!".to_string(),
             ));
         }
@@ -91,19 +90,7 @@ pub async fn new_paste(
         Err(err) => return Err(err),
     };
 
-    match paste.save(state, &form.content, &form.destination, gdrive_token).await {
-        Ok(paste_id) => Ok(paste_id),
-        Err(err) => {
-            error!("Failed to save paste: {}", err);
-
-            let mut status = StatusCode::INTERNAL_SERVER_ERROR;
-            if err.contains("too large") {
-                status = StatusCode::PAYLOAD_TOO_LARGE;
-            }
-
-            Err((status, "Meep! We couldn't save that paste :-(".to_string()))
-        }
-    }
+    paste.save(state, &form.content, &form.destination, gdrive_token).await
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -187,9 +174,9 @@ impl Paste {
         score: f64,
         user_id: Option<String>,
         session_id: Option<String>,
-    ) -> Result<Self, (StatusCode, String)> {
+    ) -> Result<Self, PastebinError> {
         if form.content.is_empty() {
-            return Err((StatusCode::BAD_REQUEST, "Content is empty!".to_string()));
+            return Err(PastebinError::Validation("Content is empty!".to_string()));
         }
 
         let (title, unique_tags) = Paste::clean_title_tags(&form.title, &form.tags);
@@ -197,7 +184,7 @@ impl Paste {
         let format = form.format.clone();
         let rcscore = match BigDecimal::from_f64(score) {
             Some(score) => score,
-            None => return Err((StatusCode::BAD_REQUEST, "Invalid score".to_string())),
+            None => return Err(PastebinError::Validation("Invalid score".to_string())),
         };
 
         let now = Utc::now();
@@ -227,7 +214,7 @@ impl Paste {
         content: &str,
         destination: &ValidDestination,
         gdrive_token: &str,
-    ) -> Result<String, String> {
+    ) -> Result<String, PastebinError> {
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = self.tags.as_deref();
 
@@ -255,7 +242,7 @@ impl Paste {
         let mut s3_content: Vec<u8> = Vec::new();
         let content_encoding = match utils::compress(content, &mut s3_content, destination).await {
             Ok(response) => response,
-            Err(err) => return Err(format!("Failed to compress content: {}", err)),
+            Err(err) => return Err(PastebinError::Storage(format!("Failed to compress content: {}", err))),
         };
 
         // Let's append .br to the S3 key if we're using brotli compression
@@ -266,7 +253,7 @@ impl Paste {
 
         let content_length = s3_content.len() as i32;
         if content_length > 2 * 1024 * 1024 && destination != &ValidDestination::GDrive {
-            return Err(format!("Content length is too large: {}", content_length));
+            return Err(PastebinError::TooBig(format!("Content length is too large: {}", content_length)));
         }
 
         if destination == &ValidDestination::GDrive {
@@ -285,7 +272,7 @@ impl Paste {
                     self.gdrivedl = Some(gdrivedl);
                 }
                 Err(err) => {
-                    return Err(format!("Failed to upload to Google Drive: {}", err));
+                    return Err(PastebinError::ExternalService(format!("Failed to upload to Google Drive: {}", err)));
                 }
             };
         }
@@ -293,7 +280,7 @@ impl Paste {
         // Start a DB transaction
         let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
-            Err(err) => return Err(format!("Failed to start transaction: {}", err)),
+            Err(err) => return Err(PastebinError::Database(err)),
         };
 
         query!(
@@ -318,7 +305,7 @@ impl Paste {
         )
         .execute(&mut *transaction)
         .await
-        .map_err(|err| format!("Failed to insert paste: {}", err))?;
+        .map_err(PastebinError::Database)?;
 
         match s3::upload(
             state,
@@ -336,21 +323,20 @@ impl Paste {
             Ok(_) => match transaction.commit().await {
                 Ok(_) => Ok(self.paste_id.clone()),
                 Err(err) => {
-                    error!("Failed to commit transaction: {}", err);
-                    Err(format!("Failed to commit transaction: {}", err))
+                    Err(PastebinError::Database(err))
                 }
             },
             Err(err) => match transaction.rollback().await {
-                Ok(_) => Err(format!("Failed to upload to S3: {}", err)),
+                Ok(_) => Err(PastebinError::ExternalService(format!("Failed to upload to S3: {}", err))),
                 Err(err) => {
                     error!("Failed to rollback transaction: {}", err);
-                    Err(format!("Failed to rollback transaction: {}", err))
+                    Err(PastebinError::Database(err))
                 }
             },
         }
     }
 
-    pub async fn get(db: &PgPool, paste_id: &str) -> Result<Paste, (StatusCode, String)> {
+    pub async fn get(db: &PgPool, paste_id: &str) -> Result<Paste, PastebinError> {
         let paste_id = paste_id.chars().take(8).collect::<String>();
         let paste = match query_as!(
             Paste,
@@ -367,12 +353,11 @@ impl Paste {
             Ok(paste) => paste,
             Err(err) => match err {
                 RowNotFound => {
-                    return Err((StatusCode::NOT_FOUND, "Paste not found".to_string()));
+                    return Err(PastebinError::NotFound("Paste not found".to_string()));
                 }
                 _ => {
                     error!("Failed to fetch paste: {}", err);
-                    return Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
+                    return Err(PastebinError::Internal(
                         format!("Failed to fetch paste: {}", err),
                     ));
                 }
@@ -387,13 +372,13 @@ impl Paste {
         state: &runtime::AppState,
         title: &Option<String>,
         tags: &Option<String>,
-    ) -> Result<(), (StatusCode, String)> {
+    ) -> Result<(), PastebinError> {
         let (title, unique_tags) = Paste::clean_title_tags(title, tags);
 
         // Convert rust types to SQLx types
         let tags: Option<&[String]> = Some(unique_tags.as_slice());
 
-        match query!(
+        query!(
             r#"
             UPDATE pastebin
             SET title = $1, tags = $2
@@ -404,26 +389,16 @@ impl Paste {
             self.paste_id
         )
         .execute(&state.db)
-        .await
-        {
-            Ok(_) => {}
-            Err(err) => {
-                error!("Failed to update paste: {}", err);
-            }
-        }
+        .await?;
 
         Ok(())
     }
 
-    pub async fn delete(&self, state: &runtime::AppState) -> Result<(), (StatusCode, String)> {
+    pub async fn delete(&self, state: &runtime::AppState) -> Result<(), PastebinError> {
         let mut transaction = match state.db.begin().await {
             Ok(transaction) => transaction,
             Err(err) => {
-                error!("Failed to start transaction: {}", err);
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to start transaction: {}", err),
-                ));
+                return Err(PastebinError::Database(err));
             }
         };
 
@@ -442,11 +417,7 @@ impl Paste {
         .fetch_one(&mut *transaction)
         .await
         .map_err(|err| {
-            error!("Failed to delete paste: {}", err);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                format!("Failed to delete paste: {}", err),
-            )
+            PastebinError::Database(err)
         })?;
 
         let fake_s3_delete = paste.gdrivedl.is_some();
@@ -458,24 +429,15 @@ impl Paste {
                     Ok(())
                 }
                 Err(err) => {
-                    error!("Failed to commit transaction: {}", err);
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to commit transaction: {}", err),
-                    ))
+                    Err(PastebinError::Database(err))
                 }
             },
             Err(err) => match transaction.rollback().await {
-                Ok(_) => Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
+                Ok(_) => Err(PastebinError::ExternalService(
                     format!("Failed to delete from S3: {}", err),
                 )),
                 Err(err) => {
-                    error!("Failed to commit transaction: {}", err);
-                    Err((
-                        StatusCode::INTERNAL_SERVER_ERROR,
-                        format!("Failed to commit transaction: {}", err),
-                    ))
+                    Err(PastebinError::Database(err))
                 }
             },
         }
@@ -574,7 +536,7 @@ impl Paste {
     }
 }
 
-pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
+pub async fn update_views(state: &runtime::AppState, do_sleep: bool) -> Result<(), PastebinError> {
     loop {
         if do_sleep {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
@@ -587,17 +549,8 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
         }).await;
 
         for (paste_id, views) in items.iter() {
-            let paste_result = Paste::get(&state.db, paste_id).await;
-            match paste_result {
-                Ok(paste) => {
-                    paste.save_views(&state.db, *views).await;
-                }
-                Err(err) => {
-                    if err.0 != StatusCode::NOT_FOUND {
-                        error!("Failed to fetch paste: {:?}", err);
-                    }
-                }
-            }
+            let paste = Paste::get(&state.db, paste_id).await?;
+            paste.save_views(&state.db, *views).await;
         }
 
         counter().clear_async().await;
@@ -605,4 +558,6 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             break;
         }
     }
+
+    Ok(())
 }

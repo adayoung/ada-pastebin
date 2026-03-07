@@ -23,6 +23,7 @@ mod api;
 mod cloudflare;
 mod config;
 mod discord;
+mod errors;
 mod forms;
 mod gdrive;
 mod oauth;
@@ -36,7 +37,7 @@ mod templates;
 mod utils;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), anyhow::Error> {
     // Set up the tracing subscriber
     tracing_subscriber::fmt()
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
@@ -71,7 +72,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
-        tokio::join!(
+        _ = tokio::join!(
             paste::update_views(&timer_state, true),
             cloudflare::cleanup_cache(&timer_state, true, true),
         );
@@ -83,7 +84,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
         info!("Shutting down...");
-        tokio::join!(
+        _ = tokio::join!(
             paste::update_views(&shutdown_state, false),
             cloudflare::cleanup_cache(&shutdown_state, false, true),
         );
@@ -261,17 +262,8 @@ async fn getpaste(
     cookies: Cookies,
     token: CsrfToken,
     Path(paste_id): Path<String>,
-) -> impl IntoResponse {
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            if err.0 == StatusCode::NOT_FOUND {
-                return utils::not_found_response();
-            } else {
-                return err.into_response();
-            }
-        }
-    };
+) -> Result<Response, errors::PastebinError> {
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     // Verify ownership
     let (user_id, _) = utils::get_user_id(&state, &cookies);
@@ -291,7 +283,7 @@ async fn getpaste(
         owned,
     };
 
-    (token, templates::HtmlTemplate(template)).into_response()
+    Ok((token, templates::HtmlTemplate(template)).into_response())
 }
 
 async fn editpaste(

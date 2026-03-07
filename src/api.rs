@@ -1,3 +1,4 @@
+use crate::errors::PastebinError;
 use crate::forms;
 use crate::paste;
 use crate::runtime;
@@ -73,25 +74,23 @@ struct APIError {
 async fn identify_user(
     state: &Arc<runtime::AppState>,
     headers: HeaderMap,
-) -> Result<(String, String), (StatusCode, String)> {
+) -> Result<(String, String), PastebinError> {
     let token = headers.get("Authorization");
     if token.is_none() {
-        return Err((StatusCode::UNAUTHORIZED, "Missing API token!".to_string()));
+        return Err(PastebinError::Auth("Missing API token!".to_string()));
     }
 
     let token = match token.unwrap().to_str() {
         Ok(t) => match t.split_whitespace().last() {
             Some(token) => token.to_string(),
             None => {
-                return Err((
-                    StatusCode::BAD_REQUEST,
+                return Err(PastebinError::Validation(
                     "Invalid token format! Expected: Bearer <token>".to_string(),
                 ))
             }
         },
         Err(_) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
+            return Err(PastebinError::Validation(
                 "Invalid token encoding!".to_string(),
             ))
         }
@@ -102,13 +101,12 @@ async fn identify_user(
     let (user_id, session_id) = utils::get_user_id(state, &cookies);
     let (user_id, session_id) = match (user_id, session_id) {
         (Some(uid), Some(sid)) => (uid, sid),
-        _ => return Err((StatusCode::UNAUTHORIZED, "Invalid API token!".to_string())),
+        _ => return Err(PastebinError::Auth("Invalid API token!".to_string())),
     };
 
     // Check if the user is rate limited
     if rate_limited(state, &user_id).await {
-        return Err((
-            StatusCode::TOO_MANY_REQUESTS,
+        return Err(PastebinError::TooMany(
             "Eep slow down! Come back tomorrow!@".to_string(),
         ));
     }
@@ -124,17 +122,14 @@ async fn identify_user(
             RowNotFound => false,
             _ => {
                 error!("Failed to check if token exists: {:?}", err);
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to check if token exists!".to_string(),
-                ));
+                return Err(PastebinError::Database(err));
             }
         }
     };
 
     if !token_present {
         warn!("Token not found for user: {} | {}", user_id, token);
-        return Err((StatusCode::UNAUTHORIZED, "Invalid API token! Please generate a new one".to_string()));
+        return Err(PastebinError::Auth("Invalid API token! Please generate a new one".to_string()));
     }
 
     Ok((user_id, session_id))
@@ -149,11 +144,12 @@ pub async fn create(
     let (user_id, session_id) = match identify_user(&state, headers).await {
         Ok(response) => response,
         Err(err) => {
+            let err_string = err.to_string();
             return (
-                err.0,
+                err.into_response().status(),
                 Json(APIError {
                     success: false,
-                    error: err.1,
+                    error: err_string,
                 }),
             ).into_response()
         }
@@ -182,11 +178,12 @@ pub async fn create(
     {
         Ok(id) => id,
         Err(err) => {
+            let err_string = err.to_string();
             return (
-                err.0,
+                err.into_response().status(),
                 Json(APIError {
                     success: false,
-                    error: err.1,
+                    error: err_string.to_string(),
                 }),
             ).into_response()
         }
@@ -210,23 +207,27 @@ pub async fn delete(
 ) -> impl IntoResponse {
     let (user_id, _) = match identify_user(&state, headers).await {
         Ok(response) => response,
-        Err(err) => return (
-                err.0,
+        Err(err) => {
+            let err_string = err.to_string();
+            return (
+                err.into_response().status(),
                 Json(APIError {
                     success: false,
-                    error: err.1,
+                    error: err_string,
                 }),
-            ).into_response(),
+            ).into_response()
+        }
     };
 
     let paste = match paste::Paste::get(&state.db, &paste_id).await {
         Ok(paste) => paste,
         Err(err) => {
+            let err_string = err.to_string();
             return (
-                err.0,
+                err.into_response().status(),
                 Json(APIError {
                     success: false,
-                    error: err.1,
+                    error: err_string,
                 }),
             ).into_response();
         }
@@ -236,11 +237,12 @@ pub async fn delete(
         match paste.delete(&state).await {
             Ok(_) => {}
             Err(err) => {
+                let err_string = err.to_string();
                 return (
-                    err.0,
+                    err.into_response().status(),
                     Json(APIError {
                         success: false,
-                        error: err.1,
+                        error: err_string,
                     }),
                 ).into_response();
             }
