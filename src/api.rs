@@ -65,12 +65,6 @@ struct APISuccess {
     url: String,
 }
 
-#[derive(Serialize)]
-struct APIError {
-    success: bool,
-    error: String,
-}
-
 async fn identify_user(
     state: &Arc<runtime::AppState>,
     headers: HeaderMap,
@@ -139,20 +133,8 @@ pub async fn create(
     headers: HeaderMap,
     TypedHeader(hostname): TypedHeader<Host>,
     JsonForm(payload): JsonForm<forms::PasteAPIForm>,
-) -> impl IntoResponse {
-    let (user_id, session_id) = match identify_user(&state, headers).await {
-        Ok(response) => response,
-        Err(err) => {
-            let err_string = err.to_string();
-            return (
-                err.into_response().status(),
-                Json(APIError {
-                    success: false,
-                    error: err_string,
-                }),
-            ).into_response()
-        }
-    };
+) -> Result<Response, PastebinError> {
+    let (user_id, session_id) = identify_user(&state, headers).await?;
 
     let payload = forms::PasteForm {
         content: payload.content,
@@ -165,7 +147,7 @@ pub async fn create(
     };
 
     // Create the paste, use the special score 0.5 for API pastes
-    let paste_id = match paste::new_paste(
+    let paste_id = paste::new_paste(
         &state,
         &payload,
         0.5,
@@ -173,29 +155,16 @@ pub async fn create(
         Some(session_id),
         "",
     )
-    .await
-    {
-        Ok(id) => id,
-        Err(err) => {
-            let err_string = err.to_string();
-            return (
-                err.into_response().status(),
-                Json(APIError {
-                    success: false,
-                    error: err_string.to_string(),
-                }),
-            ).into_response()
-        }
-    };
+    .await?;
 
-    (
+    Ok((
         StatusCode::CREATED,
         Json(APISuccess {
             success: true,
             url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
-    ).into_response()
+    ).into_response())
 }
 
 pub async fn delete(
@@ -203,64 +172,25 @@ pub async fn delete(
     headers: HeaderMap,
     TypedHeader(hostname): TypedHeader<Host>,
     Path(paste_id): Path<String>,
-) -> impl IntoResponse {
-    let (user_id, _) = match identify_user(&state, headers).await {
-        Ok(response) => response,
-        Err(err) => {
-            let err_string = err.to_string();
-            return (
-                err.into_response().status(),
-                Json(APIError {
-                    success: false,
-                    error: err_string,
-                }),
-            ).into_response()
-        }
-    };
+) -> Result<Response, PastebinError> {
+    let (user_id, _) = identify_user(&state, headers).await?;
 
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            let err_string = err.to_string();
-            return (
-                err.into_response().status(),
-                Json(APIError {
-                    success: false,
-                    error: err_string,
-                }),
-            ).into_response();
-        }
-    };
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     if Some(&user_id) == paste.user_id.as_ref() {
-        match paste.delete(&state).await {
-            Ok(_) => {}
-            Err(err) => {
-                let err_string = err.to_string();
-                return (
-                    err.into_response().status(),
-                    Json(APIError {
-                        success: false,
-                        error: err_string,
-                    }),
-                ).into_response();
-            }
-        };
+        paste.delete(&state).await?;
     } else {
-        return (StatusCode::FORBIDDEN, Json(APIError{
-            success: false,
-            error: "You don't own this paste!".to_string(),
-        })).into_response();
+        return Err(PastebinError::Auth("You don't own this paste!".to_string()));
     }
 
-    (
+    Ok((
         StatusCode::OK,
         Json(APISuccess {
             success: true,
             url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
-    ).into_response()
+    ).into_response())
 }
 
 pub async fn reset_api() {

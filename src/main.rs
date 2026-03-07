@@ -212,7 +212,7 @@ async fn newpaste(
     cookies: Cookies,
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
-) -> Result<impl IntoResponse, errors::PastebinError> {
+) -> Result<Response, errors::PastebinError> {
     let (user_id, session_id) = utils::get_user_id(&state, &cookies);
 
     // Verify the CSRF token
