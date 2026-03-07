@@ -329,7 +329,6 @@ impl Paste {
             Err(err) => match transaction.rollback().await {
                 Ok(_) => Err(PastebinError::ExternalService(format!("Failed to upload to S3: {}", err))),
                 Err(err) => {
-                    error!("Failed to rollback transaction: {}", err);
                     Err(PastebinError::Database(err))
                 }
             },
@@ -356,7 +355,6 @@ impl Paste {
                     return Err(PastebinError::NotFound("Paste not found".to_string()));
                 }
                 _ => {
-                    error!("Failed to fetch paste: {}", err);
                     return Err(PastebinError::Internal(
                         format!("Failed to fetch paste: {}", err),
                     ));
@@ -447,7 +445,7 @@ impl Paste {
         db: &PgPool,
         tags: &Vec<String>,
         page: i64,
-    ) -> Result<Vec<SearchPaste>, String> {
+    ) -> Result<Vec<SearchPaste>, PastebinError> {
         let pastes = match query_as!(
             SearchPaste,
             "
@@ -467,8 +465,7 @@ impl Paste {
         {
             Ok(pastes) => pastes,
             Err(err) => {
-                error!("Failed to search pastes: {}", err);
-                return Err(format!("Failed to search pastes: {}", err));
+                return Err(PastebinError::Database(err));
             }
         };
 

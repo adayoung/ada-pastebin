@@ -12,7 +12,6 @@ use oauth2::{
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
-use tracing::error;
 
 pub fn init_oauth_client(
     config: &config::OauthConfig,
@@ -131,7 +130,7 @@ pub async fn finish(
     {
         Ok(token) => Ok(token),
         Err(err) => {
-            error!("Failed to exchange code for token: {}", err);
+
             Err(PastebinError::ExternalService(format!("{}", err)))
         }
     }

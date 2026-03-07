@@ -212,12 +212,12 @@ async fn newpaste(
     cookies: Cookies,
     token: CsrfToken,
     Form(payload): Form<forms::PasteForm>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, errors::PastebinError> {
     let (user_id, session_id) = utils::get_user_id(&state, &cookies);
 
     // Verify the CSRF token
     if token.verify(&payload.csrf_token).is_err() {
-        return (StatusCode::FORBIDDEN, "CSRF token is not valid!").into_response();
+        return Err(errors::PastebinError::Auth("CSRF token is not valid!".to_string()));
     }
 
     // Verify the recaptcha response
@@ -230,30 +230,25 @@ async fn newpaste(
 
     let gdrive_token = gdrive::get_drive_token(&state, &cookies);
     if payload.destination == forms::ValidDestination::GDrive && gdrive_token.is_empty() {
-        return (StatusCode::FORBIDDEN, "Google Drive not authorized!").into_response();
+        return Err(errors::PastebinError::Auth("Google Drive not authorized!".to_string()));
     }
 
     // Create the paste
-    let paste_id = match paste::new_paste(&state, &payload, score, user_id, session_id, &gdrive_token).await {
-        Ok(id) => id,
-        Err(err) => {
-            return err.into_response();
-        }
-    };
+    let paste_id = paste::new_paste(&state, &payload, score, user_id, session_id, &gdrive_token).await?;
 
     // Update the session with the new paste_id
     session::update_session(&state, &cookies, &paste_id);
 
     // Check for the presence of the X-Requested-With header
     if headers.contains_key("X-Requested-With") {
-        (StatusCode::OK, paste_id).into_response()
+        Ok((StatusCode::OK, paste_id).into_response())
     } else {
-        (
+        Ok((
             StatusCode::SEE_OTHER,
             [(LOCATION, format!("/pastebin/{}", paste_id))],
             "",
         )
-            .into_response()
+            .into_response())
     }
 }
 
@@ -438,14 +433,14 @@ async fn search(
     headers: HeaderMap,
     cookies: Cookies,
     Query(params): Query<HashMap<String, String>>,
-) -> impl IntoResponse {
+) -> Result<Response, errors::PastebinError> {
     if !params.contains_key("tags") {
-        return (StatusCode::BAD_REQUEST, "No tags parameter found").into_response();
+        return Err(errors::PastebinError::Validation("No tags parameter found".to_string()));
     }
 
     let tags = paste::fix_tags(&params.get("tags").map(|s| s.to_owned()));
     if tags.is_empty() {
-        return (StatusCode::BAD_REQUEST, "Tags parameter is empty").into_response();
+        return Err(errors::PastebinError::Validation("Tags parameter is empty".to_string()));
     }
 
     let page: i64 = params
@@ -459,16 +454,10 @@ async fn search(
             static_domain: state.config.static_domain.clone(),
             user_id,
         };
-        return templates::HtmlTemplate(template).into_response();
+        return Ok(templates::HtmlTemplate(template).into_response());
     }
 
-    let pastes = match paste::Paste::search(&state.db, &tags, page).await {
-        Ok(pastes) => pastes,
-        Err(err) => {
-            error!("Failed to search for pastes: {}", err);
-            return (StatusCode::INTERNAL_SERVER_ERROR, err).into_response();
-        }
-    };
+    let pastes = paste::Paste::search(&state.db, &tags, page).await?;
 
     #[derive(Serialize)]
     #[serde(untagged)]
@@ -483,7 +472,7 @@ async fn search(
     response.insert("pastes", ResponseValue::Pastes(pastes));
     response.insert("tags", ResponseValue::Tags(tags));
 
-    (StatusCode::OK, Json(response)).into_response()
+    Ok((StatusCode::OK, Json(response)).into_response())
 }
 
 async fn logout(

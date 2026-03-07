@@ -7,7 +7,7 @@ use crate::utils;
 use axum::extract::{Json as JsonForm, Path, State};
 use axum_extra::{TypedHeader, headers::Host};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Json};
+use axum::response::{IntoResponse, Json, Response};
 use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
@@ -121,7 +121,6 @@ async fn identify_user(
         Err(err) => match err {
             RowNotFound => false,
             _ => {
-                error!("Failed to check if token exists: {:?}", err);
                 return Err(PastebinError::Database(err));
             }
         }
@@ -281,7 +280,7 @@ pub async fn reset_api() {
 pub async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
-) -> impl IntoResponse {
+) -> Result<Response, PastebinError> {
     let (user_id, _) = utils::get_user_id(&state, &cookies);
 
     if user_id.is_none() {
@@ -290,7 +289,7 @@ pub async fn about(
             user_id,
             api_key: "".to_string(),
         };
-        return templates::HtmlTemplate(template).into_response();
+        return Ok(templates::HtmlTemplate(template).into_response());
     }
 
     let user_id = user_id.unwrap();
@@ -305,7 +304,7 @@ pub async fn about(
                 let token = cookies.get(utils::get_cookie_name(&state, "_app_session")
                     .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
 
-                match query!(
+                query!(
                     r#"
                     INSERT INTO api_tokens (user_id, token)
                     VALUES ($1, $2)
@@ -314,23 +313,11 @@ pub async fn about(
                     "#,
                     &user_id,
                     &token,
-                ).execute(&state.db).await {
-                    Ok(_) => token,
-                    Err(err) => {
-                        error!("Failed to save API token: {:?}", err);
-                        return (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Failed to save API token: {}", err)
-                        ).into_response();
-                    }
-                }
+                ).execute(&state.db).await?;
+                token
             }
             _ => {
-                error!("Failed to fetch API token: {:?}", err);
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to fetch API token: {}", err)
-                ).into_response();
+                return Err(PastebinError::Database(err));
             }
         },
     };
@@ -340,5 +327,5 @@ pub async fn about(
         user_id: Some(user_id),
         api_key,
     };
-    templates::HtmlTemplate(template).into_response()
+    Ok(templates::HtmlTemplate(template).into_response())
 }
