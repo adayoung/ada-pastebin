@@ -79,7 +79,7 @@ pub async fn new_paste(
     #[cfg(not(debug_assertions))]
     {
         if score < 0.5 {
-            return Err(PastebinError::Authorization(
+            return Err(PastebinError::Forbidden(
                 "Oop, bot check failed! This site is for humans!".to_string(),
             ));
         }
