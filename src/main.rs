@@ -72,8 +72,10 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
-        paste::update_views(&timer_state, true).await;
-        cloudflare::cleanup_cache(&timer_state, true, true).await;
+        tokio::join!(
+            paste::update_views(&timer_state, true),
+            cloudflare::cleanup_cache(&timer_state, true, true),
+        );
     });
 
     tokio::spawn(api::reset_api());
@@ -82,8 +84,10 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
         info!("Shutting down...");
-        paste::update_views(&shutdown_state, false).await;
-        cloudflare::cleanup_cache(&shutdown_state, false, true).await;
+        tokio::join!(
+            paste::update_views(&shutdown_state, false),
+            cloudflare::cleanup_cache(&shutdown_state, false, true),
+        );
         shutdown_state.db.close().await;
         std::process::exit(0);
     });
