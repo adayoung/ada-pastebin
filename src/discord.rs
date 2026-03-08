@@ -21,7 +21,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::Cookies;
-use tracing::error;
 
 static OAUTH_CLIENT: OnceLock<BasicClient<EndpointSet, EndpointNotSet, EndpointNotSet, EndpointNotSet, EndpointSet>> = OnceLock::new();
 
@@ -78,10 +77,7 @@ pub async fn finish(
     .await?;
 
     // Identify who is logged in!
-    let user_id = identify(token.access_token().secret()).await.map_err(|err| {
-        error!("Failed to identify user: {}", err);
-        PastebinError::ExternalService(err.to_string())
-    })?;
+    let user_id = identify(token.access_token().secret()).await?;
 
     // We want fixed length user_id so we'll use checksum instead
     let user_id = format!("sha256-{}", hex::encode(Sha256::digest(user_id)));
