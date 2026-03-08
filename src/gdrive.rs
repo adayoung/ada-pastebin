@@ -205,11 +205,11 @@ async fn make_pastebin_folder(token: &str) -> Result<String, PastebinError> {
         return Ok(id.to_string());
     }
 
-    Err(PastebinError::ExternalService(
+    Err(PastebinError::Internal(
         response
             .text()
             .await
-            .unwrap_or_else(|_| "Unknown error".to_string()),
+            .unwrap_or_else(|_| "Unknown error in gdrive::make_pastebin_folder".to_string()),
     ))
 }
 
@@ -296,11 +296,11 @@ async fn upload_to_gdrive(
         return Ok((id.to_string(), web_content_link.to_string()));
     }
 
-    Err(PastebinError::ExternalService(
+    Err(PastebinError::Internal(
         response
             .text()
             .await
-            .unwrap_or_else(|_| "Unknown error".to_string()),
+            .unwrap_or_else(|_| "Unknown error in gdrive::upload_to_gdrive".to_string()),
     ))
 }
 
@@ -324,10 +324,10 @@ async fn update_permissions(token: &str, file_id: &str) -> Result<(), PastebinEr
         return Ok(());
     }
 
-    Err(PastebinError::ExternalService(
+    Err(PastebinError::Internal(
         response
             .text()
             .await
-            .unwrap_or_else(|_| "Unknown error".to_string()),
+            .unwrap_or_else(|_| "Unknown error in gdrive::update_permissions".to_string()),
     ))
 }
