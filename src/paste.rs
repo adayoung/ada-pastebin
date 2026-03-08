@@ -240,10 +240,7 @@ impl Paste {
 
         // Crunch crunch!
         let mut s3_content: Vec<u8> = Vec::new();
-        let content_encoding = match utils::compress(content, &mut s3_content, destination).await {
-            Ok(response) => response,
-            Err(err) => return Err(PastebinError::Storage(format!("Failed to compress content: {}", err))),
-        };
+        let content_encoding = utils::compress(content, &mut s3_content, destination).await?;
 
         // Let's append .br to the S3 key if we're using brotli compression
         let mut s3_key = format!("{}{}.{}", state.config.s3_prefix, self.paste_id, ext);
@@ -321,7 +318,7 @@ impl Paste {
                 }
             },
             Err(err) => match transaction.rollback().await {
-                Ok(_) => Err(PastebinError::ExternalService(format!("Failed to upload to S3: {}", err))),
+                Ok(_) => Err(PastebinError::Storage(format!("Failed to upload to S3: {}", err))),
                 Err(err) => {
                     Err(PastebinError::Database(err))
                 }
@@ -349,9 +346,7 @@ impl Paste {
                     return Err(PastebinError::NotFound("Paste not found".to_string()));
                 }
                 _ => {
-                    return Err(PastebinError::Internal(
-                        format!("Failed to fetch paste: {}", err),
-                    ));
+                    return Err(PastebinError::Database(err));
                 }
             },
         };
@@ -387,12 +382,7 @@ impl Paste {
     }
 
     pub async fn delete(&self, state: &runtime::AppState) -> Result<(), PastebinError> {
-        let mut transaction = match state.db.begin().await {
-            Ok(transaction) => transaction,
-            Err(err) => {
-                return Err(PastebinError::Database(err));
-            }
-        };
+        let mut transaction = state.db.begin().await?;
 
         let paste = query_as!(
             DeletePaste,
@@ -407,10 +397,7 @@ impl Paste {
             self.paste_id
         )
         .fetch_one(&mut *transaction)
-        .await
-        .map_err(|err| {
-            PastebinError::Database(err)
-        })?;
+        .await?;
 
         let fake_s3_delete = paste.gdrivedl.is_some();
         match s3::delete(state, &paste.s3_key, fake_s3_delete).await {
@@ -440,7 +427,7 @@ impl Paste {
         tags: &Vec<String>,
         page: i64,
     ) -> Result<Vec<SearchPaste>, PastebinError> {
-        let pastes = match query_as!(
+        let pastes = query_as!(
             SearchPaste,
             "
             SELECT paste_id, title, tags, format, date, views
@@ -455,13 +442,7 @@ impl Paste {
             (page - 1) * 10
         )
         .fetch_all(db)
-        .await
-        {
-            Ok(pastes) => pastes,
-            Err(err) => {
-                return Err(PastebinError::Database(err));
-            }
-        };
+        .await?;
 
         Ok(pastes)
     }

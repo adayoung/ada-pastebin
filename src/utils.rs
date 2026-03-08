@@ -9,7 +9,7 @@ use axum::{
 };
 use brotli::CompressorWriter;
 use sha2::{Sha256, Digest};
-use std::io::{Error, Write};
+use std::io::Write;
 use std::sync::Arc;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use tracing::error;
@@ -127,7 +127,7 @@ pub fn not_found_response() -> Response {
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, Error> {
+pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, PastebinError> {
     s3_content.clear();
 
     // Avoid compression if the content is too small
@@ -145,12 +145,12 @@ pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &Val
     let mut encoder = CompressorWriter::new(s3_content, 4096, 6, 22);
     if let Err(err) = encoder.write_all(content.as_bytes()) {
         error!("Failed to write compressed content: {}", err);
-        return Err(err);
+        return Err(PastebinError::Internal(err.to_string()));
     };
 
     if let Err(err) = encoder.flush() {
         error!("Failed to flush compress content: {}", err);
-        return Err(err);
+        return Err(PastebinError::Internal(err.to_string()));
     };
 
     Ok("br".to_string())
