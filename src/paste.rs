@@ -504,7 +504,7 @@ impl Paste {
             .or_insert_with(|| self.views + 1)
     }
 
-    pub async fn save_views(&self, db: &PgPool, views: i64) {
+    async fn save_views(&self, db: &PgPool, views: i64) {
         let now = Utc::now();
         match query!(
             r#"
@@ -527,7 +527,7 @@ impl Paste {
     }
 }
 
-pub async fn update_views(state: &runtime::AppState, do_sleep: bool) -> Result<(), PastebinError> {
+pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
     loop {
         if do_sleep {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
@@ -540,8 +540,17 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) -> Result<(
         }).await;
 
         for (paste_id, views) in items.iter() {
-            let paste = Paste::get(&state.db, paste_id).await?;
-            paste.save_views(&state.db, *views).await;
+            match Paste::get(&state.db, paste_id).await {
+                Ok(paste) => {
+                    paste.save_views(&state.db, *views).await;
+                },
+                Err(err) => match err {
+                    PastebinError::NotFound(_) => {},
+                    _ => {
+                        error!("Failed to fetch paste for updating views: {}", paste_id);
+                    }
+                },
+            };
         }
 
         counter().clear_async().await;
@@ -549,6 +558,4 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) -> Result<(
             break;
         }
     }
-
-    Ok(())
 }

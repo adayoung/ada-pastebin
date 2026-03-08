@@ -72,10 +72,7 @@ async fn main() -> Result<(), anyhow::Error> {
 
     let timer_state = shared_state.clone();
     tokio::spawn(async move {
-        if let Err(err) = paste::update_views(&timer_state, true).await {
-            error!("update_views task failed: {:?}", err);
-        }
-        // cloudflare::cleanup_cache returns (), so just run it
+        paste::update_views(&timer_state, true).await;
         cloudflare::cleanup_cache(&timer_state, true, true).await;
     });
 
@@ -85,10 +82,7 @@ async fn main() -> Result<(), anyhow::Error> {
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
         info!("Shutting down...");
-        if let Err(err) = paste::update_views(&shutdown_state, false).await {
-            error!("shutdown update_views failed: {:?}", err);
-        }
-        // cloudflare cleanup returns nothing
+        paste::update_views(&shutdown_state, false).await;
         cloudflare::cleanup_cache(&shutdown_state, false, true).await;
         shutdown_state.db.close().await;
         std::process::exit(0);
