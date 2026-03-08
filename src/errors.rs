@@ -15,6 +15,9 @@ pub enum PastebinError {
     #[error("Authentication error: {0}")]
     Auth(String),
 
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
     #[error("Validation error: {0}")]
     Validation(String),
 
@@ -40,6 +43,7 @@ impl IntoResponse for PastebinError {
             PastebinError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
             PastebinError::Storage(_) => StatusCode::INTERNAL_SERVER_ERROR,
             PastebinError::Auth(_) => StatusCode::UNAUTHORIZED,
+            PastebinError::Forbidden(_) => StatusCode::FORBIDDEN,
             PastebinError::Validation(_) => StatusCode::BAD_REQUEST,
             PastebinError::NotFound(_) => StatusCode::NOT_FOUND,
             PastebinError::ExternalService(_) => StatusCode::BAD_GATEWAY,

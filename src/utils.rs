@@ -23,13 +23,13 @@ pub async fn extra_sugar(
 
     if let Some(hostname) = headers.get("Host") {
         let hostname = hostname.to_str().map_err(|_| {
-            PastebinError::Auth("Invalid Host header".to_string()).into_response()
+            PastebinError::Validation("Invalid Host header".to_string()).into_response()
         })?;
         if !state.config.allowed_domains.iter().any(|d| d == hostname) {
-            return Err(PastebinError::Auth("Forbidden".to_string()).into_response());
+            return Err(PastebinError::Forbidden("Forbidden".to_string()).into_response());
         }
     } else {
-        return Err(PastebinError::Auth("Missing Host header".to_string()).into_response());
+        return Err(PastebinError::Validation("Missing Host header".to_string()).into_response());
     }
 
     let mut response = next.run(request).await;

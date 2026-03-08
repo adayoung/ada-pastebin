@@ -71,7 +71,7 @@ async fn identify_user(
 ) -> Result<(String, String), PastebinError> {
     let token = headers.get("Authorization");
     if token.is_none() {
-        return Err(PastebinError::Auth("Missing API token!".to_string()));
+        return Err(PastebinError::Validation("Missing API token!".to_string()));
     }
 
     let token = match token.unwrap().to_str() {
