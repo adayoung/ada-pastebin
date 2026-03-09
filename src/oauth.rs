@@ -1,7 +1,7 @@
 use crate::config;
+use crate::errors::PastebinError;
 use crate::runtime;
 use crate::utils;
-use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect};
 use oauth2::{
     basic::{BasicClient, BasicTokenType},
@@ -12,7 +12,6 @@ use oauth2::{
 use std::sync::Arc;
 use std::sync::OnceLock;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies, PrivateCookies};
-use tracing::error;
 
 pub fn init_oauth_client(
     config: &config::OauthConfig,
@@ -91,7 +90,7 @@ pub async fn finish(
     code: &str,
     csrf_state_param: &str,
     cookie_path: &str,
-) -> Result<StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>, (StatusCode, String)> {
+) -> Result<StandardTokenResponse<EmptyExtraTokenFields, BasicTokenType>, PastebinError> {
     let csrf_cookie = utils::get_cookie_name(state, format!("{}-csrf", name).as_str());
     let pkce_cookie = utils::get_cookie_name(state, format!("{}-pkce", name).as_str());
 
@@ -100,15 +99,14 @@ pub async fn finish(
     let csrf_token_secret = cookies.get(csrf_cookie.as_str());
 
     if pkce_challenge_secret.is_none() || csrf_token_secret.is_none() {
-        return Err((
-            StatusCode::BAD_REQUEST,
+        return Err(PastebinError::Validation(
             "Missing cookies! Where are teh cookies?!".to_string(),
         ));
     }
 
     let csrf_token_secret = csrf_token_secret.unwrap().value().to_string();
     if csrf_token_secret != csrf_state_param {
-        return Err((StatusCode::FORBIDDEN, "CSRF token mismatch!".to_string()));
+        return Err(PastebinError::Auth("CSRF token mismatch!".to_string()));
     }
 
     // Reconstruct the PKCE verifier!
@@ -132,8 +130,8 @@ pub async fn finish(
     {
         Ok(token) => Ok(token),
         Err(err) => {
-            error!("Failed to exchange code for token: {}", err);
-            Err((StatusCode::INTERNAL_SERVER_ERROR, format!("{}", err)))
+
+            Err(PastebinError::ExternalService(format!("{}", err)))
         }
     }
 }

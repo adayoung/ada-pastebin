@@ -1,5 +1,6 @@
 use crate::{forms::ValidDestination, runtime};
 use crate::templates;
+use crate::errors::PastebinError;
 use axum::{
     extract::{Request, State},
     http::{HeaderValue, StatusCode},
@@ -8,7 +9,7 @@ use axum::{
 };
 use brotli::CompressorWriter;
 use sha2::{Sha256, Digest};
-use std::io::{Error, Write};
+use std::io::Write;
 use std::sync::Arc;
 use tower_cookies::{cookie::SameSite, Cookie, Cookies};
 use tracing::error;
@@ -22,13 +23,13 @@ pub async fn extra_sugar(
 
     if let Some(hostname) = headers.get("Host") {
         let hostname = hostname.to_str().map_err(|_| {
-            (StatusCode::FORBIDDEN, "Invalid Host header").into_response()
+            PastebinError::Validation("Invalid Host header".to_string()).into_response()
         })?;
         if !state.config.allowed_domains.iter().any(|d| d == hostname) {
-            return Err((StatusCode::FORBIDDEN, "Forbidden").into_response());
+            return Err(PastebinError::Forbidden("Forbidden".to_string()).into_response());
         }
     } else {
-        return Err((StatusCode::FORBIDDEN, "Missing Host header").into_response());
+        return Err(PastebinError::Validation("Missing Host header".to_string()).into_response());
     }
 
     let mut response = next.run(request).await;
@@ -126,7 +127,7 @@ pub fn not_found_response() -> Response {
 }
 
 // Compress content using brotli, returning the compressed content and the content encoding
-pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, Error> {
+pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &ValidDestination) -> Result<String, PastebinError> {
     s3_content.clear();
 
     // Avoid compression if the content is too small
@@ -144,12 +145,12 @@ pub async fn compress(content: &str, s3_content: &mut Vec<u8>, destination: &Val
     let mut encoder = CompressorWriter::new(s3_content, 4096, 6, 22);
     if let Err(err) = encoder.write_all(content.as_bytes()) {
         error!("Failed to write compressed content: {}", err);
-        return Err(err);
+        return Err(PastebinError::Internal(err.to_string()));
     };
 
     if let Err(err) = encoder.flush() {
         error!("Failed to flush compress content: {}", err);
-        return Err(err);
+        return Err(PastebinError::Internal(err.to_string()));
     };
 
     Ok("br".to_string())

@@ -1,3 +1,4 @@
+use crate::errors::PastebinError;
 use crate::forms;
 use crate::paste;
 use crate::runtime;
@@ -6,7 +7,7 @@ use crate::utils;
 use axum::extract::{Json as JsonForm, Path, State};
 use axum_extra::{TypedHeader, headers::Host};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::{IntoResponse, Json};
+use axum::response::{IntoResponse, Json, Response};
 use chrono::Utc;
 use scc::HashMap;
 use serde::Serialize;
@@ -64,34 +65,26 @@ struct APISuccess {
     url: String,
 }
 
-#[derive(Serialize)]
-struct APIError {
-    success: bool,
-    error: String,
-}
-
 async fn identify_user(
     state: &Arc<runtime::AppState>,
     headers: HeaderMap,
-) -> Result<(String, String), (StatusCode, String)> {
+) -> Result<(String, String), PastebinError> {
     let token = headers.get("Authorization");
     if token.is_none() {
-        return Err((StatusCode::UNAUTHORIZED, "Missing API token!".to_string()));
+        return Err(PastebinError::Validation("Missing API token!".to_string()));
     }
 
     let token = match token.unwrap().to_str() {
         Ok(t) => match t.split_whitespace().last() {
             Some(token) => token.to_string(),
             None => {
-                return Err((
-                    StatusCode::BAD_REQUEST,
+                return Err(PastebinError::Validation(
                     "Invalid token format! Expected: Bearer <token>".to_string(),
                 ))
             }
         },
         Err(_) => {
-            return Err((
-                StatusCode::BAD_REQUEST,
+            return Err(PastebinError::Validation(
                 "Invalid token encoding!".to_string(),
             ))
         }
@@ -102,13 +95,12 @@ async fn identify_user(
     let (user_id, session_id) = utils::get_user_id(state, &cookies);
     let (user_id, session_id) = match (user_id, session_id) {
         (Some(uid), Some(sid)) => (uid, sid),
-        _ => return Err((StatusCode::UNAUTHORIZED, "Invalid API token!".to_string())),
+        _ => return Err(PastebinError::Auth("Invalid API token!".to_string())),
     };
 
     // Check if the user is rate limited
     if rate_limited(state, &user_id).await {
-        return Err((
-            StatusCode::TOO_MANY_REQUESTS,
+        return Err(PastebinError::TooMany(
             "Eep slow down! Come back tomorrow!@".to_string(),
         ));
     }
@@ -123,18 +115,14 @@ async fn identify_user(
         Err(err) => match err {
             RowNotFound => false,
             _ => {
-                error!("Failed to check if token exists: {:?}", err);
-                return Err((
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    "Failed to check if token exists!".to_string(),
-                ));
+                return Err(PastebinError::Database(err));
             }
         }
     };
 
     if !token_present {
         warn!("Token not found for user: {} | {}", user_id, token);
-        return Err((StatusCode::UNAUTHORIZED, "Invalid API token! Please generate a new one".to_string()));
+        return Err(PastebinError::Auth("Invalid API token! Please generate a new one".to_string()));
     }
 
     Ok((user_id, session_id))
@@ -145,19 +133,8 @@ pub async fn create(
     headers: HeaderMap,
     TypedHeader(hostname): TypedHeader<Host>,
     JsonForm(payload): JsonForm<forms::PasteAPIForm>,
-) -> impl IntoResponse {
-    let (user_id, session_id) = match identify_user(&state, headers).await {
-        Ok(response) => response,
-        Err(err) => {
-            return (
-                err.0,
-                Json(APIError {
-                    success: false,
-                    error: err.1,
-                }),
-            ).into_response()
-        }
-    };
+) -> Result<Response, PastebinError> {
+    let (user_id, session_id) = identify_user(&state, headers).await?;
 
     let payload = forms::PasteForm {
         content: payload.content,
@@ -170,7 +147,7 @@ pub async fn create(
     };
 
     // Create the paste, use the special score 0.5 for API pastes
-    let paste_id = match paste::new_paste(
+    let paste_id = paste::new_paste(
         &state,
         &payload,
         0.5,
@@ -178,28 +155,16 @@ pub async fn create(
         Some(session_id),
         "",
     )
-    .await
-    {
-        Ok(id) => id,
-        Err(err) => {
-            return (
-                err.0,
-                Json(APIError {
-                    success: false,
-                    error: err.1,
-                }),
-            ).into_response()
-        }
-    };
+    .await?;
 
-    (
+    Ok((
         StatusCode::CREATED,
         Json(APISuccess {
             success: true,
             url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
-    ).into_response()
+    ).into_response())
 }
 
 pub async fn delete(
@@ -207,59 +172,25 @@ pub async fn delete(
     headers: HeaderMap,
     TypedHeader(hostname): TypedHeader<Host>,
     Path(paste_id): Path<String>,
-) -> impl IntoResponse {
-    let (user_id, _) = match identify_user(&state, headers).await {
-        Ok(response) => response,
-        Err(err) => return (
-                err.0,
-                Json(APIError {
-                    success: false,
-                    error: err.1,
-                }),
-            ).into_response(),
-    };
+) -> Result<Response, PastebinError> {
+    let (user_id, _) = identify_user(&state, headers).await?;
 
-    let paste = match paste::Paste::get(&state.db, &paste_id).await {
-        Ok(paste) => paste,
-        Err(err) => {
-            return (
-                err.0,
-                Json(APIError {
-                    success: false,
-                    error: err.1,
-                }),
-            ).into_response();
-        }
-    };
+    let paste = paste::Paste::get(&state.db, &paste_id).await?;
 
     if Some(&user_id) == paste.user_id.as_ref() {
-        match paste.delete(&state).await {
-            Ok(_) => {}
-            Err(err) => {
-                return (
-                    err.0,
-                    Json(APIError {
-                        success: false,
-                        error: err.1,
-                    }),
-                ).into_response();
-            }
-        };
+        paste.delete(&state).await?;
     } else {
-        return (StatusCode::FORBIDDEN, Json(APIError{
-            success: false,
-            error: "You don't own this paste!".to_string(),
-        })).into_response();
+        return Err(PastebinError::Auth("You don't own this paste!".to_string()));
     }
 
-    (
+    Ok((
         StatusCode::OK,
         Json(APISuccess {
             success: true,
             url: format!("https://{}/pastebin/{}", hostname, &paste_id),
             paste_id,
         }),
-    ).into_response()
+    ).into_response())
 }
 
 pub async fn reset_api() {
@@ -279,7 +210,7 @@ pub async fn reset_api() {
 pub async fn about(
     State(state): State<Arc<runtime::AppState>>,
     cookies: Cookies,
-) -> impl IntoResponse {
+) -> Result<Response, PastebinError> {
     let (user_id, _) = utils::get_user_id(&state, &cookies);
 
     if user_id.is_none() {
@@ -288,7 +219,7 @@ pub async fn about(
             user_id,
             api_key: "".to_string(),
         };
-        return templates::HtmlTemplate(template).into_response();
+        return Ok(templates::HtmlTemplate(template).into_response());
     }
 
     let user_id = user_id.unwrap();
@@ -303,7 +234,7 @@ pub async fn about(
                 let token = cookies.get(utils::get_cookie_name(&state, "_app_session")
                     .as_str()).map(|c| c.value().to_string()).unwrap_or_default();
 
-                match query!(
+                query!(
                     r#"
                     INSERT INTO api_tokens (user_id, token)
                     VALUES ($1, $2)
@@ -312,23 +243,11 @@ pub async fn about(
                     "#,
                     &user_id,
                     &token,
-                ).execute(&state.db).await {
-                    Ok(_) => token,
-                    Err(err) => {
-                        error!("Failed to save API token: {:?}", err);
-                        return (
-                            StatusCode::INTERNAL_SERVER_ERROR,
-                            format!("Failed to save API token: {}", err)
-                        ).into_response();
-                    }
-                }
+                ).execute(&state.db).await?;
+                token
             }
             _ => {
-                error!("Failed to fetch API token: {:?}", err);
-                return (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    format!("Failed to fetch API token: {}", err)
-                ).into_response();
+                return Err(PastebinError::Database(err));
             }
         },
     };
@@ -338,5 +257,5 @@ pub async fn about(
         user_id: Some(user_id),
         api_key,
     };
-    templates::HtmlTemplate(template).into_response()
+    Ok(templates::HtmlTemplate(template).into_response())
 }
