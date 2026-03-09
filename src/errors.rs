@@ -1,3 +1,4 @@
+use crate::utils::not_found_response;
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -76,6 +77,10 @@ impl IntoResponse for PastebinError {
             PastebinError::Internal(_) => "Internal server error".to_string(),
             _ => self.to_string(),
         };
+
+        if status == StatusCode::NOT_FOUND {
+            return not_found_response();
+        }
 
         (status, message).into_response()
     }
