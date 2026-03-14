@@ -85,11 +85,7 @@ pub async fn new_paste(
         }
     }
 
-    let mut paste = match Paste::new(form, score, user_id, session_id) {
-        Ok(paste) => paste,
-        Err(err) => return Err(err),
-    };
-
+    let mut paste = Paste::new(form, score, user_id, session_id)?;
     paste.save(state, &form.content, &form.destination, gdrive_token).await
 }
 
