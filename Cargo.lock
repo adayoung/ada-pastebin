@@ -22,7 +22,7 @@ dependencies = [
  "mime_guess",
  "num-traits",
  "oauth2",
- "rand 0.8.5",
+ "rand 0.9.3",
  "reqwest",
  "rust-embed",
  "scc",

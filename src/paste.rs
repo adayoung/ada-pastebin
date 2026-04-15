@@ -30,21 +30,21 @@ fn counter() -> &'static HashMap<String, i64> {
 fn generate_paste_id() -> String {
     let url_safe_characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~";
     let alphanumeric = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    let mut rng = rand::thread_rng();
+    let mut rng = rand::rng();
     let mut paste_id = String::new();
     let mut index: usize;
 
     // Ensure we don't end up with a weird character in the beginning
-    index = rng.gen_range(0..alphanumeric.len());
+    index = rng.random_range(0..alphanumeric.len());
     paste_id.push(alphanumeric.chars().nth(index).unwrap());
 
     for _ in 0..6 {
-        index = rng.gen_range(0..url_safe_characters.len());
+        index = rng.random_range(0..url_safe_characters.len());
         paste_id.push(url_safe_characters.chars().nth(index).unwrap());
     }
 
     // Ensure we don't end up with a weird character in the end
-    index = rng.gen_range(0..alphanumeric.len());
+    index = rng.random_range(0..alphanumeric.len());
     paste_id.push(alphanumeric.chars().nth(index).unwrap());
 
     paste_id
