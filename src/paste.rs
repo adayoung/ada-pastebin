@@ -10,7 +10,7 @@ use bigdecimal::BigDecimal;
 use chrono::Utc;
 use num_traits::FromPrimitive;
 use num_traits::ToPrimitive;
-use rand::Rng;
+use rand::RngExt;
 use scc::HashMap;
 use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
