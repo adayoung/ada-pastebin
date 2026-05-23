@@ -1,0 +1,46 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'ada-pastebin'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=ada-pastebin",
+                    "--package=ada-pastebin",
+                    "--target=x86_64-unknown-linux-musl"
+                ],
+                "filter": {
+                    "name": "ada-pastebin",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'ada-pastebin'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=ada-pastebin",
+                    "--package=ada-pastebin"
+                ],
+                "filter": {
+                    "name": "ada-pastebin",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
