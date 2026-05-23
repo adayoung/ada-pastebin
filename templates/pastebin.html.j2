@@ -102,6 +102,7 @@
       <fieldset id="pasteform-fields" disabled>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
         <input type="hidden" name="token" />
+        <input type="hidden" name="encrypted" value="false" />
         <legend class="visually-hidden">Pastebin</legend>
         <div class="row mb-3">
           <div class="col">
@@ -160,16 +161,24 @@
             </div>
           </div>
           <div class="me-3 pb-3">
-            <button class="btn btn-primary" id="pastebtn" data-bs-toggle="tooltip"
-              title="Ctrl-Enter to paste in plain, Alt-Enter to paste in HTML!" type="submit">
-              <span id="pastebtn-ready">Paste it!</span>
-              <span class="d-none" id="pastebtn-loading"><span class="spinner-border spinner-border-sm" role="status"
-                  aria-hidden="true"></span> Please wait ...</span>
-              <span class="d-none" id="pastebtn-error">
-                <i class="bi bi-exclamation-triangle"></i>
-                <span id="pastebin-error-text"></span>
-              </span>
-            </button>
+            <div class="btn-group">
+              <button class="btn btn-primary" id="pastebtn" data-bs-toggle="tooltip"
+                title="Ctrl-Enter to paste in plain, Alt-Enter to paste in HTML!" type="submit">
+                <span id="pastebtn-ready">Paste it!</span>
+                <span class="d-none" id="pastebtn-loading"><span class="spinner-border spinner-border-sm" role="status"
+                    aria-hidden="true"></span> Please wait ...</span>
+                <span class="d-none" id="pastebtn-error">
+                  <i class="bi bi-exclamation-triangle"></i>
+                  <span id="pastebin-error-text"></span>
+                </span>
+              </button>
+              <button type="button" class="btn btn-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="visually-hidden">Toggle Dropdown</span>
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" id="paste-w-encryption" href="#">Paste with Encryption! 🔐</a></li>
+              </ul>
+            </div>
           </div>
           <div id="noc-text" class="text-primary d-none ms-auto pb-3">
             <em><span id="noc">0</span> characters.</em>
@@ -194,6 +203,7 @@
 <script src="//{{ static_domain }}/static/js/common.js"></script>
 {% block moretail %}
 <input type="hidden" id="recaptcha-key" value="{{ recaptcha_key }}">
-<script src="//{{ static_domain }}/static/js/pastebin.js?t=20250114-a"></script>
+<script src="//{{ static_domain }}/static/js/encryption.js?t=20260523"></script>
+<script src="//{{ static_domain }}/static/js/pastebin.js?t=20260523"></script>
 {% endblock %}
 {% endblock %}

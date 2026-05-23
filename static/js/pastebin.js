@@ -21,10 +21,42 @@ function HandleGAuthComplete(result) {
   }
 }
 
-function fancyFormSubmit(token) {
+async function fancyFormSubmit(token) {
   let form = document.getElementById("pasteform");
   let data = new FormData(form);
   data.set("token", token);
+
+  if (document.querySelector("input[name='encrypted']").value === "true") {
+    try {
+      // Generate a random key
+      const key = await generateEncryptionKey();
+
+      // Get the content from the textarea
+      const contentElement = document.getElementById("content");
+      const originalContent = contentElement.value;
+
+      // Encrypt the content
+      const encryptedContent = await encryptContent(originalContent, key);
+
+      // Export the key to base64
+      const keyBase64 = await exportKey(key);
+
+      // Replace the content with encrypted version
+      data.set("content", encryptedContent);
+
+      // Store the key for URL fragment (will be added after redirect)
+      window.encryptionKey = keyBase64;
+    } catch (e) {
+      window.encryptionKey = null; // Clean up
+      console.error('Encryption failed:', e);
+      alert('Oops, encryption failed! Please try again or disable encryption.');
+      document.getElementById("pastebtn-loading").classList.add("d-none");
+      document.getElementById("pastebtn-ready").classList.remove("d-none");
+      document.getElementById("pasteform-fields").removeAttribute("disabled");
+      document.getElementById("content").focus();
+      return;
+    }
+  };
 
   // Encode the form data using URLSearchParams
   const encodedData = new URLSearchParams(data);
@@ -51,7 +83,13 @@ function fancyFormSubmit(token) {
       }
     })
     .then((result) => {
-      location.replace(result);
+      // If we encrypted the content, append the key as a URL fragment
+      if (window.encryptionKey) {
+        location.replace(result + "#" + window.encryptionKey);
+        window.encryptionKey = null; // Clean up
+      } else {
+        location.replace(result);
+      }
     })
     .catch((error) => {
       if (error != "-flails-") {
@@ -81,6 +119,19 @@ function fancyFormSubmit(token) {
       try {
         api_popover.hide();
       } catch (e) {};
+    });
+
+    // Encrypted paste thingie!
+    document.getElementById("paste-w-encryption").addEventListener("click", (e) => {
+      e.preventDefault();
+
+      let encrypt = confirm("Encrypted pastes are removed after 14 days of inactivity!\nThis feature is experimental, proceed with caution!");
+      if (encrypt) {
+        document.querySelector("input[name='encrypted']").value = "true";
+        document.getElementById("pastebtn").click();
+      } else {
+        document.querySelector("input[name='encrypted']").value = "false";
+      }
     });
 
     // Fancy form submit

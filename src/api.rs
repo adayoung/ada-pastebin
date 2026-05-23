@@ -144,6 +144,7 @@ pub async fn create(
         destination: forms::ValidDestination::DataStore,
         csrf_token: "".to_string(),
         token: "".to_string(),
+        encrypted: false,
     };
 
     // Create the paste, use the special score 0.5 for API pastes

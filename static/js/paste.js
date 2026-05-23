@@ -160,6 +160,33 @@
         .then(async (result) => {
           let format = document.getElementById("format").value;
 
+          // Check if content is encrypted (look for key in URL fragment)
+          let isEncrypted = false;
+          let urlHash = "";
+          if (document.getElementById("encrypted").value == "true") {
+            isEncrypted = true;
+
+            urlHash = window.location.hash.substring(1); // Remove # prefix
+            if (!(urlHash && urlHash.length > 0)) {
+              urlHash = prompt("Meep! Key not present in URL. Do you have a key?");
+            }
+          };
+
+          if (isEncrypted) {
+            try {
+              // Decrypt the content first
+              const decryptedContent = await decryptContent(result, urlHash);
+              result = decryptedContent;
+            } catch (e) {
+              console.error('Decryption failed:', e);
+              document.getElementById("loader-result").textContent =
+                "Meep! I couldn't decrypt the content. Invalid or missing encryption key.";
+              document.getElementById("loader").classList.remove("text-light");
+              document.getElementById("loader").classList.add("text-danger");
+              return;
+            }
+          };
+
           if (format == "log") {
             let output = document.getElementById("content-terminal");
             output.classList.remove("d-none");

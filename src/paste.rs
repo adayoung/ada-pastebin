@@ -123,6 +123,7 @@ pub struct Paste {
     pub rcscore: BigDecimal, // Recaptcha score
     pub views: i64,
     pub last_seen: DateTime<Utc>,
+    pub encrypted: bool,
 }
 
 // Used for DELETE /pastes/:paste_id
@@ -199,6 +200,7 @@ impl Paste {
             rcscore,
             views: 0,
             last_seen: now,
+            encrypted: form.encrypted,
         };
 
         Ok(paste)
@@ -272,8 +274,15 @@ impl Paste {
 
         query!(
             r#"
-            INSERT INTO pastebin (paste_id, user_id, session_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, s3_content_length, rcscore, views, last_seen)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+            INSERT INTO pastebin (
+                paste_id, user_id, session_id, title, tags, format, date,
+                gdriveid, gdrivedl, s3_key, s3_content_length, rcscore,
+                views, last_seen, encrypted
+            )
+            VALUES (
+                $1, $2, $3, $4, $5, $6, $7, $8,
+                $9, $10, $11, $12, $13, $14, $15
+            )
             "#,
             self.paste_id,
             self.user_id,
@@ -288,7 +297,8 @@ impl Paste {
             content_length,
             self.rcscore,
             0,
-            self.last_seen
+            self.last_seen,
+            self.encrypted,
         )
         .execute(&mut *transaction)
         .await
@@ -327,7 +337,9 @@ impl Paste {
         let paste = match query_as!(
             Paste,
             r#"
-                SELECT paste_id, user_id, session_id, title, tags, format, date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen
+                SELECT paste_id, user_id, session_id, title, tags, format,
+                date, gdriveid, gdrivedl, s3_key, rcscore, views, last_seen,
+                encrypted
                 FROM pastebin
                 WHERE paste_id = $1
                 "#,
