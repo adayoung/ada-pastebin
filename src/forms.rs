@@ -18,6 +18,8 @@ pub struct PasteForm {
     pub tags: Option<String>,
     pub format: PasteFormat,
     pub destination: ValidDestination,
+
+    pub encrypted: bool,
 }
 
 #[derive(Deserialize)]

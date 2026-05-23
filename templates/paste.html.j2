@@ -125,5 +125,6 @@
 <input type="hidden" id="paste-id" value="{{ paste.paste_id }}">
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ content_url }}">
+<input type="hidden" id="encrypted" value="{{ paste.encrypted }}">
 <script src="//{{ static_domain }}/static/js/paste.js?t=20251230-b" type="module"></script>
 {% endblock %}
