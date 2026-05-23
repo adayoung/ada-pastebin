@@ -125,7 +125,7 @@ async function fancyFormSubmit(token) {
     document.getElementById("paste-w-encryption").addEventListener("click", (e) => {
       e.preventDefault();
 
-      let encrypt = confirm("Encrypted pastes are removed after 14 days of inactivity!");
+      let encrypt = confirm("Encrypted pastes are removed after 14 days of inactivity!\nThis feature is experimental, proceed with caution!");
       if (encrypt) {
         document.querySelector("input[name='encrypted']").value = "true";
         document.getElementById("pastebtn").click();
