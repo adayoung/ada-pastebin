@@ -11,6 +11,7 @@
 
 {% block content %}
 {% if owned %}
+{% if !paste.encrypted %}
 <div class="modal fade" id="edit-paste-modal" tabindex="-1" aria-labelledby="edit-paste-modal-title" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -43,6 +44,7 @@
     </div>
 </div>
 {% endif %}
+{% endif %}
 
 <div class="row mb-3">
     <div class="col">
@@ -60,17 +62,21 @@
                 </button>
 
                 {% if paste.gdrivedl.is_none() %}
+                {% if !paste.encrypted %}
                 <a href="{{ content_url }}"
                     class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
                 {% endif %}
+                {% endif %}
 
                 {% if owned %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                {% if !paste.encrypted %}
                 <button class="btn btn-outline-secondary btn-sm d-none c-paste-btn" id="edit-btn" title="Edit" type="submit">
                     <img src="//{{ static_domain }}/static/img/edit.svg" height="16" width="16" alt="Edit" loading="lazy" />
                 </button>
+                {% endif %}
                 <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit">
                     <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
                 </button>
@@ -126,5 +132,6 @@
 <input type="hidden" id="format" value="{{ paste.get_format() }}">
 <input type="hidden" id="content-url" value="{{ content_url }}">
 <input type="hidden" id="encrypted" value="{{ paste.encrypted }}">
-<script src="//{{ static_domain }}/static/js/paste.js?t=20251230-b" type="module"></script>
+<script src="//{{ static_domain }}/static/js/encryption.js?t=20260523"></script>
+<script src="//{{ static_domain }}/static/js/paste.js?t=20260523" type="module"></script>
 {% endblock %}
