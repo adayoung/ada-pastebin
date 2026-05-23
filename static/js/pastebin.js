@@ -83,6 +83,19 @@ function fancyFormSubmit(token) {
       } catch (e) {};
     });
 
+    // Encrypted paste thingie!
+    document.getElementById("paste-w-encryption").addEventListener("click", (e) => {
+      e.preventDefault();
+
+      let encrypt = confirm("Encrypted pastes are removed after 14 days of inactivity!");
+      if (encrypt) {
+        document.querySelector("input[name='encrypted']").value = "true";
+        document.getElementById("pastebtn").click();
+      } else {
+        document.querySelector("input[name='encrypted']").value = "false";
+      }
+    });
+
     // Fancy form submit
     document.getElementById("pasteform").addEventListener("submit", (e) => {
       e.preventDefault();
