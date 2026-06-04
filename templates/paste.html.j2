@@ -48,8 +48,9 @@
 
 <div class="row mb-3">
     <div class="col">
-        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="delete">
-            <span>
+        <form action="/pastebin/{{ paste.paste_id }}" class="d-flex align-items-center" id="delete-form" method="delete"
+            aria-label="Paste actions">
+            <span aria-label="Tags">
                 {% for tag in paste.get_tags() %}
                 <em><a class="text-decoration-none" href="/pastebin/search/?tags={{ tag }}">{{ tag }}</a></em>
                 {% endfor %}
@@ -57,14 +58,15 @@
             <span class="d-none d-md-block text-muted ms-auto">
                 <small class="me-2">VIEWS - {{ views }}</small>
 
-                <button class="d-none btn btn-outline-secondary btn-sm c-paste-btn" id="share-btn" title="Share">
+                <button class="d-none btn btn-outline-secondary btn-sm c-paste-btn" id="share-btn" title="Share"
+                    aria-label="Share paste">
                     <img src="//{{ static_domain }}/static/img/share.svg" height="16" width="16" alt="Share" loading="lazy" />
                 </button>
 
                 {% if paste.gdrivedl.is_none() %}
                 {% if !paste.encrypted %}
                 <a href="{{ content_url }}"
-                    class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" download>
+                    class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" aria-label="Download paste content" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
                 </a>
                 {% endif %}
@@ -73,29 +75,34 @@
                 {% if owned %}
                 <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
                 {% if !paste.encrypted %}
-                <button class="btn btn-outline-secondary btn-sm d-none c-paste-btn" id="edit-btn" title="Edit" type="submit">
+                <button class="btn btn-outline-secondary btn-sm d-none c-paste-btn" id="edit-btn" title="Edit" type="submit"
+                    aria-label="Edit paste">
                     <img src="//{{ static_domain }}/static/img/edit.svg" height="16" width="16" alt="Edit" loading="lazy" />
                 </button>
                 {% endif %}
-                <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit">
+                <button class="btn btn-outline-secondary btn-sm c-paste-btn" id="delete-btn" title="Delete" type="submit"
+                    aria-label="Delete paste">
                     <img src="//{{ static_domain }}/static/img/trash.svg" height="16" width="16" alt="Delete" loading="lazy" />
                 </button>
                 {% endif %}
 
                 {% if paste.get_format() == "log" %}
-                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="terminal-btn" title="This is an ANSI log!">
+                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="terminal-btn" title="This is an ANSI log!"
+                    aria-label="Viewing paste as ANSI log">
                     <img src="//{{ static_domain }}/static/img/terminal.svg" height="16" width="16" alt="ANSI log!" loading="lazy" />
                 </a>
                 {% endif %}
 
                 {% if paste.gdrivedl.is_some() %}
-                <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!">
+                <a href="#" class="btn btn-outline-secondary btn-sm" title="Google Drive Hosted Content!"
+                    aria-label="Google Drive hosted content">
                     <img src="//{{ static_domain }}/static/img/drive.webp" height="16" width="16" alt="Google Drive!" loading="lazy">
                 </a>
                 {% endif %}
 
                 {% if paste.get_rcscore() == 0.5 %}
-                <a href="/pastebin/api/v1/about" class="btn btn-outline-secondary btn-sm c-paste-btn" title="This paste was made from the API!">
+                <a href="/pastebin/api/v1/about" class="btn btn-outline-secondary btn-sm c-paste-btn"
+                    title="This paste was made from the API!" aria-label="This paste was made from the API!">
                     <img src="//{{ static_domain }}/static/img/code.svg" height="16" width="16" alt="API Paste!" loading="lazy">
                 </a>
                 {% endif %}
@@ -106,7 +113,9 @@
 <div class="row">
     <div class="col">
         <h1 class="visually-hidden">{{ paste.get_title() }}</h1>
-        <article id="content" role="main">
+        <article id="content" role="main" aria-label="Paste content" aria-describedby="paste-content-description">
+            <p id="paste-content-description" class="visually-hidden">The paste content is loaded dynamically. The loading
+                status is announced below.</p>
             <noscript>
                 <p>Oop, you need Javascript to view this content.
                 {% if paste.gdrivedl.is_none() %}
@@ -115,11 +124,13 @@
                 and open it on your own computer.
                 {% endif %}
             </noscript>
-            <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin" title="content-html"></iframe>
-            <pre class="d-none text-light" id="content-text" title="content-text"></pre>
-            <pre class="d-none text-light" id="content-terminal" title="content-log"></pre>
+            <iframe class="d-none" id="content-frame" src="about:blank" sandbox="allow-same-origin"
+                aria-label="Rendered HTML paste content" title="content-html"></iframe>
+            <pre class="d-none text-light" id="content-text" aria-label="Plain text paste content" title="content-text"></pre>
+            <pre class="d-none text-light" id="content-terminal" aria-label="ANSI log paste content" title="content-log"></pre>
         </article>
-        <div class="d-none text-light" id="loader">
+        <div class="d-none text-light" id="loader" role="status" aria-live="polite" aria-atomic="true"
+            aria-label="Loading paste content">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             Loading content, please wait ... <span id="loader-result"></span>
         </div>
