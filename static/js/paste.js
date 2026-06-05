@@ -200,20 +200,38 @@
             ansi_up.escape_html = false;
             output.innerHTML = ansi_up.ansi_to_html(txt);
 
+            // Make terminal content focusable for assistive tech
+            output.setAttribute("tabindex", "0");
+            output.setAttribute("aria-hidden", "false");
+
+            document.getElementById("loader-result").textContent = "Content loaded!";
             document.getElementById("loader").classList.add("d-none");
           } else if (format == "html") {
-            document.getElementById("content-frame").srcdoc = result; // This because Safari doesn't support blobs
-            document.getElementById("content-frame").classList.remove("d-none");
+            let frame = document.getElementById("content-frame");
+            frame.srcdoc = result; // This because Safari doesn't support blobs
+            frame.classList.remove("d-none");
+
+            // Make iframe focusable for assistive tech
+            frame.setAttribute("tabindex", "0");
+            frame.setAttribute("aria-hidden", "false");
+
+            document.getElementById("loader-result").textContent = "Content loaded!";
             document.getElementById("loader").classList.add("d-none");
           } else {
-            document.getElementById("content-text").classList.remove("d-none");
+            let textEl = document.getElementById("content-text");
+            textEl.classList.remove("d-none");
 
             result = escape_html(result);
-            document.getElementById("content-text").innerHTML = result.replace(
+            textEl.innerHTML = result.replace(
               /^(.*)$/gm,
               '<span class="line">$1</span>',
             );
 
+            // Make plain text content focusable for assistive tech
+            textEl.setAttribute("tabindex", "0");
+            textEl.setAttribute("aria-hidden", "false");
+
+            document.getElementById("loader-result").textContent = "Content loaded!";
             document.getElementById("loader").classList.add("d-none");
           }
         })

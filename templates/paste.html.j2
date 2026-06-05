@@ -134,6 +134,10 @@
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             Loading content, please wait ... <span id="loader-result"></span>
         </div>
+
+        <!-- Accessible link for screen-reader users to open the raw content in a new tab -->
+        <a id="open-content" class="visually-hidden" href="{{ content_url }}" target="_blank" rel="noopener"
+           aria-label="Open paste content in a new tab">Open paste content in a new tab</a>
     </div>
 </div>
 {% endblock %}
@@ -144,5 +148,5 @@
 <input type="hidden" id="content-url" value="{{ content_url }}">
 <input type="hidden" id="encrypted" value="{{ paste.encrypted }}">
 <script src="//{{ static_domain }}/static/js/encryption.js?t=20260523"></script>
-<script src="//{{ static_domain }}/static/js/paste.js?t=20260523" type="module"></script>
+<script src="//{{ static_domain }}/static/js/paste.js?t=20260605" type="module"></script>
 {% endblock %}
