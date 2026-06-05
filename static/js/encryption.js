@@ -59,12 +59,21 @@ async function encryptContent(content, key) {
   combined.set(iv, 0);
   combined.set(new Uint8Array(encrypted), iv.length);
 
-  // Convert to base64
-  let binary = '';
-  for (let i = 0; i < combined.byteLength; i++) {
-    binary += String.fromCharCode(combined[i]);
-  }
-  return btoa(String.fromCharCode.apply(null, combined));
+  // Convert to base64 in a memory-friendly way using Blob + FileReader
+  // This avoids passing a huge number of arguments to String.fromCharCode.apply
+  const blob = new Blob([combined]);
+  const base64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result is like "data:application/octet-stream;base64,<BASE64>" - extract after the comma
+      const result = reader.result;
+      const commaIndex = result.indexOf(",");
+      resolve(result.slice(commaIndex + 1));
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+  return base64;
 }
 
 async function decryptContent(encryptedBase64, keyBase64) {
@@ -72,8 +81,18 @@ async function decryptContent(encryptedBase64, keyBase64) {
     // Import the key
     const key = await importKey(keyBase64);
 
-    // Decode from base64
-    const combined = new Uint8Array(atob(encryptedBase64).split('').map(c => c.charCodeAt(0)));
+    // Decode from base64 in a memory-friendly way by using a data URL + fetch
+    // This avoids building large intermediate strings with atob
+    const dataUrl =
+      "data:application/octet-stream;base64," + encryptedBase64;
+    let combined;
+    try {
+      const arrBuf = await (await fetch(dataUrl)).arrayBuffer();
+      combined = new Uint8Array(arrBuf);
+    } catch (e) {
+      console.error("Base64 decode failed:", e);
+      throw new Error("Failed to decode encrypted content.");
+    }
 
     // Extract IV and encrypted data
     const iv = combined.slice(0, 12);
