@@ -96,7 +96,7 @@ pub async fn csp(
     // FIXME: This is kind of messy, but it works for now
     let policy = vec![
         format!("default-src 'none'"),
-        format!("connect-src 'self' {} data:", s3_bucket_url),
+        format!("connect-src 'self' data: {}", s3_bucket_url),
         format!("form-action 'self'"),
         format!("frame-ancestors 'none'"),
         format!(
