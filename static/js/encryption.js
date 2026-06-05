@@ -1,116 +1,116 @@
 // Encryption utilities using Web Crypto API
 async function generateEncryptionKey() {
-  return await window.crypto.subtle.generateKey(
-    {
-      name: "AES-GCM",
-      length: 256
-    },
-    true,
-    ["encrypt", "decrypt"]
-  );
+    return await window.crypto.subtle.generateKey(
+        {
+            name: "AES-GCM",
+            length: 256,
+        },
+        true,
+        ["encrypt", "decrypt"],
+    );
 }
 
 async function exportKey(key) {
-  const exported = await window.crypto.subtle.exportKey("raw", key);
-  // Convert ArrayBuffer to base64
-  const bytes = new Uint8Array(exported);
-  let binary = '';
-  for (let i = 0; i < bytes.byteLength; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return btoa(binary);
+    const exported = await window.crypto.subtle.exportKey("raw", key);
+    // Convert ArrayBuffer to base64
+    const bytes = new Uint8Array(exported);
+    let binary = "";
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
 }
 
 async function importKey(base64Key) {
-  // Convert base64 to ArrayBuffer
-  const binary = atob(base64Key);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i);
-  }
+    // Convert base64 to ArrayBuffer
+    const binary = atob(base64Key);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
 
-  return await window.crypto.subtle.importKey(
-    "raw",
-    bytes,
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"]
-  );
+    return await window.crypto.subtle.importKey(
+        "raw",
+        bytes,
+        { name: "AES-GCM", length: 256 },
+        true,
+        ["encrypt", "decrypt"],
+    );
 }
 
 async function encryptContent(content, key) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(content);
+    const encoder = new TextEncoder();
+    const data = encoder.encode(content);
 
-  // Generate random IV (12 bytes for AES-GCM)
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    // Generate random IV (12 bytes for AES-GCM)
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
 
-  const encrypted = await window.crypto.subtle.encrypt(
-    {
-      name: "AES-GCM",
-      iv: iv
-    },
-    key,
-    data
-  );
+    const encrypted = await window.crypto.subtle.encrypt(
+        {
+            name: "AES-GCM",
+            iv: iv,
+        },
+        key,
+        data,
+    );
 
-  // Combine IV and encrypted content
-  const combined = new Uint8Array(iv.length + encrypted.byteLength);
-  combined.set(iv, 0);
-  combined.set(new Uint8Array(encrypted), iv.length);
+    // Combine IV and encrypted content
+    const combined = new Uint8Array(iv.length + encrypted.byteLength);
+    combined.set(iv, 0);
+    combined.set(new Uint8Array(encrypted), iv.length);
 
-  // Convert to base64 in a memory-friendly way using Blob + FileReader
-  // This avoids passing a huge number of arguments to String.fromCharCode.apply
-  const blob = new Blob([combined]);
-  const base64 = await new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      // reader.result is like "data:application/octet-stream;base64,<BASE64>" - extract after the comma
-      const result = reader.result;
-      const commaIndex = result.indexOf(",");
-      resolve(result.slice(commaIndex + 1));
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-  return base64;
+    // Convert to base64 in a memory-friendly way using Blob + FileReader
+    // This avoids passing a huge number of arguments to String.fromCharCode.apply
+    const blob = new Blob([combined]);
+    const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+            // reader.result is like "data:application/octet-stream;base64,<BASE64>" - extract after the comma
+            const result = reader.result;
+            const commaIndex = result.indexOf(",");
+            resolve(result.slice(commaIndex + 1));
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+    });
+    return base64;
 }
 
 async function decryptContent(encryptedBase64, keyBase64) {
-  try {
-    // Import the key
-    const key = await importKey(keyBase64);
-
-    // Decode from base64 in a memory-friendly way by using a data URL + fetch
-    // This avoids building large intermediate strings with atob
-    const dataUrl =
-      "data:application/octet-stream;base64," + encryptedBase64;
-    let combined;
     try {
-      const arrBuf = await (await fetch(dataUrl)).arrayBuffer();
-      combined = new Uint8Array(arrBuf);
+        // Import the key
+        const key = await importKey(keyBase64);
+
+        // Decode from base64 in a memory-friendly way by using a data URL + fetch
+        // This avoids building large intermediate strings with atob
+        const dataUrl =
+            "data:application/octet-stream;base64," + encryptedBase64;
+        let combined;
+        try {
+            const arrBuf = await (await fetch(dataUrl)).arrayBuffer();
+            combined = new Uint8Array(arrBuf);
+        } catch (e) {
+            console.error("Base64 decode failed:", e);
+            throw new Error("Failed to decode encrypted content.");
+        }
+
+        // Extract IV and encrypted data
+        const iv = combined.slice(0, 12);
+        const encrypted = combined.slice(12);
+
+        const decrypted = await window.crypto.subtle.decrypt(
+            {
+                name: "AES-GCM",
+                iv: iv,
+            },
+            key,
+            encrypted,
+        );
+
+        const decoder = new TextDecoder();
+        return decoder.decode(decrypted);
     } catch (e) {
-      console.error("Base64 decode failed:", e);
-      throw new Error("Failed to decode encrypted content.");
+        console.error("Decryption failed:", e);
+        throw new Error("Failed to decrypt content. Invalid or missing key.");
     }
-
-    // Extract IV and encrypted data
-    const iv = combined.slice(0, 12);
-    const encrypted = combined.slice(12);
-
-    const decrypted = await window.crypto.subtle.decrypt(
-      {
-        name: "AES-GCM",
-        iv: iv
-      },
-      key,
-      encrypted
-    );
-
-    const decoder = new TextDecoder();
-    return decoder.decode(decrypted);
-  } catch (e) {
-    console.error('Decryption failed:', e);
-    throw new Error('Failed to decrypt content. Invalid or missing key.');
-  }
 }
