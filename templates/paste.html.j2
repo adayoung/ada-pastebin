@@ -65,6 +65,10 @@
 
                 {% if paste.gdrivedl.is_none() %}
                 {% if !paste.encrypted %}
+                <a href="#" class="btn btn-outline-secondary btn-sm c-paste-btn" id="ask-claude" title="Ask Claude"
+                    aria-label="Ask Claude about this paste">
+                    ✨
+                </a>
                 <a href="{{ content_url }}"
                     class="btn btn-outline-secondary btn-sm c-paste-btn" id="download-btn" title="Download" aria-label="Download paste content" download>
                     <img src="//{{ static_domain }}/static/img/download.svg" height="16" width="16" alt="Download" loading="lazy" />
@@ -148,5 +152,5 @@
 <input type="hidden" id="content-url" value="{{ content_url }}">
 <input type="hidden" id="encrypted" value="{{ paste.encrypted }}">
 <script src="//{{ static_domain }}/static/js/encryption.js?t=20260605"></script>
-<script src="//{{ static_domain }}/static/js/paste.js?t=20260605" type="module"></script>
+<script src="//{{ static_domain }}/static/js/paste.js?t=20261024" type="module"></script>
 {% endblock %}

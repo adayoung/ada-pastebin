@@ -277,4 +277,18 @@
       fetchContent(contentURL);
     }
   });
+
+  const downloadBtn = document.getElementById('download-btn');
+  if (downloadBtn != null) {
+    document.getElementById('ask-claude').addEventListener('click', (e) => {
+      e.preventDefault();
+
+      const prompt = `I'd like to discuss this page with you: ${downloadBtn.href}\n\nPlease read it and give me a short summary, then I'll ask follow-up questions.`;
+      window.open(
+        'https://claude.ai/new?q=' + encodeURIComponent(prompt),
+        '_blank',
+        'noopener'
+      );
+    });
+  }
 })();
