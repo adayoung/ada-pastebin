@@ -136,6 +136,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .route("/pastebin/auth/gdrive/finish", get(gdrive::auth_finish))
         .route("/pastebin/about", get(about))
         .route("/pastebin/search/", get(search))
+        .route("/pastebin/s3-proxy/{*object_key}", get(gets3content))
         .route("/pastebinc/{paste_id}/content", get(getdrivecontent))
         .layer(CookieManagerLayer::new())
         .layer(middleware::from_fn_with_state(
@@ -342,6 +343,49 @@ async fn delpaste(
         Ok((StatusCode::OK, "/pastebin/").into_response())
     } else {
         Ok((StatusCode::SEE_OTHER, [(LOCATION, "/pastebin/")], "").into_response())
+    }
+}
+
+async fn gets3content(
+    State(state): State<Arc<runtime::AppState>>,
+    Path(object_key): Path<String>,
+) -> Result<Response, errors::PastebinError> {
+    #[cfg(not(debug_assertions))]
+    {
+        let _ = (state, object_key);
+        return Err(errors::PastebinError::Forbidden(
+            "S3 proxy is available only in debug builds".to_string(),
+        ));
+    }
+
+    #[cfg(debug_assertions)]
+    {
+        let object = s3::get(&state, &object_key)
+            .await
+            .map_err(errors::PastebinError::Storage)?;
+
+        let mut headers = HeaderMap::new();
+        headers.insert(CACHE_CONTROL, "public, max-age=15552000".parse().unwrap());
+
+        if let Some(content_disposition) = object.content_disposition() {
+            if let Ok(value) = content_disposition.parse() {
+                headers.insert(CONTENT_DISPOSITION, value);
+            }
+        }
+        if let Some(content_type) = object.content_type() {
+            if let Ok(value) = content_type.parse() {
+                headers.insert(CONTENT_TYPE, value);
+            }
+        }
+        if let Some(content_encoding) = object.content_encoding() {
+            if let Ok(value) = content_encoding.parse() {
+                headers.insert(axum::http::header::CONTENT_ENCODING, value);
+            }
+        }
+
+        let mut response = Response::new(Body::new(object.body.into_inner()));
+        *response.headers_mut() = headers;
+        Ok(response)
     }
 }
 

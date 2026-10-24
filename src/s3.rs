@@ -111,3 +111,16 @@ pub async fn delete(state: &runtime::AppState, key: &str, fake_it: bool) -> Resu
 
     Ok(())
 }
+
+pub async fn get(
+    state: &runtime::AppState,
+    key: &str,
+) -> Result<s3::operation::get_object::GetObjectOutput, String> {
+    get_client()
+        .get_object()
+        .bucket(state.config.s3_bucket.clone())
+        .key(key)
+        .send()
+        .await
+        .map_err(|err| err.to_string())
+}

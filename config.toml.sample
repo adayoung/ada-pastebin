@@ -8,7 +8,7 @@ cookie_salt="RRygt3Z*vZ6a*KPQ" # change this to some other 16 characters!
 update_views_interval=300
 cookie_secure=false # this should be true if you're on the internet!
 
-s3_bucket_url="http://localhost:3900/pastebin/"
+s3_bucket_url="http://localhost:2024/pastebin/s3-proxy/"
 s3_bucket="pastebin"
 s3_prefix="content/"
 
