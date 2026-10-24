@@ -1,4 +1,3 @@
-version: '3.8'
 services:
   app:
     build:
@@ -23,12 +22,15 @@ services:
       - .env
 
   s3:
-    image: docker.io/minio/minio:latest
+    image: dxflrs/garage:v2.4.1
     restart: unless-stopped
     volumes:
-      - s3-data:/data
+      - s3-data:/var/lib/garage
+      - ./garage.toml:/etc/garage.toml
+    env_file:
+      - .env
     network_mode: service:db
-    command: server /data --console-address ":9001"
+    command: /garage server --single-node --default-bucket
 
 volumes:
   postgres-data:
