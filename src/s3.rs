@@ -112,6 +112,7 @@ pub async fn delete(state: &runtime::AppState, key: &str, fake_it: bool) -> Resu
     Ok(())
 }
 
+#[cfg(debug_assertions)]
 pub async fn get(
     state: &runtime::AppState,
     key: &str,
