@@ -104,3 +104,70 @@ article div#content-terminal {
     filter: invert(92%) sepia(93%) saturate(0%) hue-rotate(202deg)
         brightness(106%) contrast(106%);
 }
+
+#ask-claude {
+    position: relative;
+}
+
+#ask-claude:hover,
+#ask-claude:focus-visible {
+    animation: claude-wiggle 500ms ease-in-out;
+    border-color: #ffd76a;
+    color: #ffd76a;
+    filter: none;
+}
+
+#ask-claude:hover::after,
+#ask-claude:focus-visible::after {
+    content: "✦";
+    position: absolute;
+    top: -0.65rem;
+    right: -0.35rem;
+    color: #ffd76a;
+    font-size: 0.75rem;
+    line-height: 1;
+    pointer-events: none;
+    animation: claude-sparkle 650ms ease-in-out infinite alternate;
+}
+
+@keyframes claude-wiggle {
+
+    0%,
+    100% {
+        transform: rotate(0);
+    }
+
+    25% {
+        transform: rotate(-10deg);
+    }
+
+    50% {
+        transform: rotate(8deg);
+    }
+
+    75% {
+        transform: rotate(-5deg);
+    }
+}
+
+@keyframes claude-sparkle {
+    from {
+        opacity: 0.35;
+        transform: scale(0.75) rotate(-15deg);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1.2) rotate(15deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    #ask-claude:hover,
+    #ask-claude:focus-visible,
+    #ask-claude:hover::after,
+    #ask-claude:focus-visible::after {
+        animation: none;
+    }
+}
