@@ -8,9 +8,9 @@
 	"workspaceFolder": "/workspaces/${localWorkspaceFolderBasename}",
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
-	// "features": {
-	// 	"ghcr.io/devcontainers/features/rust:1": {}
-	// },
+	"features": {
+		"ghcr.io/devcontainers/features/aws-cli:1": {}
+	},
 
 	// Configure tool-specific properties.
 	"customizations": {
@@ -21,7 +21,8 @@
 				"editor.formatOnSaveMode": "modifications",
 				"files.insertFinalNewline": true,
 				"files.trimFinalNewlines": true,
-				"files.trimTrailingWhitespace": true
+				"files.trimTrailingWhitespace": true,
+				"aws.telemetry": false
 			},
 			"extensions": [
 				"streetsidesoftware.code-spell-checker",
@@ -36,9 +37,7 @@
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
 	"forwardPorts": [
-		2024, // Pastebin
-		9000, // MinIO API
-		9001 // MinIO Console
+		2024 // Pastebin
 	],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
