@@ -24,9 +24,9 @@ Building and running the thing has a few requirements:
 * Let the thing wriggle and build for a bit! It takes a while for the first time
 * Copy config.toml.sample to a file called config.toml
 * The codespace domain for port 2024 goes in `allowed_domains` and `static_domain` in config.toml
-* The codespace address+`pastebin/` for port 9000 goes in `s3_bucket_url` in config.toml
+* The codespace address for port 2024 followed by `pastebin/s3-proxy/` goes in `s3_bucket_url` in config.toml
 * Open the terminal and type `make check`, and then `make run`
-* Make the forward address for port 9000 public in the codespace
+* Make the forward address for port 2024 public in the codespace
 * Open the address for the forwarded port 2024 in your browser!
 * Tada! You have a working pastebin!
 
