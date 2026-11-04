@@ -150,6 +150,7 @@ async fn main() -> Result<(), anyhow::Error> {
         .layer(TraceLayer::new_for_http())
         .route("/", get(|| async { Redirect::permanent("/pastebin/") }))
         .route("/static/{*path}", get(static_files::handler))
+        .route("/llms.txt", get(llms))
         .route("/robots.txt", get(robots))
         .route("/health", get(health))
         .fallback(notfound)
@@ -500,6 +501,15 @@ async fn robots() -> impl IntoResponse {
     (
         StatusCode::OK,
         "User-agent: *\nDisallow: /*/content\nAllow: /",
+    )
+        .into_response()
+}
+
+async fn llms() -> impl IntoResponse {
+    (
+        StatusCode::OK,
+        [(CONTENT_TYPE, "text/plain; charset=utf-8")],
+        include_str!("../static/llms.txt"),
     )
         .into_response()
 }

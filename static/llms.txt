@@ -1,0 +1,9 @@
+# ada-pastebin
+
+> A pastebin-style service. Paste pages render their content dynamically.
+
+## Paste content
+
+- To retrieve a paste's actual content, follow the page's `Download` link (`#download-btn`) or `Open paste content` link (`#open-content`). Fetch the linked URL; the rendered paste page is not the raw content.
+- The raw-content URL is specific to each paste and may be hosted outside this site. Use the link provided by the paste page rather than constructing a URL.
+- Some paste types, including encrypted pastes, may not expose a downloadable raw-content link.
