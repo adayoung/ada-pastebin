@@ -21,6 +21,10 @@ use std::sync::OnceLock;
 use tokio::time::{sleep, Duration};
 use tracing::error;
 
+/// Views this instance has seen since it last flushed to Postgres, keyed by paste_id.
+///
+/// These are deltas rather than totals. Each instance only reports what it counted
+/// itself and Postgres does the adding up, so any number of instances can run side by side.
 static COUNTER: OnceLock<HashMap<String, i64>> = OnceLock::new();
 fn counter() -> &'static HashMap<String, i64> {
     COUNTER.get_or_init(HashMap::new)
@@ -487,33 +491,33 @@ impl Paste {
     }
 
     pub async fn get_views(&self) -> i64 {
-        *counter()
+        // self.views is what Postgres had when this request loaded the paste, and the
+        // counter holds this instance's views since its last flush (including this one).
+        // Other instances' unflushed views show up after their next flush.
+        let pending = *counter()
             .entry_async(self.paste_id.clone()).await
             .and_modify(|c| *c += 1)
-            .or_insert_with(|| self.views + 1)
+            .or_insert(1);
+        self.views + pending
     }
+}
 
-    async fn save_views(&self, db: &PgPool, views: i64) {
-        let now = Utc::now();
-        match query!(
-            r#"
-            UPDATE pastebin
-            SET views = $1, last_seen = $2
-            WHERE paste_id = $3
-            "#,
-            views,
-            now,
-            self.paste_id
-        )
-        .execute(db)
-        .await
-        {
-            Ok(_) => {}
-            Err(err) => {
-                error!("Failed to save views: {}", err);
-            }
-        }
-    }
+/// Adds `views` to a paste's stored total. A paste that has been deleted matches zero rows.
+async fn save_views(db: &PgPool, paste_id: &str, views: i64) -> Result<(), sqlx::Error> {
+    let now = Utc::now();
+    query!(
+        r#"
+        UPDATE pastebin
+        SET views = views + $1, last_seen = $2
+        WHERE paste_id = $3
+        "#,
+        views,
+        now,
+        paste_id
+    )
+    .execute(db)
+    .await?;
+    Ok(())
 }
 
 pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
@@ -522,27 +526,30 @@ pub async fn update_views(state: &runtime::AppState, do_sleep: bool) {
             sleep(Duration::from_secs(state.config.update_views_interval)).await;
         }
 
-        let mut items: Vec<(String, i64)> = Vec::new();
-        counter().iter_async(|key, value| {
-            items.push((key.clone(), *value));
+        let mut paste_ids: Vec<String> = Vec::new();
+        counter().iter_async(|key, _| {
+            paste_ids.push(key.clone());
             true
         }).await;
 
-        for (paste_id, views) in items.iter() {
-            match Paste::get(&state.db, paste_id).await {
-                Ok(paste) => {
-                    paste.save_views(&state.db, *views).await;
-                },
-                Err(err) => match err {
-                    PastebinError::NotFound(_) => {},
-                    _ => {
-                        error!("Failed to fetch paste for updating views: {}", paste_id);
-                    }
-                },
+        for paste_id in paste_ids {
+            // Take the count out of the map *before* writing it. Views that arrive while
+            // the write is in flight start a fresh entry instead of being wiped by a clear().
+            let Some((_, views)) = counter().remove_async(&paste_id).await else {
+                continue;
             };
+
+            if let Err(err) = save_views(&state.db, &paste_id, views).await {
+                error!("Failed to save {} view(s) for {}: {}", views, paste_id, err);
+                // Put them back so they get another go on the next round.
+                counter()
+                    .entry_async(paste_id)
+                    .await
+                    .and_modify(|c| *c += views)
+                    .or_insert(views);
+            }
         }
 
-        counter().clear_async().await;
         if !do_sleep {
             break;
         }

@@ -78,8 +78,6 @@ async fn main() -> Result<(), anyhow::Error> {
         );
     });
 
-    tokio::spawn(api::reset_api());
-
     let shutdown_state = shared_state.clone();
     tokio::spawn(async move {
         runtime::shutdown_signal().await;
