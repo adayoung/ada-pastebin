@@ -8,27 +8,14 @@ use axum::extract::{Json as JsonForm, Path, State};
 use axum_extra::{TypedHeader, headers::Host};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Json, Response};
-use chrono::Utc;
-use scc::HashMap;
 use serde::Serialize;
 use sqlx::Error::RowNotFound;
 use sqlx::{query, query_scalar};
 use std::sync::Arc;
-use std::sync::OnceLock;
-use tokio::time::{sleep, Duration};
 use tower_cookies::Cookies;
 use tracing::{error, warn};
 
-const DAILY_LIMIT: u8 = 50; // we allow 50 requests per user per day
-
-struct RateLimit {
-    daily_count: u8,
-}
-
-static API_LIMITS: OnceLock<HashMap<String, RateLimit>> = OnceLock::new();
-fn api_limits() -> &'static HashMap<String, RateLimit> {
-    API_LIMITS.get_or_init(HashMap::new)
-}
+const DAILY_LIMIT: u8 = 50; // we allow 50 pastes per user per day
 
 async fn get_count(state: &Arc<runtime::AppState>, user_id: &str) -> u8 {
     let count: i64 = match query_scalar!(
@@ -45,17 +32,10 @@ async fn get_count(state: &Arc<runtime::AppState>, user_id: &str) -> u8 {
     count.clamp(0, u8::MAX as i64) as u8
 }
 
+/// Postgres is the source of truth for the daily count (there's a user_id/date index
+/// for it), so the limit holds no matter how many instances are running.
 async fn rate_limited(state: &Arc<runtime::AppState>, user_id: &str) -> bool {
-    let limit = api_limits()
-        .entry_async(user_id.to_string()).await
-        .and_modify(|l| {
-            l.daily_count += 1;
-        })
-        .or_insert(RateLimit {
-            daily_count: get_count(state, user_id).await,
-        });
-
-    limit.daily_count >= DAILY_LIMIT
+    get_count(state, user_id).await >= DAILY_LIMIT
 }
 
 #[derive(Serialize)]
@@ -192,20 +172,6 @@ pub async fn delete(
             paste_id,
         }),
     ).into_response())
-}
-
-pub async fn reset_api() {
-    loop {
-        let now = Utc::now();
-        if let Some(next_midnight) = now.date_naive().succ_opt()
-            .and_then(|d| d.and_hms_opt(0, 0, 0)) {
-            let duration = (next_midnight - now.naive_utc())
-                .to_std()
-                .unwrap_or(Duration::from_secs(3600));
-            sleep(duration).await;
-            api_limits().clear_async().await;
-        }
-    }
 }
 
 pub async fn about(
